@@ -35,6 +35,12 @@
  #joy{position:fixed;z-index:6;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid rgba(140,180,255,.35);background:radial-gradient(circle,rgba(40,60,110,.28),rgba(20,30,60,.12));pointer-events:none}
  #joy.off{display:none}
  #joyThumb{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(143,208,255,.5);box-shadow:0 0 16px rgba(53,180,255,.55);transform:translate(-50%,-50%)}
+ #rotate{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(10,14,30,.9),#03040a);text-align:center}
+ #rotate.on{display:flex}
+ #rotate .ph{width:58px;height:96px;border:3px solid #8fd0ff;border-radius:12px;margin-bottom:24px;box-shadow:0 0 26px rgba(53,180,255,.4);transform-origin:center;animation:rot 2s ease-in-out infinite}
+ @keyframes rot{0%,38%{transform:rotate(0)}62%,100%{transform:rotate(-90deg)}}
+ #rotate .t{font-size:16px;letter-spacing:2.5px;color:#eaf1ff;font-weight:800}
+ #rotate .s{font-size:12px;color:#93a0c4;margin-top:9px;letter-spacing:1px}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -43,6 +49,7 @@
 <div id="vig"></div>
 <div class="credit">ACCRETION · prototype 0.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
+<div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
 <div class="center" id="start">
  <div class="big">ACC<span class="a">RETION</span></div>
@@ -237,7 +244,7 @@ function topUp(){const want=Math.min(52,34+Math.floor(S.mass*0.4))
 
 /* ===== core update ===== */
 function update(dt){
- if(!S.alive)return
+ if(!S.alive||orientPaused)return // 세로(모바일)면 일시정지 — 증발 안 되게
  S.t+=dt
  // 호킹 복사: 상시 증발, 작을수록 빠름
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))
@@ -350,7 +357,12 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.boom()
  $('overStat').innerHTML='PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · <b>'+S.t.toFixed(1)+'s</b>'
  $('over').classList.remove('off')}
 $('startBtn').onclick=begin;$('retryBtn').onclick=begin
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight)})
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
+// 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
+let orientPaused=false
+function checkOrient(){const coarse=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window);const need=coarse&&innerHeight>innerWidth
+ $('rotate').classList.toggle('on',need);orientPaused=need}
+addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrient()
 
 /* ===== DEV hooks (?dev=1) ===== */
 if(DEV){window.__acc={
