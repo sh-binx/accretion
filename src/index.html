@@ -65,6 +65,16 @@
  .brow .bs{width:90px;flex-shrink:0;text-align:right;color:#8fd0ff;font-weight:800;font-variant-numeric:tabular-nums}
  .brow.me{background:rgba(255,207,74,.14);box-shadow:inset 0 0 0 1px rgba(255,207,74,.4)}
  .brow.me .bn{color:#ffcf4a}
+ /* ===== tier zone wash + surge ability ===== */
+ #zone{position:fixed;inset:0;z-index:2;pointer-events:none;transition:box-shadow 1.6s ease;box-shadow:inset 0 0 320px 60px rgba(40,80,200,.20)}
+ #surge{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:7;display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:auto;cursor:pointer;user-select:none}
+ #surge.on{display:flex}
+ #surge .track{width:180px;height:8px;border-radius:5px;background:rgba(120,150,220,.14);overflow:hidden;border:1px solid rgba(120,150,220,.2)}
+ #surge .fill{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#35a0ff,#8fd0ff);transition:width .12s}
+ #surge .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
+ #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
+ #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
+ @keyframes sp{0%,100%{opacity:.55}50%{opacity:1}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -74,7 +84,9 @@
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
-<div class="credit">ACCRETION · prototype 0.3</div>
+<div id="zone"></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div class="credit">ACCRETION · prototype 0.4</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -129,7 +141,7 @@ scene.fog=new THREE.FogExp2(0x05060f,0.0016)
 const cam=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,0.1,8000)
 cam.position.set(0,44,34);cam.lookAt(0,0,0)
 
-scene.add(new THREE.HemisphereLight(0x9fc0ff,0x0a0f1e,0.5))
+const hemiLight=new THREE.HemisphereLight(0x9fc0ff,0x0a0f1e,0.5);scene.add(hemiLight)
 const key=new THREE.DirectionalLight(0xfff0dc,0.6);key.position.set(-8,18,10);scene.add(key)
 const cool=new THREE.DirectionalLight(0x4a7bff,0.4);cool.position.set(10,6,-8);scene.add(cool)
 
@@ -268,10 +280,11 @@ const AU={ac:null,master:null,amb:[],muted:false,
  boom(){this.tone(58,.7,'sawtooth',.1,22);this.noise(.5,.08)},
  evap(){this.tone(420,.9,'sine',.06,38);this.noise(.7,.045)},
  ui(){this.tone(560,.08,'sine',.035,760)},
+ surge(){this.tone(150,.5,'sawtooth',.06,880);this.tone(280,.4,'sine',.045,1500,.02);this.noise(.32,.06)}, // 상승 휘익 = 슬링샷 가속
  toggleMute(){this.muted=!this.muted;if(this.master)this.master.gain.value=this.muted?0:0.85;if(this.muted)this.stopAmbient();else if(typeof S!=='undefined'&&S.alive)this.startAmbient();return this.muted}}
 
 /* ===== state ===== */
-const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4}
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0}
 const TIERS=[{n:'STELLAR-MASS',max:8},{n:'INTERMEDIATE',max:40},{n:'SUPERMASSIVE',max:1e9}]
 function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;return TIERS.length-1}
 
@@ -347,13 +360,15 @@ function update(dt){
  S.mass=Math.max(0,S.mass-shrink*dt)
  if(S.mass<=S.evapFloor){return gameOver('evaporated')}
  // 이동(관성 활공)
- const st=steer(),maxSpd=22/(1+S.mass*0.010) // 관성 활공 — 입력 방향으로 가속, 놓으면 감속(무게감)
+ if(S.surgeT>0)S.surgeT-=dt
+ const surging=S.surgeT>0
+ const st=steer(),maxSpd=(22/(1+S.mass*0.010))*(surging?2.3:1) // 관성 활공 — 입력 방향 가속·놓으면 감속(서지 시 강가속)
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
  const hr=rad(S.mass);hole.scale.setScalar(hr)
  hole.userData.disk.rotation.z+=dt*1.2
- const mouth=hr*1.7
+ const mouth=hr*1.7*(surging?1.6:1) // 서지 중 포식 반경 확대(사냥)
  // 객체 처리
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
   if(o.eaten){o.g.position.lerp(hole.position,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
@@ -375,7 +390,7 @@ function update(dt){
   // 상호작용
   if(edible&&d<mouth+o.r*0.4){ // 먹기
    S.combo=(performance.now()-S.comboAt<1400)?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo)
-   S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35
+   S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+0.09) // 먹으면 서지 충전
    S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)) // 콤보 배수 점수
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
@@ -391,8 +406,9 @@ function update(dt){
  topUp()
  // 티어업
  const ti=tierOf(S.mass)
- if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1)}
+ if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1);$('zone').style.boxShadow=ZONES[Math.max(0,ti)].fx}
  S.tierIdx=ti
+ applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 증발 경고
  S.warnT-=dt
  const danger=S.mass<S.evapFloor*2.0
@@ -429,7 +445,7 @@ function render(){
  const p=hole.position.clone().project(cam)
  lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
  const hr=rad(S.mass)
- lensMat.uniforms.uStrength.value=0.010+Math.min(0.09,hr*0.014)
+ lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens
  lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)
  lensMat.uniforms.uAspect.value=innerWidth/innerHeight
  renderer.autoClear=true;renderer.render(postScene,postCam)
@@ -449,6 +465,10 @@ function hud(){
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
  if(performance.now()>banT)$('banner').style.opacity=0
  if(performance.now()>codexT)$('codex').classList.remove('on')
+ const su=$('surge');su.classList.toggle('on',S.alive)
+ $('surgeFill').style.width=(S.energy*100)+'%'
+ const ready=S.energy>=1;su.classList.toggle('ready',ready)
+ $('surgeLab').textContent=ready?(COARSE?'⚡ TAP TO SURGE':'⚡ SURGE · SPACE'):'⚡ SURGE'
 }
 
 /* ===== loop ===== */
@@ -457,6 +477,28 @@ function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  update(dt);updateParticles(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
+
+/* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
+const ZONES=[
+ {fog:new THREE.Color(0x05060f),hemi:new THREE.Color(0x9fc0ff),lens:1.0,fx:'inset 0 0 320px 60px rgba(40,80,200,.20)'},   // STELLAR — 청
+ {fog:new THREE.Color(0x0b0718),hemi:new THREE.Color(0xb89cff),lens:1.18,fx:'inset 0 0 320px 72px rgba(150,70,255,.24)'}, // INTERMEDIATE — 보라
+ {fog:new THREE.Color(0x140b06),hemi:new THREE.Color(0xffd39a),lens:1.4,fx:'inset 0 0 340px 92px rgba(255,180,60,.26)'}    // SUPERMASSIVE — 금
+]
+let zoneLens=1.0
+function setZoneInstant(ti){const z=ZONES[Math.max(0,ti)];scene.fog.color.copy(z.fog);hemiLight.color.copy(z.hemi);zoneLens=z.lens;$('zone').style.boxShadow=z.fx}
+function applyZone(dt){const z=ZONES[Math.max(0,S.tierIdx)],k=Math.min(1,dt*0.7)
+ scene.fog.color.lerp(z.fog,k);hemiLight.color.lerp(z.hemi,k);zoneLens+=(z.lens-zoneLens)*k}
+const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
+// 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
+function doSurge(){
+ if(!S.alive||S.surgeT>0||S.energy<1)return
+ S.energy=0;S.surgeT=0.9
+ const st=steer();let dx=st.x,dz=st.z
+ if(st.mag<0.05){const vl=Math.hypot(S.vx,S.vz);if(vl>0.2){dx=S.vx/vl;dz=S.vz/vl}else dz=-1} // 입력 없으면 진행방향(정지면 화면 위)
+ const l=Math.hypot(dx,dz)||1;S.vx+=dx/l*26;S.vz+=dz/l*26 // 임펄스
+ S.shake=Math.min(S.shake+0.6,1.3);AU.surge();banner('⚡ SLINGSHOT','gravity assist — lunge')
+ eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16)
+}
 
 /* ===== leaderboard (Supabase · 삽입은 Edge Function 경유·읽기는 RLS 공개) ===== */
 const LB={
@@ -492,7 +534,8 @@ function closeBoard(){$('board').classList.add('off')}
 /* ===== flow ===== */
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles()
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0})
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0})
+ setZoneInstant(0) // 존 팔레트 초기화(청)
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient()
@@ -520,9 +563,10 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
 $('startBtn').onclick=begin;$('retryBtn').onclick=begin
 $('startBoard').onclick=openBoard;$('overBoard').onclick=openBoard
 $('boardPlay').onclick=begin;$('boardClose').onclick=closeBoard
+$('surge').onclick=doSurge // 모바일/클릭 발동(PC는 Space)
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge()})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -532,7 +576,9 @@ addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrien
 
 /* ===== DEV hooks (?dev=1) ===== */
 if(DEV){window.__acc={
- get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo,comboMax:S.comboMax,score:S.score,parts:particles.length,amb:AU.amb.length,muted:AU.muted}},
+ get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo,comboMax:S.comboMax,score:S.score,parts:particles.length,amb:AU.amb.length,muted:AU.muted,energy:Math.round(S.energy*100)/100,surging:S.surgeT>0}},
+ doSurge,setEnergy:v=>{S.energy=v},surgeReady:()=>$('surge').classList.contains('ready'),
+ zoneLens:()=>Math.round(zoneLens*100)/100,fogHex:()=>scene.fog.color.getHexString(),
  begin,gameOver:()=>gameOver('evaporated'),
  setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
