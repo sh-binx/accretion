@@ -86,7 +86,7 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.4.1</div>
+<div class="credit">ACCRETION · prototype 0.4.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -343,12 +343,11 @@ function codexToast(type){if(SEEN.has(type))return;SEEN.add(type)
 function topUp(){const want=Math.min(52,34+Math.floor(S.mass*0.4))
  while(objects.length<want){
   const roll=Math.random()
-  // 질량은 플레이어 기준 상대 분포: 다수 식량(작음) + 소수 위협(큼)
+  // 컨셉: 비-라이벌은 전부 '먹이'(크기별 rock/planet/star, 항상 내 질량보다 작게) · 위협축은 라이벌 블랙홀 하나
   let mass,type
-  if(roll<0.52){mass=S.mass*rnd(0.14,0.85);type=mass<1.2?'rock':(mass<6?'planet':'star')}             // 식량(암석·행성·별)
-  else if(roll<0.68){mass=S.mass*rnd(0.35,0.8);type=Math.random()<0.4?'pulsar':'neutron'}             // 밀집 천체(작지만 알참)
-  else if(roll<0.88){mass=S.mass*rnd(0.9,1.5);type=mass<8?'planet':'star'}                             // 비슷/약간 큼(성장하면 식량)
-  else{mass=S.mass*rnd(0.7,2.4);type='rival'}                                                          // 라이벌 블랙홀(AI: 크면 추격/작으면 도망)
+  if(roll<0.66){mass=S.mass*rnd(0.12,0.82);type=mass<0.5?'rock':(mass<7?'planet':'star')}              // 식량(암석·행성·별) — 크기별, 전부 먹을 수 있음
+  else if(roll<0.82){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}               // 밀집 천체(먹이·시각 다양성)
+  else{mass=S.mass*rnd(0.6,1.9);type='rival'}                                                          // 라이벌 블랙홀 = 유일한 위협(작으면 먹이·크면 사망)
   spawnObj(type,Math.max(0.2,mass))}}
 
 /* ===== core update ===== */
@@ -588,6 +587,7 @@ if(DEV){window.__acc={
  spawnTagged:(mass,x,z)=>{spawnObj('planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  seen:()=>[...SEEN],types:()=>objects.map(o=>o.type),
+ objInfo:()=>objects.map(o=>({t:o.type,edible:o.mass<S.mass})),
  codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
