@@ -32,6 +32,9 @@
  #vig{position:fixed;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 200px 40px rgba(255,60,80,0);transition:box-shadow .12s}
  .pop{position:fixed;z-index:5;pointer-events:none;font-weight:800;font-size:14px;color:#7bed4a;text-shadow:0 0 8px rgba(0,0,0,.8);transform:translate(-50%,-50%)}
  .credit{position:fixed;bottom:10px;left:16px;z-index:5;font-size:10px;color:#4a5474;letter-spacing:1px;pointer-events:none}
+ #joy{position:fixed;z-index:6;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid rgba(140,180,255,.35);background:radial-gradient(circle,rgba(40,60,110,.28),rgba(20,30,60,.12));pointer-events:none}
+ #joy.off{display:none}
+ #joyThumb{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(143,208,255,.5);box-shadow:0 0 16px rgba(53,180,255,.55);transform:translate(-50%,-50%)}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -39,13 +42,14 @@
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
 <div class="credit">ACCRETION · prototype 0.1</div>
+<div id="joy" class="off"><div id="joyThumb"></div></div>
 
 <div class="center" id="start">
  <div class="big">ACC<span class="a">RETION</span></div>
  <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
  <div class="msg">You are a black hole. Glide to swallow smaller bodies and grow — but you constantly <b style="color:#ff9a3c">evaporate</b> (Hawking radiation). Smaller = faster fade. Avoid larger black holes: they eat you.</div>
  <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
- <div class="stat">move: mouse / drag</div>
+ <div class="stat">PC: <b>WASD</b> · <b>← ↑ → ↓</b> · mouse &nbsp;|&nbsp; mobile: <b>drag to steer</b></div>
 </div>
 
 <div class="center off" id="over">
@@ -186,12 +190,32 @@ const TIERS=[{n:'STELLAR-MASS',max:8},{n:'INTERMEDIATE',max:40},{n:'SUPERMASSIVE
 function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;return TIERS.length-1}
 
 /* ===== input ===== */
+// PC=WASD/화살표 or 마우스 폴백 · 모바일=플로팅 조이스틱. 우선순위 keys > joystick > mouse
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0)
-const target=new THREE.Vector3(0,0,0);let hasTarget=false
-function setPointer(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);hasTarget=true}}
-addEventListener('mousemove',e=>setPointer(e.clientX,e.clientY))
-addEventListener('touchmove',e=>{if(e.touches[0]){setPointer(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault()}},{passive:false})
-addEventListener('touchstart',e=>{if(e.touches[0])setPointer(e.touches[0].clientX,e.touches[0].clientY)})
+const target=new THREE.Vector3(0,0,0);let mouseActive=false
+const keys={}
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=1;if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k))e.preventDefault()})
+addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=0})
+function setMouse(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);mouseActive=true}}
+addEventListener('mousemove',e=>setMouse(e.clientX,e.clientY))
+const joyEl=$('joy'),joyThumb=$('joyThumb'),JOYR=52
+let joyOn=false,joyOx=0,joyOy=0,joyX=0,joyZ=0,joyMag=0
+function joyStart(t){joyOx=t.clientX;joyOy=t.clientY;joyEl.style.left=t.clientX+'px';joyEl.style.top=t.clientY+'px';joyEl.classList.remove('off');joyThumb.style.transform='translate(-50%,-50%)';joyOn=true}
+function joyMove(t){if(!joyOn)return;const ox=t.clientX-joyOx,oy=t.clientY-joyOy,len=Math.hypot(ox,oy)||1,cl=Math.min(len,JOYR)
+ joyThumb.style.transform='translate(calc(-50% + '+(ox/len*cl)+'px),calc(-50% + '+(oy/len*cl)+'px))'
+ joyX=ox/len;joyZ=oy/len;joyMag=Math.min(len/JOYR,1)}
+function joyEnd(){joyOn=false;joyMag=0;joyEl.classList.add('off')}
+addEventListener('touchstart',e=>{if(e.touches[0]){joyStart(e.touches[0]);e.preventDefault()}},{passive:false})
+addEventListener('touchmove',e=>{if(e.touches[0]){joyMove(e.touches[0]);e.preventDefault()}},{passive:false})
+addEventListener('touchend',e=>{if(!e.touches.length)joyEnd()});addEventListener('touchcancel',joyEnd)
+function steer(){
+ const kx=((keys['d']||keys['arrowright'])?1:0)-((keys['a']||keys['arrowleft'])?1:0)
+ const kz=((keys['s']||keys['arrowdown'])?1:0)-((keys['w']||keys['arrowup'])?1:0)
+ if(kx||kz){const l=Math.hypot(kx,kz);return {x:kx/l,z:kz/l,mag:1}}          // 방향키 우선(월드 -z=화면 위)
+ if(joyOn&&joyMag>0.06)return {x:joyX,z:joyZ,mag:joyMag}                       // 조이스틱
+ if(mouseActive){const dx=target.x-hole.position.x,dz=target.z-hole.position.z,d=Math.hypot(dx,dz);if(d>0.5)return {x:dx/d,z:dz/d,mag:Math.min(1,d/7)}} // 마우스 폴백
+ return {x:0,z:0,mag:0}
+}
 
 /* ===== popups / banners ===== */
 function popup(worldPos,txt,color){const v=worldPos.clone().project(cam);const el=document.createElement('div');el.className='pop';el.textContent=txt;el.style.color=color||'#7bed4a'
@@ -220,9 +244,8 @@ function update(dt){
  S.mass=Math.max(0,S.mass-shrink*dt)
  if(S.mass<=S.evapFloor){return gameOver('evaporated')}
  // 이동(관성 활공)
- if(hasTarget){const dx=target.x-hole.position.x,dz=target.z-hole.position.z,d=Math.hypot(dx,dz)||1
-  const maxSpd=24/(1+S.mass*0.012),des=Math.min(1,d/6)*maxSpd
-  S.vx+=((dx/d*des)-S.vx)*Math.min(1,dt*4.5);S.vz+=((dz/d*des)-S.vz)*Math.min(1,dt*4.5)}
+ const st=steer(),maxSpd=22/(1+S.mass*0.010) // 관성 활공 — 입력 방향으로 가속, 놓으면 감속(무게감)
+ S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
  const hr=rad(S.mass);hole.scale.setScalar(hr)
@@ -313,7 +336,7 @@ requestAnimationFrame(frame)
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o)
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,shake:0,warnT:0,tierIdx:0})
- hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);hasTarget=false
+ hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp()
  $('start').classList.add('off');$('over').classList.add('off')}
@@ -333,9 +356,10 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspe
 if(DEV){window.__acc={
  get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo}},
  begin,gameOver:()=>gameOver('evaporated'),
- setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);hasTarget=true},
+ setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
+ pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
- eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);hasTarget=true;return best.mass}return null},
+ eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}}
