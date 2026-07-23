@@ -6,7 +6,7 @@
 
 ## 실행
 ```bash
-sh scripts/serve.sh src      # 3040–3044 중 첫 빈 포트로 정적 서버 (보통 http://localhost:3040)
+sh scripts/serve.sh          # 3040–3044 중 첫 빈 포트로 정적 서버 (게임=repo root, 보통 http://localhost:3040)
 ```
 
 | 용도 | 포트 | 비고 |

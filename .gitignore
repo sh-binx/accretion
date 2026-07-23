@@ -6,5 +6,5 @@ scratchpad/
 .env
 .env.*
 
-proto-*.png
-accretion-shot-*.png
+# 루트 스크린샷/검증 잔재(게임 자산 아님 — 텍스처는 절차적 생성)
+/*.png
