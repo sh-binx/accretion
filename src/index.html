@@ -48,6 +48,23 @@
  @keyframes rot{0%,38%{transform:rotate(0)}62%,100%{transform:rotate(-90deg)}}
  #rotate .t{font-size:16px;letter-spacing:2.5px;color:#eaf1ff;font-weight:800}
  #rotate .s{font-size:12px;color:#93a0c4;margin-top:9px;letter-spacing:1px}
+ /* ===== name + leaderboard ===== */
+ .namerow{display:flex;align-items:center;gap:10px;margin-top:20px}
+ .namerow .nlab{font-size:10px;letter-spacing:2px;color:#7c88ad}
+ #pname{pointer-events:auto;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:700;letter-spacing:1px;color:#eaf1ff;background:rgba(120,150,220,.1);border:1px solid rgba(120,150,220,.3);border-radius:8px;padding:8px 12px;width:180px;text-align:center;text-transform:uppercase}
+ #pname:focus{outline:none;border-color:#8fd0ff;box-shadow:0 0 14px rgba(53,180,255,.35)}
+ .linkbtn{margin-top:16px;pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:1.5px;color:#ffcf4a;background:none;border:0;opacity:.85}
+ .linkbtn:hover{opacity:1;text-shadow:0 0 12px rgba(255,207,74,.5)}
+ .rankline{font-size:14px;color:#ffcf4a;margin-top:12px;letter-spacing:1px;min-height:18px}.rankline b{color:#fff;font-size:17px}
+ #boardList{width:min(440px,88vw);max-height:46vh;overflow-y:auto;margin:18px 0 8px;display:flex;flex-direction:column;gap:3px}
+ #boardList::-webkit-scrollbar{width:6px}#boardList::-webkit-scrollbar-thumb{background:rgba(120,150,220,.3);border-radius:3px}
+ .brow{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;background:rgba(120,150,220,.06);font-size:13px}
+ .brow .br{width:34px;flex-shrink:0;color:#7c88ad;font-weight:700;text-align:center}
+ .brow .bn{flex:1;text-align:left;color:#eaf1ff;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+ .brow .bt{font-size:9px;letter-spacing:1px;color:#93a0c4;flex-shrink:0}
+ .brow .bs{width:90px;flex-shrink:0;text-align:right;color:#8fd0ff;font-weight:800;font-variant-numeric:tabular-nums}
+ .brow.me{background:rgba(255,207,74,.14);box-shadow:inset 0 0 0 1px rgba(255,207,74,.4)}
+ .brow.me .bn{color:#ffcf4a}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -57,7 +74,7 @@
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
-<div class="credit">ACCRETION · prototype 0.2</div>
+<div class="credit">ACCRETION · prototype 0.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -65,15 +82,29 @@
  <div class="big">ACC<span class="a">RETION</span></div>
  <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
  <div class="msg">You are a black hole. Glide to swallow smaller bodies and grow — but you constantly <b style="color:#ff9a3c">evaporate</b> (Hawking radiation). Smaller = faster fade. Avoid larger black holes: they eat you.</div>
+ <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
  <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
  <div class="stat">PC: <b>WASD</b> · <b>← ↑ → ↓</b> · mouse &nbsp;|&nbsp; mobile: <b>drag to steer</b></div>
+ <button class="linkbtn" id="startBoard">🏆 GLOBAL LEADERBOARD</button>
 </div>
 
 <div class="center off" id="over">
  <div class="big" id="overTitle" style="color:#ff5d6c;text-shadow:0 0 34px rgba(255,93,108,.6)">COLLAPSED</div>
  <div class="msg" id="overMsg"></div>
  <div class="stat" id="overStat"></div>
+ <div class="rankline" id="rankline"></div>
  <button class="btn" id="retryBtn" style="background:#ffcf4a;box-shadow:0 0 26px rgba(255,207,74,.5)">▶ AGAIN</button>
+ <button class="linkbtn" id="overBoard">🏆 LEADERBOARD</button>
+</div>
+
+<div class="center off" id="board">
+ <div class="big" style="font-size:clamp(24px,5vw,40px)">LEADER<span class="a">BOARD</span></div>
+ <div class="tagline" id="boardSub">GLOBAL · TOP 100</div>
+ <div id="boardList"></div>
+ <div style="display:flex;gap:12px;margin-top:4px">
+  <button class="btn" id="boardPlay" style="margin-top:0">▶ PLAY</button>
+  <button class="btn" id="boardClose" style="margin-top:0;background:transparent;color:#8fd0ff;box-shadow:none;border:1px solid rgba(143,208,255,.4)">CLOSE</button>
+ </div>
 </div>
 
 <script src="three.min.js"></script>
@@ -250,7 +281,8 @@ const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(ne
 const target=new THREE.Vector3(0,0,0);let mouseActive=false
 const keys={}
 // e.code = 물리 키(레이아웃·IME 무관) — 한글 입력기에서도 WASD 작동(e.key면 ㅈㅁㄴㅇ로 들어와 실패)
-addEventListener('keydown',e=>{keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
+const typing=e=>/^(INPUT|TEXTAREA|SELECT)$/.test(e.target&&e.target.tagName)
+addEventListener('keydown',e=>{if(typing(e))return;keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
 addEventListener('keyup',e=>{keys[e.code]=0})
 function setMouse(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);mouseActive=true}}
 addEventListener('mousemove',e=>setMouse(e.clientX,e.clientY))
@@ -261,8 +293,9 @@ function joyMove(t){if(!joyOn)return;const ox=t.clientX-joyOx,oy=t.clientY-joyOy
  joyThumb.style.transform='translate(calc(-50% + '+(ox/len*cl)+'px),calc(-50% + '+(oy/len*cl)+'px))'
  joyX=ox/len;joyZ=oy/len;joyMag=Math.min(len/JOYR,1)}
 function joyEnd(){joyOn=false;joyMag=0;joyEl.classList.add('off')}
-addEventListener('touchstart',e=>{if(e.touches[0]){joyStart(e.touches[0]);e.preventDefault()}},{passive:false})
-addEventListener('touchmove',e=>{if(e.touches[0]){joyMove(e.touches[0]);e.preventDefault()}},{passive:false})
+// 조이스틱은 플레이 중 캔버스 터치에서만 — UI(버튼/오버레이) 탭은 통과시켜 모바일 클릭 보존
+addEventListener('touchstart',e=>{if(S.alive&&!orientPaused&&e.target===renderer.domElement&&e.touches[0]){joyStart(e.touches[0]);e.preventDefault()}},{passive:false})
+addEventListener('touchmove',e=>{if(joyOn&&e.touches[0]){joyMove(e.touches[0]);e.preventDefault()}},{passive:false})
 addEventListener('touchend',e=>{if(!e.touches.length)joyEnd()});addEventListener('touchcancel',joyEnd)
 function steer(){
  const kx=((keys['KeyD']||keys['ArrowRight'])?1:0)-((keys['KeyA']||keys['ArrowLeft'])?1:0)
@@ -425,6 +458,37 @@ function frame(now){requestAnimationFrame(frame)
  update(dt);updateParticles(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
+/* ===== leaderboard (Supabase · 삽입은 Edge Function 경유·읽기는 RLS 공개) ===== */
+const LB={
+ URL:'https://znboesjyunfkfqepsumu.supabase.co',
+ KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuYm9lc2p5dW5ma2ZxZXBzdW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTczODAsImV4cCI6MjA5ODYzMzM4MH0.iCpln-ZRd0WkeutlAfC-G93mE3kyKtY9VhRoCXT-wUU',
+ get name(){return (localStorage.getItem('acc_name')||'').replace(/[^\x20-\x7e]/g,'').trim().slice(0,16)},
+ set name(v){try{localStorage.setItem('acc_name',String(v).slice(0,16))}catch(e){}},
+ async submit(score,mass,tier,dur){
+  try{
+   const r=await fetch(this.URL+'/functions/v1/accretion-submit',{method:'POST',headers:{'Content-Type':'application/json','apikey':this.KEY},body:JSON.stringify({name:this.name||'ANON',score,mass,tier,dur})})
+   const j=await r.json().catch(()=>null)
+   if(r.ok&&j&&j.ok)return {ok:true,rank:j.rank}
+   return {ok:false,reason:(j&&j.error)||('http '+r.status)} // 서버 응답했으나 거부(검증/안티치트)
+  }catch(e){return null} // 네트워크 실패
+ },
+ async top(limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
+}
+const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
+let lastRun=null
+async function openBoard(){
+ $('board').classList.remove('off')
+ const list=$('boardList');list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">loading…</div>'
+ const rows=await LB.top(100)
+ if(!rows.length){list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">no runs yet — be the first ◆</div>';return}
+ list.innerHTML=rows.map((r,i)=>{
+  const me=lastRun&&r.name===lastRun.name&&r.score===lastRun.score
+  const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)
+  return '<div class="brow'+(me?' me':'')+'"><span class="br">'+medal+'</span><span class="bn">'+esc(r.name)+'</span><span class="bt">'+esc(r.tier||'')+'</span><span class="bs">'+(r.score||0).toLocaleString()+'</span></div>'
+ }).join('')
+}
+function closeBoard(){$('board').classList.add('off')}
+
 /* ===== flow ===== */
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles()
@@ -432,7 +496,7 @@ function begin(){AU.unlock()
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient()
- $('start').classList.add('off');$('over').classList.add('off')}
+ $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off')}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
  const evap=cause==='evaporated';if(evap)AU.evap();else AU.boom()
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,0)'
@@ -441,10 +505,24 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
   ?'You radiated away faster than you could feed.<br><span style="color:#7c88ad">Hawking radiation: smaller black holes evaporate faster — a real prediction.</span>'
   :'A larger black hole tidally disrupted you.<br><span style="color:#7c88ad">Spaghettification: tidal forces near a bigger mass stretch you apart.</span>'
  $('overStat').innerHTML='SCORE <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · MAX COMBO <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
- $('over').classList.remove('off')}
+ $('over').classList.remove('off')
+ // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
+ lastRun=null;$('rankline').textContent=''
+ if(S.score>=100){
+  $('rankline').innerHTML='<span style="color:#7c88ad">submitting to global board…</span>'
+  const tier=TIERS[Math.max(0,tierOf(S.peak))].n
+  lastRun={name:LB.name||'ANON',score:S.score}
+  LB.submit(S.score,Math.round(S.peak*100)/100,tier,Math.round(S.t)).then(res=>{
+   if(res&&res.ok&&res.rank)$('rankline').innerHTML='GLOBAL RANK <b>#'+res.rank+'</b>'
+   else{lastRun=null;$('rankline').innerHTML='<span style="color:#7c88ad">'+(res&&!res.ok?'score not ranked':'board offline — saved this session')+'</span>'}
+  })
+ }}
 $('startBtn').onclick=begin;$('retryBtn').onclick=begin
+$('startBoard').onclick=openBoard;$('overBoard').onclick=openBoard
+$('boardPlay').onclick=begin;$('boardClose').onclick=closeBoard
+;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -456,7 +534,7 @@ addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrien
 if(DEV){window.__acc={
  get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo,comboMax:S.comboMax,score:S.score,parts:particles.length,amb:AU.amb.length,muted:AU.muted}},
  begin,gameOver:()=>gameOver('evaporated'),
- setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
+ setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
  seen:()=>[...SEEN],types:()=>objects.map(o=>o.type),
@@ -464,7 +542,14 @@ if(DEV){window.__acc={
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
  // 측정용 가속기: render 스킵하고 update만 고속 반복
- step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}}
+ step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
+ LB,openBoard,closeBoard,
+ boardOpen:()=>!$('board').classList.contains('off'),
+ boardRows:()=>$('boardList').querySelectorAll('.brow').length,
+ boardHTML:()=>$('boardList').innerHTML,
+ submitRun:(s,m,t,d)=>LB.submit(s,m,t,d),
+ setName:v=>{LB.name=v;$('pname').value=LB.name;return LB.name},
+ rankText:()=>$('rankline').textContent
 }}
 </script>
 </body></html>
