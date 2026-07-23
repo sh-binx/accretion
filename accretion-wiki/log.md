@@ -1,5 +1,12 @@
 # Activity Log (역시간순 — 최신 위)
 
+## 2026-07-23 · 리포 통합 — 단일 public `sh-binx/accretion`
+- 오너 결정: 소스+데모 2리포 분리는 "위키 감추기"가 유일 이유였는데 위키에 민감정보 없음(스캔 확인) → **하나로 통합·전부 public**.
+- **구조 변경**: `src/index.html`·`src/three.min.js` → **repo root**(Pages가 root 직접 서빙). `src/` 제거. serve.sh 기본 dir `src`→`.`, PORTS/README 갱신, 루트 스크린샷 `/*.png` gitignore.
+- **배포 모델**: 이제 **`git push`만** = 배포(별도 accretion-demo 복사 단계 폐지). DEV 훅 `?dev=1` 프로덕션에 무해(게이트됨).
+- **새 리포**: github.com/sh-binx/accretion (public, 전체 이력 푸시). **라이브 = https://sh-binx.github.io/accretion/** (URL이 /accretion-demo/ → /accretion/ 로 변경).
+- accretion-demo 리포는 은퇴(신규 URL 검증 후 정리). 검증: root 서빙 스모크(200·three.min.js·credit)·헤드리스 P4 11/11.
+
 ## 2026-07-23 · 오너 피드백 — "운석은 먹는데 행성은 못 먹음"(0.4.2, 스폰 재설계)
 - 원인(분포 분석, S.mass=1.2): 식량 52%는 전부 질량<1.2라 **전부 'rock'**(먹힘). 'planet'으로 렌더되는 20% 버킷은 질량 1.08~1.8 → **87%가 내 질량보다 커서 못 먹고, 라이벌도 아니라 위협도 아닌 "장식 행성"**. 컨셉("행성 먹어 성장·더 큰 블랙홀 회피")과 어긋남.
 - 수정: **비-라이벌은 전부 먹이**로 재설계 — `food(66%) rock/planet/star 크기별(항상 질량<나) · dense(16%) neutron/pulsar · rival(18%)=유일 위협축`. rock/planet 임계값 1.2→0.5로 낮춰 중간 크기 먹이가 'planet'으로 렌더. 성장 진행: 저질량=암석+행성 → 중간=행성 → 고질량=별.
