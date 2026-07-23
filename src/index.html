@@ -31,6 +31,9 @@
  #banner .s{font-size:12px;color:#c4cfe8;letter-spacing:1px;margin-top:4px}
  #vig{position:fixed;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 200px 40px rgba(255,60,80,0);transition:box-shadow .12s}
  .pop{position:fixed;z-index:5;pointer-events:none;font-weight:800;font-size:14px;color:#7bed4a;text-shadow:0 0 8px rgba(0,0,0,.8);transform:translate(-50%,-50%)}
+ #combo{position:fixed;left:50%;top:38%;z-index:6;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:44px;color:#ffcf4a;text-shadow:0 0 22px rgba(255,207,74,.7);opacity:0;transform:translate(-50%,-50%);transition:opacity .12s}
+ #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
+ #mute:hover{opacity:1}
  .credit{position:fixed;bottom:10px;left:16px;z-index:5;font-size:10px;color:#4a5474;letter-spacing:1px;pointer-events:none}
  #joy{position:fixed;z-index:6;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid rgba(140,180,255,.35);background:radial-gradient(circle,rgba(40,60,110,.28),rgba(20,30,60,.12));pointer-events:none}
  #joy.off{display:none}
@@ -44,10 +47,12 @@
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
-<div id="right"><div class="lab">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:8px">PEAK</div><div class="v" id="pval">–</div></div>
+<div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
+<div id="combo"></div>
+<div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
-<div class="credit">ACCRETION · prototype 0.1</div>
+<div class="credit">ACCRETION · prototype 0.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -194,18 +199,40 @@ function spawnObj(type,mass,x,z){
  if(x==null){const a=rnd(0,6.283),dist=rnd(46,72)+S.mass*1.5;x=hole.position.x+Math.cos(a)*dist;z=hole.position.z+Math.sin(a)*dist}
  g.position.set(x,0,z==null?0:z)
  scene.add(g)
- const o={g,type,mass,r,vx:rnd(-2,2),vz:rnd(-2,2),spin:rnd(-1,1),eaten:false}
+ const o={g,type,mass,r,vx:rnd(-2,2),vz:rnd(-2,2),spin:rnd(-1,1),eaten:false,nmCd:0}
  objects.push(o);return o}
 function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
-/* ===== audio (minimal) ===== */
-const AU={ac:null,unlock(){if(!this.ac){try{this.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.ac&&this.ac.state==='suspended')this.ac.resume()},
- tone(f,d,type,v,slide){const ac=this.ac;if(!ac)return;try{const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(v||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(t+d+.02)}catch(e){}},
- eat(c){this.tone(220+Math.min(c,20)*24,.12,'sine',.06,120+Math.min(c,20)*20)},
- warn(){this.tone(90,.3,'sawtooth',.05,60)},boom(){this.tone(70,.5,'sawtooth',.09,30)}}
+/* ===== particles — 강착 스파클(먹을 때 물질이 나선으로 빨려듦) ===== */
+const PPOOL=[],particles=[]
+function getP(){let s=PPOOL.pop();if(!s){s=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));scene.add(s)}s.visible=true;return s}
+function eatBurst(x,z,color,n){for(let i=0;i<n;i++){const s=getP();s.material.color.setHex(color);s.material.opacity=0.95
+  const a=rnd(0,6.283),sp=rnd(4,11);particles.push({s,x,z,vx:Math.cos(a)*sp,vz:Math.sin(a)*sp,life:rnd(.4,.7),max:.7,sz:rnd(.5,1.2)})}}
+function updateParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i]
+  const dx=hole.position.x-p.x,dz=hole.position.z-p.z,d=Math.hypot(dx,dz)||1
+  p.vx+=dx/d*46*dt;p.vz+=dz/d*46*dt;p.x+=p.vx*dt;p.z+=p.vz*dt;p.life-=dt
+  const k=Math.max(0,p.life/p.max);p.s.position.set(p.x,0.2,p.z);p.s.scale.setScalar(p.sz*(0.4+k*0.6)*(rad(S.mass)*0.4+0.7));p.s.material.opacity=k*0.95
+  if(p.life<=0||d<rad(S.mass)*1.1){p.s.visible=false;PPOOL.push(p.s);particles.splice(i,1)}}}
+function clearParticles(){for(const p of particles){p.s.visible=false;PPOOL.push(p.s)}particles.length=0}
+
+/* ===== audio ===== */
+const AU={ac:null,master:null,amb:[],muted:false,
+ unlock(){if(!this.ac){try{this.ac=new (window.AudioContext||window.webkitAudioContext)();this.master=this.ac.createGain();this.master.gain.value=this.muted?0:0.85;this.master.connect(this.ac.destination)}catch(e){}}if(this.ac&&this.ac.state==='suspended')this.ac.resume()},
+ tone(f,d,type,v,slide,delay){const ac=this.ac;if(!ac||this.muted)return;try{const t=ac.currentTime+(delay||0),o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(20,slide),t+d);g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(v||.05,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+d+.03)}catch(e){}},
+ noise(d,v,delay){const ac=this.ac;if(!ac||this.muted)return;try{const t=ac.currentTime+(delay||0),n=ac.sampleRate*d|0,b=ac.createBuffer(1,n,ac.sampleRate),ch=b.getChannelData(0);for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*(1-i/n);const s=ac.createBufferSource(),g=ac.createGain();s.buffer=b;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);s.connect(g);g.connect(this.master);s.start(t)}catch(e){}},
+ startAmbient(){const ac=this.ac;if(!ac||this.amb.length)return;try{const filt=ac.createBiquadFilter();filt.type='lowpass';filt.frequency.value=380;filt.connect(this.master);const g=ac.createGain();g.gain.value=0.045;g.connect(filt);for(const f of [55,73.4,110]){const o=ac.createOscillator();o.type='sawtooth';o.frequency.value=f;o.detune.value=rnd(-7,7);o.connect(g);o.start();this.amb.push(o)}const lfo=ac.createOscillator();lfo.frequency.value=0.07;const lg=ac.createGain();lg.gain.value=160;lfo.connect(lg);lg.connect(filt.frequency);lfo.start();this.amb.push(lfo)}catch(e){}},
+ stopAmbient(){for(const o of this.amb){try{o.stop()}catch(e){}}this.amb=[]},
+ eat(c){const p=Math.min(c,24);this.tone(240+p*24,.13,'sine',.055,150+p*22);this.noise(.05,.025)},
+ tierUp(){[523,659,784,1046].forEach((f,i)=>this.tone(f,.4,'triangle',.055,null,i*.08))},
+ warn(){this.tone(78,.35,'sawtooth',.05,52)},
+ nearMiss(){this.tone(680,.16,'sine',.05,1020);this.tone(900,.1,'sine',.03,1360,.04)},
+ boom(){this.tone(58,.7,'sawtooth',.1,22);this.noise(.5,.08)},
+ evap(){this.tone(420,.9,'sine',.06,38);this.noise(.7,.045)},
+ ui(){this.tone(560,.08,'sine',.035,760)},
+ toggleMute(){this.muted=!this.muted;if(this.master)this.master.gain.value=this.muted?0:0.85;if(this.muted)this.stopAmbient();else if(typeof S!=='undefined'&&S.alive)this.startAmbient();return this.muted}}
 
 /* ===== state ===== */
-const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4}
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4}
 const TIERS=[{n:'STELLAR-MASS',max:8},{n:'INTERMEDIATE',max:40},{n:'SUPERMASSIVE',max:1e9}]
 function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;return TIERS.length-1}
 
@@ -287,19 +314,26 @@ function update(dt){
   else if(threat){h.material.color.setHex(0xff5060);h.material.opacity=0.55+Math.sin(S.t*9)*0.22}
   else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
+  if(o.nmCd>0)o.nmCd-=dt
   // 상호작용
   if(edible&&d<mouth+o.r*0.4){ // 먹기
-   S.combo=(performance.now()-S.comboAt<1400)?S.combo+1:1;S.comboAt=performance.now()
+   S.combo=(performance.now()-S.comboAt<1400)?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo)
    S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35
-   S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12),1.0);AU.eat(S.combo)
-   popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0),'#9fe870')
+   S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)) // 콤보 배수 점수
+   S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
+   eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
+   popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
    continue}
-  if(threat&&d<omouth){return gameOver('eaten',o.mass)} // 더 큰 블랙홀에 먹힘
+  if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
+   if(d<omouth){return gameOver('eaten',o.mass)}
+   if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
+    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1)}
+  }
  }
  topUp()
  // 티어업
  const ti=tierOf(S.mass)
- if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tone(523,.5,'triangle',.06,1046);S.shake=Math.min(S.shake+0.5,1)}
+ if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1)}
  S.tierIdx=ti
  // 증발 경고
  S.warnT-=dt
@@ -350,8 +384,11 @@ function hud(){
  $('mval').textContent=S.mass<10?S.mass.toFixed(1):Math.round(S.mass)
  $('tier').textContent=TIERS[Math.max(0,S.tierIdx)].n
  $('tval').textContent=S.t.toFixed(1)+'s'
+ $('sval').textContent=S.score.toLocaleString()
  $('pval').textContent=(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
+ const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
+ cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
  if(performance.now()>banT)$('banner').style.opacity=0
 }
 
@@ -359,27 +396,29 @@ function hud(){
 let last=performance.now(),acc=0
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
- update(dt);updateCamera(dt);hud();render()}
+ update(dt);updateParticles(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== flow ===== */
 function begin(){AU.unlock()
- for(const o of objects.slice())releaseObj(o)
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,shake:0,warnT:0,tierIdx:0})
+ for(const o of objects.slice())releaseObj(o);clearParticles()
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0})
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
- topUp()
+ topUp();AU.startAmbient()
  $('start').classList.add('off');$('over').classList.add('off')}
-function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.boom()
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
+ const evap=cause==='evaporated';if(evap)AU.evap();else AU.boom()
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,0)'
- const evap=cause==='evaporated'
  $('overTitle').textContent=evap?'EVAPORATED':'DEVOURED'
  $('overMsg').innerHTML=evap
   ?'You radiated away faster than you could feed.<br><span style="color:#7c88ad">Hawking radiation: smaller black holes evaporate faster — a real prediction.</span>'
   :'A larger black hole tidally disrupted you.<br><span style="color:#7c88ad">Spaghettification: tidal forces near a bigger mass stretch you apart.</span>'
- $('overStat').innerHTML='PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · <b>'+S.t.toFixed(1)+'s</b>'
+ $('overStat').innerHTML='SCORE <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · MAX COMBO <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
  $('over').classList.remove('off')}
 $('startBtn').onclick=begin;$('retryBtn').onclick=begin
+$('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
+addEventListener('keydown',e=>{if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -389,7 +428,7 @@ addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrien
 
 /* ===== DEV hooks (?dev=1) ===== */
 if(DEV){window.__acc={
- get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo}},
+ get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo,comboMax:S.comboMax,score:S.score,parts:particles.length,amb:AU.amb.length,muted:AU.muted}},
  begin,gameOver:()=>gameOver('evaporated'),
  setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
