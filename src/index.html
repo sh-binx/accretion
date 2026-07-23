@@ -1,0 +1,344 @@
+<!doctype html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ACCRETION — prototype</title>
+<style>
+ *{margin:0;box-sizing:border-box}
+ html,body{height:100%;overflow:hidden;background:#03040a;font-family:ui-monospace,Menlo,monospace;color:#eaf1ff;-webkit-user-select:none;user-select:none;cursor:crosshair}
+ canvas{display:block}
+ #hud{position:fixed;top:14px;left:16px;z-index:5;pointer-events:none;line-height:1.5}
+ #hud .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
+ #hud .mass{font-size:26px;font-weight:800;color:#8fd0ff;text-shadow:0 0 14px rgba(53,180,255,.6)}
+ #hud .tier{font-size:12px;letter-spacing:1.5px;color:#ffcf4a;margin-top:2px}
+ #hud .sub{font-size:11px;color:#93a0c4;margin-top:6px}
+ #massbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(340px,60vw);z-index:5;pointer-events:none}
+ #massbar .t{font-size:9px;letter-spacing:2px;color:#7c88ad;text-align:center;margin-bottom:4px}
+ #massbar .track{height:7px;border-radius:5px;background:rgba(120,150,220,.12);overflow:hidden}
+ #massbar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#ff5d6c,#ffcf4a,#7bed4a);transition:width .1s}
+ #right{position:fixed;top:14px;right:16px;z-index:5;text-align:right;pointer-events:none}
+ #right .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
+ #right .v{font-size:15px;font-weight:700;color:#eaf1ff}
+ .center{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(8,6,20,.5),rgba(3,4,10,.86));backdrop-filter:blur(2px)}
+ .center.off{display:none}
+ .big{font-size:clamp(30px,7vw,58px);font-weight:850;letter-spacing:6px;color:#8fd0ff;text-shadow:0 0 34px rgba(53,180,255,.7)}
+ .big .a{color:#ff9a3c;text-shadow:0 0 34px rgba(255,154,60,.6)}
+ .tagline{font-size:13px;letter-spacing:3px;color:#ffcf4a;margin-top:10px}
+ .msg{font-size:13.5px;color:#c4cfe8;margin-top:16px;max-width:30ch;line-height:1.6}
+ .btn{margin-top:22px;pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:15px;letter-spacing:1px;color:#03040a;background:#8fd0ff;border:0;border-radius:10px;padding:12px 26px;box-shadow:0 0 26px rgba(53,180,255,.5)}
+ .btn:hover{background:#b6e2ff}
+ .stat{font-size:13px;color:#93a0c4;margin-top:14px}.stat b{color:#fff}
+ #banner{position:fixed;top:34%;left:0;right:0;z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
+ #banner .b{display:inline-block;font-size:22px;font-weight:800;letter-spacing:3px;color:#ffcf4a;text-shadow:0 0 24px rgba(255,207,74,.6)}
+ #banner .s{font-size:12px;color:#c4cfe8;letter-spacing:1px;margin-top:4px}
+ #vig{position:fixed;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 200px 40px rgba(255,60,80,0);transition:box-shadow .12s}
+ .pop{position:fixed;z-index:5;pointer-events:none;font-weight:800;font-size:14px;color:#7bed4a;text-shadow:0 0 8px rgba(0,0,0,.8);transform:translate(-50%,-50%)}
+ .credit{position:fixed;bottom:10px;left:16px;z-index:5;font-size:10px;color:#4a5474;letter-spacing:1px;pointer-events:none}
+</style></head><body>
+<div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
+<div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
+<div id="right"><div class="lab">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:8px">PEAK</div><div class="v" id="pval">–</div></div>
+<div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
+<div id="vig"></div>
+<div class="credit">ACCRETION · prototype 0.1</div>
+
+<div class="center" id="start">
+ <div class="big">ACC<span class="a">RETION</span></div>
+ <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
+ <div class="msg">You are a black hole. Glide to swallow smaller bodies and grow — but you constantly <b style="color:#ff9a3c">evaporate</b> (Hawking radiation). Smaller = faster fade. Avoid larger black holes: they eat you.</div>
+ <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
+ <div class="stat">move: mouse / drag</div>
+</div>
+
+<div class="center off" id="over">
+ <div class="big" id="overTitle" style="color:#ff5d6c;text-shadow:0 0 34px rgba(255,93,108,.6)">COLLAPSED</div>
+ <div class="msg" id="overMsg"></div>
+ <div class="stat" id="overStat"></div>
+ <button class="btn" id="retryBtn" style="background:#ffcf4a;box-shadow:0 0 26px rgba(255,207,74,.5)">▶ AGAIN</button>
+</div>
+
+<script src="three.min.js"></script>
+<script>
+const DEV=/[?&]dev/.test(location.search)
+const $=id=>document.getElementById(id)
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v)
+const rnd=(a,b)=>a+Math.random()*(b-a)
+const rad=m=>Math.cbrt(Math.max(0.001,m)) // 반지름 ∝ 질량^(1/3) (부피=질량 근사)
+
+/* ===== renderer + scenes ===== */
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})
+renderer.setPixelRatio(Math.min(devicePixelRatio,2))
+renderer.setSize(innerWidth,innerHeight)
+renderer.outputEncoding=THREE.sRGBEncoding
+renderer.toneMapping=THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure=1.05
+document.body.appendChild(renderer.domElement)
+const bgScene=new THREE.Scene()      // starfield (렌징 대상)
+const scene=new THREE.Scene()        // gameplay
+scene.fog=new THREE.FogExp2(0x05060f,0.0016)
+const cam=new THREE.PerspectiveCamera(52,innerWidth/innerHeight,0.1,8000)
+cam.position.set(0,44,34);cam.lookAt(0,0,0)
+
+scene.add(new THREE.HemisphereLight(0x9fc0ff,0x0a0f1e,0.5))
+const key=new THREE.DirectionalLight(0xfff0dc,0.6);key.position.set(-8,18,10);scene.add(key)
+const cool=new THREE.DirectionalLight(0x4a7bff,0.4);cool.position.set(10,6,-8);scene.add(cool)
+
+/* ===== starfield (background scene) ===== */
+function makeStars(n,spread,size,op,col){
+ const g=new THREE.BufferGeometry(),p=new Float32Array(n*3)
+ for(let i=0;i<n;i++){const r=rnd(spread*0.4,spread),th=rnd(0,6.283),ph=Math.acos(rnd(-1,1))
+  p[i*3]=r*Math.sin(ph)*Math.cos(th);p[i*3+1]=r*Math.sin(ph)*Math.sin(th);p[i*3+2]=r*Math.cos(ph)}
+ g.setAttribute('position',new THREE.BufferAttribute(p,3))
+ return new THREE.Points(g,new THREE.PointsMaterial({color:col,size,transparent:true,opacity:op,sizeAttenuation:false}))}
+const stars=new THREE.Group()
+stars.add(makeStars(6000,1600,1.8,0.95,0xcfe0ff)) // 밀도↑ — 렌징 휘어짐이 눈에 보이게
+stars.add(makeStars(3000,1600,2.8,0.85,0x9fb8ff))
+stars.add(makeStars(1400,1600,4.2,0.8,0xffe0c8))
+bgScene.add(stars)
+// 성운 글로우
+const nebGeo=new THREE.SphereGeometry(1500,16,12)
+const neb=new THREE.Mesh(nebGeo,new THREE.MeshBasicMaterial({side:THREE.BackSide,transparent:true,opacity:0.5,
+ map:(()=>{const c=document.createElement('canvas');c.width=c.height=512;const x=c.getContext('2d')
+  const g1=x.createRadialGradient(360,150,0,360,150,300);g1.addColorStop(0,'rgba(90,70,180,.5)');g1.addColorStop(1,'rgba(0,0,0,0)')
+  x.fillStyle=g1;x.fillRect(0,0,512,512)
+  const g2=x.createRadialGradient(140,380,0,140,380,260);g2.addColorStop(0,'rgba(30,120,200,.4)');g2.addColorStop(1,'rgba(0,0,0,0)')
+  x.fillStyle=g2;x.fillRect(0,0,512,512)
+  const t=new THREE.CanvasTexture(c);return t})()}))
+bgScene.add(neb)
+
+/* ===== gravitational lensing post-process ===== */
+let rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter})
+const postScene=new THREE.Scene(),postCam=new THREE.OrthographicCamera(-1,1,1,-1,0,1)
+const lensMat=new THREE.ShaderMaterial({
+ uniforms:{tDiffuse:{value:null},uCenter:{value:new THREE.Vector2(.5,.5)},uStrength:{value:0.0},uAspect:{value:innerWidth/innerHeight},uEH:{value:0.03}},
+ vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}',
+ fragmentShader:[
+ 'uniform sampler2D tDiffuse;uniform vec2 uCenter;uniform float uStrength;uniform float uAspect;uniform float uEH;varying vec2 vUv;',
+ 'void main(){',
+ ' vec2 uv=vUv;vec2 d=uv-uCenter;d.x*=uAspect;float r=length(d);',
+ ' float defl=uStrength/(r+0.008);defl=min(defl,r*0.99);',        // ~1/r 편향(중심부 강)
+ ' vec2 dir=d/max(r,1e-4);vec2 off=dir*defl;off.x/=uAspect;',
+ ' vec3 col=texture2D(tDiffuse,uv-off).rgb;',                     // 배경을 안쪽으로 당김 = 렌징
+ ' float mag=uStrength/(r*r+0.006);',                            // ~1/r² 확대 → 휜 별빛이 밝아짐(아인슈타인 링)
+ ' col*=1.0+clamp(mag*0.55,0.0,2.6);',
+ ' float ph=exp(-pow((r-uEH)/(uEH*0.4),2.0));',                  // 얇은 광자 고리(가우시안)
+ ' col+=vec3(1.0,0.82,0.6)*ph*(0.35+uStrength*4.5);',            // 따뜻한 광자 고리
+ ' float halo=smoothstep(uEH*3.5,uEH*1.3,r);',                   // 은은한 외곽 블루시프트
+ ' col+=vec3(0.12,0.28,0.6)*halo*uStrength*2.2;',
+ ' gl_FragColor=vec4(col,1.0);',
+ '}'].join('\n')})
+postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),lensMat))
+
+/* ===== helpers ===== */
+function glowTex(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d')
+ const g=x.createRadialGradient(32,32,0,32,32,32);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.5)');g.addColorStop(1,'rgba(255,255,255,0)')
+ x.fillStyle=g;x.fillRect(0,0,64,64);const t=new THREE.CanvasTexture(c);return t}
+const GT=glowTex()
+function glow(color,size,op){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,color,transparent:true,opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}));s.scale.set(size,size,1);return s}
+function ringTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d')
+ x.strokeStyle='#fff';x.lineWidth=10;x.beginPath();x.arc(64,64,52,0,6.283);x.stroke();return new THREE.CanvasTexture(c)}
+const RT=ringTex()
+function halo(color){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:RT,color,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));return s}
+
+/* ===== black hole (player) ===== */
+const hole=new THREE.Group()
+const eh=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),new THREE.MeshBasicMaterial({color:0x000000}));hole.add(eh)
+const diskGeo=new THREE.TorusGeometry(1.85,0.34,10,60)
+const disk=new THREE.Mesh(diskGeo,new THREE.MeshBasicMaterial({color:0xffb060,transparent:true,opacity:0.92,blending:THREE.AdditiveBlending,depthWrite:false}))
+disk.rotation.x=Math.PI*0.5-0.32;hole.add(disk)
+const disk2=new THREE.Mesh(new THREE.TorusGeometry(2.5,0.14,8,60),new THREE.MeshBasicMaterial({color:0x66b0ff,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false}))
+disk2.rotation.x=Math.PI*0.5-0.32;hole.add(disk2)
+const holeGlow=glow(0x3aa0ff,7,0.5);hole.add(holeGlow)
+scene.add(hole)
+
+/* ===== object pool ===== */
+const ROCK=new THREE.IcosahedronGeometry(1,0)
+const SPH=new THREE.SphereGeometry(1,18,14)
+const objects=[]
+function mkVisual(type,mass){
+ const g=new THREE.Group()
+ if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true})))}
+ else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.55,0.55)
+  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1})))}
+ else if(type==='star'){const col=Math.random()<.5?0xffd27a:0x9fc0ff
+  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
+ else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
+  const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d);g.add(glow(0xff5a2a,4,0.5))}
+ const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
+ return g}
+function spawnObj(type,mass,x,z){
+ const g=mkVisual(type,mass);const r=rad(mass)
+ g.scale.setScalar(r*1.15)
+ if(x==null){const a=rnd(0,6.283),dist=rnd(46,72)+S.mass*1.5;x=hole.position.x+Math.cos(a)*dist;z=hole.position.z+Math.sin(a)*dist}
+ g.position.set(x,0,z==null?0:z)
+ scene.add(g)
+ const o={g,type,mass,r,vx:rnd(-2,2),vz:rnd(-2,2),spin:rnd(-1,1),eaten:false}
+ objects.push(o);return o}
+function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
+
+/* ===== audio (minimal) ===== */
+const AU={ac:null,unlock(){if(!this.ac){try{this.ac=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(this.ac&&this.ac.state==='suspended')this.ac.resume()},
+ tone(f,d,type,v,slide){const ac=this.ac;if(!ac)return;try{const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(v||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(ac.destination);o.start();o.stop(t+d+.02)}catch(e){}},
+ eat(c){this.tone(220+Math.min(c,20)*24,.12,'sine',.06,120+Math.min(c,20)*20)},
+ warn(){this.tone(90,.3,'sawtooth',.05,60)},boom(){this.tone(70,.5,'sawtooth',.09,30)}}
+
+/* ===== state ===== */
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4}
+const TIERS=[{n:'STELLAR-MASS',max:8},{n:'INTERMEDIATE',max:40},{n:'SUPERMASSIVE',max:1e9}]
+function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;return TIERS.length-1}
+
+/* ===== input ===== */
+const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0)
+const target=new THREE.Vector3(0,0,0);let hasTarget=false
+function setPointer(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);hasTarget=true}}
+addEventListener('mousemove',e=>setPointer(e.clientX,e.clientY))
+addEventListener('touchmove',e=>{if(e.touches[0]){setPointer(e.touches[0].clientX,e.touches[0].clientY);e.preventDefault()}},{passive:false})
+addEventListener('touchstart',e=>{if(e.touches[0])setPointer(e.touches[0].clientX,e.touches[0].clientY)})
+
+/* ===== popups / banners ===== */
+function popup(worldPos,txt,color){const v=worldPos.clone().project(cam);const el=document.createElement('div');el.className='pop';el.textContent=txt;el.style.color=color||'#7bed4a'
+ el.style.left=(v.x*.5+.5)*innerWidth+'px';el.style.top=(-v.y*.5+.5)*innerHeight+'px';document.body.appendChild(el)
+ let y=0,op=1;const iv=setInterval(()=>{y-=1.6;op-=0.04;el.style.transform='translate(-50%,'+(y-50)+'%)';el.style.opacity=op;if(op<=0){clearInterval(iv);el.remove()}},16)}
+let banT=0
+function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
+
+/* ===== spawn director ===== */
+function topUp(){const want=Math.min(52,34+Math.floor(S.mass*0.4))
+ while(objects.length<want){
+  const roll=Math.random()
+  // 질량은 플레이어 기준 상대 분포: 다수 식량(작음) + 소수 위협(큼)
+  let mass,type
+  if(roll<0.62){mass=S.mass*rnd(0.14,0.85);type=mass<1.2?'rock':(mass<6?'planet':'star')}          // 식량
+  else if(roll<0.86){mass=S.mass*rnd(0.9,1.5);type=mass<8?'planet':'star'}                            // 비슷/약간 큼(성장하면 식량)
+  else{mass=S.mass*rnd(0.7,2.4);type='rival'}                                                          // 라이벌 블랙홀(큰 놈=위협)
+  spawnObj(type,Math.max(0.2,mass))}}
+
+/* ===== core update ===== */
+function update(dt){
+ if(!S.alive)return
+ S.t+=dt
+ // 호킹 복사: 상시 증발, 작을수록 빠름
+ const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))
+ S.mass=Math.max(0,S.mass-shrink*dt)
+ if(S.mass<=S.evapFloor){return gameOver('evaporated')}
+ // 이동(관성 활공)
+ if(hasTarget){const dx=target.x-hole.position.x,dz=target.z-hole.position.z,d=Math.hypot(dx,dz)||1
+  const maxSpd=24/(1+S.mass*0.012),des=Math.min(1,d/6)*maxSpd
+  S.vx+=((dx/d*des)-S.vx)*Math.min(1,dt*4.5);S.vz+=((dz/d*des)-S.vz)*Math.min(1,dt*4.5)}
+ hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
+ // 시각 스케일 = 질량^(1/3)
+ const hr=rad(S.mass);hole.scale.setScalar(hr)
+ disk.rotation.z+=dt*1.4;disk2.rotation.z-=dt*0.9
+ const mouth=hr*1.55
+ // 객체 처리
+ for(let i=objects.length-1;i>=0;i--){const o=objects[i]
+  if(o.eaten){o.g.position.lerp(hole.position,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
+  o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=o.spin*dt
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
+  const omouth=rad(o.mass)*1.55
+  // 후광 가독성
+  const edible=o.mass<S.mass,threat=(o.type==='rival')&&o.mass>=S.mass
+  const h=o.g.userData.halo
+  if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18}
+  else if(threat){h.material.color.setHex(0xff5060);h.material.opacity=0.55+Math.sin(S.t*9)*0.22}
+  else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
+  h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
+  // 상호작용
+  if(edible&&d<mouth+o.r*0.3){ // 먹기
+   S.combo=(performance.now()-S.comboAt<1400)?S.combo+1:1;S.comboAt=performance.now()
+   S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35
+   S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12),1.0);AU.eat(S.combo)
+   popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0),'#9fe870')
+   continue}
+  if(threat&&d<omouth){return gameOver('eaten',o.mass)} // 더 큰 블랙홀에 먹힘
+ }
+ topUp()
+ // 티어업
+ const ti=tierOf(S.mass)
+ if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tone(523,.5,'triangle',.06,1046);S.shake=Math.min(S.shake+0.5,1)}
+ S.tierIdx=ti
+ // 증발 경고
+ S.warnT-=dt
+ const danger=S.mass<S.evapFloor*2.0
+ if(danger&&S.warnT<=0){S.warnT=0.5;AU.warn()}
+ $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,'+(danger?(0.18+Math.sin(S.t*10)*0.12):0)+')'
+ if(S.mass>S.peak)S.peak=S.mass
+}
+
+/* ===== camera + render ===== */
+function updateCamera(dt){
+ const camDist=28+S.mass*2.4
+ const tx=hole.position.x,tz=hole.position.z
+ const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
+ cam.position.x+=(tx+sx-cam.position.x)*Math.min(1,dt*(dt?6:1))
+ cam.position.z+=(tz+camDist*0.72+sz-cam.position.z)*Math.min(1,dt*6)
+ cam.position.y+=(camDist*0.82-cam.position.y)*Math.min(1,dt*6)
+ cam.lookAt(tx,0,tz)
+ S.shake=Math.max(0,S.shake-dt*3)
+}
+function render(){
+ stars.position.copy(cam.position);neb.position.copy(cam.position) // 배경 = 스카이박스처럼 카메라 추종
+ // 1) 배경만 RT로
+ renderer.setRenderTarget(rt);renderer.setClearColor(0x03040a,1);renderer.clear();renderer.render(bgScene,cam)
+ // 2) 렌징 적용해 화면에
+ renderer.setRenderTarget(null)
+ lensMat.uniforms.tDiffuse.value=rt.texture
+ const p=hole.position.clone().project(cam)
+ lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
+ const hr=rad(S.mass)
+ lensMat.uniforms.uStrength.value=0.010+Math.min(0.09,hr*0.014)
+ lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)
+ lensMat.uniforms.uAspect.value=innerWidth/innerHeight
+ renderer.autoClear=true;renderer.render(postScene,postCam)
+ // 3) 게임플레이 위에
+ renderer.autoClear=false;renderer.clearDepth();renderer.render(scene,cam);renderer.autoClear=true
+}
+
+/* ===== HUD ===== */
+function hud(){
+ $('mval').textContent=S.mass<10?S.mass.toFixed(1):Math.round(S.mass)
+ $('tier').textContent=TIERS[Math.max(0,S.tierIdx)].n
+ $('tval').textContent=S.t.toFixed(1)+'s'
+ $('pval').textContent=(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))
+ const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
+ if(performance.now()>banT)$('banner').style.opacity=0
+}
+
+/* ===== loop ===== */
+let last=performance.now(),acc=0
+function frame(now){requestAnimationFrame(frame)
+ let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
+ update(dt);updateCamera(dt);hud();render()}
+requestAnimationFrame(frame)
+
+/* ===== flow ===== */
+function begin(){AU.unlock()
+ for(const o of objects.slice())releaseObj(o)
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,shake:0,warnT:0,tierIdx:0})
+ hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);hasTarget=false
+ for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
+ topUp()
+ $('start').classList.add('off');$('over').classList.add('off')}
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.boom()
+ $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,0)'
+ const evap=cause==='evaporated'
+ $('overTitle').textContent=evap?'EVAPORATED':'DEVOURED'
+ $('overMsg').innerHTML=evap
+  ?'You radiated away faster than you could feed.<br><span style="color:#7c88ad">Hawking radiation: smaller black holes evaporate faster — a real prediction.</span>'
+  :'A larger black hole tidally disrupted you.<br><span style="color:#7c88ad">Spaghettification: tidal forces near a bigger mass stretch you apart.</span>'
+ $('overStat').innerHTML='PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · <b>'+S.t.toFixed(1)+'s</b>'
+ $('over').classList.remove('off')}
+$('startBtn').onclick=begin;$('retryBtn').onclick=begin
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight)})
+
+/* ===== DEV hooks (?dev=1) ===== */
+if(DEV){window.__acc={
+ get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo}},
+ begin,gameOver:()=>gameOver('evaporated'),
+ setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);hasTarget=true},
+ spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
+ eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);hasTarget=true;return best.mass}return null},
+ lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
+ // 측정용 가속기: render 스킵하고 update만 고속 반복
+ step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}}
+}}
+</script>
+</body></html>
