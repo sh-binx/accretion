@@ -34,6 +34,10 @@
  #combo{position:fixed;left:50%;top:38%;z-index:6;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:44px;color:#ffcf4a;text-shadow:0 0 22px rgba(255,207,74,.7);opacity:0;transform:translate(-50%,-50%);transition:opacity .12s}
  #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
  #mute:hover{opacity:1}
+ #codex{position:fixed;left:50%;bottom:26px;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
+ #codex.on{opacity:1;transform:translate(-50%,0)}
+ #codex b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;color:#8fd0ff;margin-bottom:3px}
+ #codex span{font-size:12.5px;color:#c4cfe8}
  .credit{position:fixed;bottom:10px;left:16px;z-index:5;font-size:10px;color:#4a5474;letter-spacing:1px;pointer-events:none}
  #joy{position:fixed;z-index:6;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid rgba(140,180,255,.35);background:radial-gradient(circle,rgba(40,60,110,.28),rgba(20,30,60,.12));pointer-events:none}
  #joy.off{display:none}
@@ -49,6 +53,7 @@
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
 <div id="combo"></div>
+<div id="codex"></div>
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
@@ -189,13 +194,16 @@ function mkVisual(type,mass){
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1})))}
  else if(type==='star'){const col=Math.random()<.5?0xffd27a:0x9fc0ff
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
+ else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
+ else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
+  for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
  else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
   const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d);g.add(glow(0xff5a2a,4,0.5))}
  const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
  return g}
 function spawnObj(type,mass,x,z){
  const g=mkVisual(type,mass);const r=rad(mass)
- g.scale.setScalar(r*1.15)
+ g.scale.setScalar(r*((type==='neutron'||type==='pulsar')?0.72:1.15)) // 중성자별·펄서는 초고밀도라 작게(먹기 판정은 질량 기준 동일)
  if(x==null){const a=rnd(0,6.283),dist=rnd(46,72)+S.mass*1.5;x=hole.position.x+Math.cos(a)*dist;z=hole.position.z+Math.sin(a)*dist}
  g.position.set(x,0,z==null?0:z)
  scene.add(g)
@@ -271,6 +279,19 @@ function popup(worldPos,txt,color){const v=worldPos.clone().project(cam);const e
  let y=0,op=1;const iv=setInterval(()=>{y-=1.6;op-=0.04;el.style.transform='translate(-50%,'+(y-50)+'%)';el.style.opacity=op;if(op<=0){clearInterval(iv);el.remove()}},16)}
 let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
+/* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
+const SEEN=new Set()
+const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE'}
+const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
+ planet:"Planets don't shine — they only reflect their star's light.",
+ star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
+ neutron:'A teaspoon of it would weigh about a billion tons.',
+ pulsar:'A neutron star sweeping beams — some spin 700 times a second.',
+ rival:"Nothing escapes the event horizon — not even light."}
+let codexT=0
+function codexToast(type){if(SEEN.has(type))return;SEEN.add(type)
+ const el=$('codex');if(!el)return;el.innerHTML='<b>◆ CODEX · '+(NAMES[type]||type)+'</b><span>'+(FACTS[type]||'')+'</span>'
+ el.classList.add('on');codexT=performance.now()+3600;AU.ui()}
 
 /* ===== spawn director ===== */
 function topUp(){const want=Math.min(52,34+Math.floor(S.mass*0.4))
@@ -278,9 +299,10 @@ function topUp(){const want=Math.min(52,34+Math.floor(S.mass*0.4))
   const roll=Math.random()
   // 질량은 플레이어 기준 상대 분포: 다수 식량(작음) + 소수 위협(큼)
   let mass,type
-  if(roll<0.62){mass=S.mass*rnd(0.14,0.85);type=mass<1.2?'rock':(mass<6?'planet':'star')}          // 식량
-  else if(roll<0.86){mass=S.mass*rnd(0.9,1.5);type=mass<8?'planet':'star'}                            // 비슷/약간 큼(성장하면 식량)
-  else{mass=S.mass*rnd(0.7,2.4);type='rival'}                                                          // 라이벌 블랙홀(큰 놈=위협)
+  if(roll<0.52){mass=S.mass*rnd(0.14,0.85);type=mass<1.2?'rock':(mass<6?'planet':'star')}             // 식량(암석·행성·별)
+  else if(roll<0.68){mass=S.mass*rnd(0.35,0.8);type=Math.random()<0.4?'pulsar':'neutron'}             // 밀집 천체(작지만 알참)
+  else if(roll<0.88){mass=S.mass*rnd(0.9,1.5);type=mass<8?'planet':'star'}                             // 비슷/약간 큼(성장하면 식량)
+  else{mass=S.mass*rnd(0.7,2.4);type='rival'}                                                          // 라이벌 블랙홀(AI: 크면 추격/작으면 도망)
   spawnObj(type,Math.max(0.2,mass))}}
 
 /* ===== core update ===== */
@@ -302,8 +324,10 @@ function update(dt){
  // 객체 처리
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
   if(o.eaten){o.g.position.lerp(hole.position,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
-  o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=o.spin*dt
+  o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=(o.type==='pulsar'?o.spin*4:o.spin)*dt // 펄서는 빠르게 회전(빔 스윕)
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
+  if(o.type==='rival'&&d>0.6){const dir=o.mass>=S.mass?-1:1,spd=o.mass>=S.mass?4.6:5.6 // AI: 크면 추격(-홀쪽)·작으면 도망(+반대)
+   o.vx+=((dx/d)*spd*dir-o.vx)*Math.min(1,dt*1.6);o.vz+=((dz/d)*spd*dir-o.vz)*Math.min(1,dt*1.6)}
   const omouth=rad(o.mass)*1.55
   // 후광 가독성
   const edible=o.mass<S.mass,threat=(o.type==='rival')&&o.mass>=S.mass
@@ -323,11 +347,12 @@ function update(dt){
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
    popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
+   codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
    if(d<omouth){return gameOver('eaten',o.mass)}
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
-    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1)}
+    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('rival')}
   }
  }
  topUp()
@@ -390,6 +415,7 @@ function hud(){
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
  if(performance.now()>banT)$('banner').style.opacity=0
+ if(performance.now()>codexT)$('codex').classList.remove('on')
 }
 
 /* ===== loop ===== */
@@ -433,6 +459,8 @@ if(DEV){window.__acc={
  setMass:m=>{S.mass=m},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
+ seen:()=>[...SEEN],types:()=>objects.map(o=>o.type),
+ codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
  // 측정용 가속기: render 스킵하고 update만 고속 반복
