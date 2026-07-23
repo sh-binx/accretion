@@ -151,14 +151,27 @@ function halo(color){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:RT,c
 
 /* ===== black hole (player) ===== */
 const hole=new THREE.Group()
-const eh=new THREE.Mesh(new THREE.SphereGeometry(1,28,20),new THREE.MeshBasicMaterial({color:0x000000}));hole.add(eh)
-const diskGeo=new THREE.TorusGeometry(1.85,0.34,10,60)
-const disk=new THREE.Mesh(diskGeo,new THREE.MeshBasicMaterial({color:0xffb060,transparent:true,opacity:0.92,blending:THREE.AdditiveBlending,depthWrite:false}))
-disk.rotation.x=Math.PI*0.5-0.32;hole.add(disk)
-const disk2=new THREE.Mesh(new THREE.TorusGeometry(2.5,0.14,8,60),new THREE.MeshBasicMaterial({color:0x66b0ff,transparent:true,opacity:0.5,blending:THREE.AdditiveBlending,depthWrite:false}))
-disk2.rotation.x=Math.PI*0.5-0.32;hole.add(disk2)
-const holeGlow=glow(0x3aa0ff,7,0.5);hole.add(holeGlow)
+const eh=new THREE.Mesh(new THREE.SphereGeometry(0.98,32,24),new THREE.MeshBasicMaterial({color:0x000000,fog:false}));hole.add(eh) // 사건의 지평선 = 완전한 검은 공동
+// 강착원반 — 도플러 비대칭(접근측 청백·후퇴측 적), 뜨거운 플라스마(토성 고리 아님)
+const diskGeo=new THREE.TorusGeometry(1.7,0.15,14,110)
+{const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(0xcaf0ff),cR=new THREE.Color(0xff4a12)
+ for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
+  const c=cR.clone().lerp(cA,t),b=0.3+t*t*1.7 // 접근측 훨씬 밝게(상대론적 도플러 부스팅)
+  cols.push(c.r*b,c.g*b,c.b*b)}
+ diskGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3))}
+const disk=new THREE.Mesh(diskGeo,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}))
+disk.rotation.x=Math.PI*0.5-0.26;hole.add(disk);hole.userData.disk=disk
+// 광자 고리 — 그림자를 감싸는 얇고 밝은 원(블랙홀 정체성). 카메라를 향함(빌보드)
+const photon=new THREE.Mesh(new THREE.RingGeometry(1.0,1.13,80),new THREE.MeshBasicMaterial({color:0xffe8bf,transparent:true,opacity:0.92,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+hole.add(photon);hole.userData.photon=photon
+hole.add(glow(0x66a8ff,4.2,0.28)) // 은은한 코어 글로우(작게)
 scene.add(hole)
+// 시차 먼지 — 이동 체감(월드 공간, 홀 주위로 랩 → 무한 시차 필드)
+const DUSTN=460,dustPos=new Float32Array(DUSTN*3),DUSTR=120
+for(let i=0;i<DUSTN;i++){dustPos[i*3]=rnd(-DUSTR,DUSTR);dustPos[i*3+1]=rnd(-26,26);dustPos[i*3+2]=rnd(-DUSTR,DUSTR)}
+const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3))
+const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xa8c0e8,size:0.72,transparent:true,opacity:0.55,sizeAttenuation:true}))
+scene.add(dust)
 
 /* ===== object pool ===== */
 const ROCK=new THREE.IcosahedronGeometry(1,0)
@@ -256,7 +269,7 @@ function update(dt){
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
  const hr=rad(S.mass);hole.scale.setScalar(hr)
- disk.rotation.z+=dt*1.4;disk2.rotation.z-=dt*0.9
+ hole.userData.disk.rotation.z+=dt*1.2
  const mouth=hr*1.55
  // 객체 처리
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
@@ -295,7 +308,7 @@ function update(dt){
 
 /* ===== camera + render ===== */
 function updateCamera(dt){
- const camDist=28+S.mass*2.4
+ const camDist=22+rad(S.mass)*7 // 질량^⅓로 완만 줌아웃 → 성장할수록 화면에서 홀이 커 보임(성장 체감)
  const tx=hole.position.x,tz=hole.position.z
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
  cam.position.x+=(tx+sx-cam.position.x)*Math.min(1,dt*(dt?6:1))
@@ -305,7 +318,14 @@ function updateCamera(dt){
  S.shake=Math.max(0,S.shake-dt*3)
 }
 function render(){
- stars.position.copy(cam.position);neb.position.copy(cam.position) // 배경 = 스카이박스처럼 카메라 추종
+ stars.position.copy(cam.position);neb.position.copy(cam.position) // 먼 배경 = 스카이박스(카메라 추종) · 먼지는 월드 고정(시차)
+ hole.userData.photon.quaternion.copy(cam.quaternion) // 광자 고리 = 카메라 향함(그림자 감싸는 원)
+ {const dp=dustGeo.attributes.position,hx=hole.position.x,hz=hole.position.z // 먼지 랩 → 무한 시차(이동 체감)
+  for(let i=0;i<DUSTN;i++){let x=dp.getX(i),z=dp.getZ(i)
+   if(x-hx>DUSTR)x-=2*DUSTR;else if(x-hx<-DUSTR)x+=2*DUSTR
+   if(z-hz>DUSTR)z-=2*DUSTR;else if(z-hz<-DUSTR)z+=2*DUSTR
+   dp.setX(i,x);dp.setZ(i,z)}
+  dp.needsUpdate=true}
  // 1) 배경만 RT로
  renderer.setRenderTarget(rt);renderer.setClearColor(0x03040a,1);renderer.clear();renderer.render(bgScene,cam)
  // 2) 렌징 적용해 화면에
