@@ -75,6 +75,22 @@
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
  @keyframes sp{0%,100%{opacity:.55}50%{opacity:1}}
+ /* ===== codex collection screen ===== */
+ #codexGrid{width:min(560px,92vw);max-height:44vh;overflow-y:auto;margin:16px 0 10px;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+ @media(max-width:520px){#codexGrid{grid-template-columns:1fr}}
+ #codexGrid::-webkit-scrollbar{width:6px}#codexGrid::-webkit-scrollbar-thumb{background:rgba(120,150,220,.3);border-radius:3px}
+ .cdx{text-align:left;padding:9px 12px;border-radius:9px;background:rgba(120,150,220,.05);border:1px solid rgba(120,150,220,.12)}
+ .cdx.got{background:linear-gradient(180deg,rgba(53,180,255,.09),rgba(120,150,220,.05));border-color:rgba(120,150,220,.28)}
+ .cdx .cn{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.2px;color:#5d6889;font-weight:700}
+ .cdx.got .cn{color:#8fd0ff}
+ .cdx .cf{font-size:11.5px;color:#4a5474;margin-top:3px;line-height:1.45}
+ .cdx.got .cf{color:#c4cfe8}
+ #skinRow{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:2px 0 6px}
+ .skin{display:flex;align-items:center;gap:7px;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1px;font-weight:700;color:#c4cfe8;background:rgba(120,150,220,.08);border:1px solid rgba(120,150,220,.22);border-radius:8px;padding:7px 11px;pointer-events:auto}
+ .skin .sw{width:16px;height:16px;border-radius:50%;box-shadow:0 0 8px rgba(255,255,255,.25)}
+ .skin.sel{border-color:#ffcf4a;color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.3)}
+ .skin.lk{opacity:.45;cursor:not-allowed;color:#5d6889}
+ .skinlab{font-size:10px;letter-spacing:2px;color:#7c88ad;margin-top:10px}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -86,7 +102,7 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.5</div>
+<div class="credit">ACCRETION · prototype 0.6</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -98,6 +114,7 @@
  <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
  <div class="stat">PC: <b>WASD</b> · <b>← ↑ → ↓</b> · mouse &nbsp;|&nbsp; mobile: <b>drag to steer</b></div>
  <button class="linkbtn" id="startBoard">🏆 GLOBAL LEADERBOARD</button>
+ <button class="linkbtn" id="startCodex">◆ CODEX</button>
 </div>
 
 <div class="center off" id="over">
@@ -107,6 +124,7 @@
  <div class="rankline" id="rankline"></div>
  <button class="btn" id="retryBtn" style="background:#ffcf4a;box-shadow:0 0 26px rgba(255,207,74,.5)">▶ AGAIN</button>
  <button class="linkbtn" id="overBoard">🏆 LEADERBOARD</button>
+ <button class="linkbtn" id="overCodex">◆ CODEX</button>
 </div>
 
 <div class="center off" id="board">
@@ -116,6 +134,19 @@
  <div style="display:flex;gap:12px;margin-top:4px">
   <button class="btn" id="boardPlay" style="margin-top:0">▶ PLAY</button>
   <button class="btn" id="boardClose" style="margin-top:0;background:transparent;color:#8fd0ff;box-shadow:none;border:1px solid rgba(143,208,255,.4)">CLOSE</button>
+ </div>
+</div>
+
+<div class="center off" id="codexScreen">
+ <div class="big" style="font-size:clamp(24px,5vw,40px)">CO<span class="a">DEX</span></div>
+ <div class="tagline" id="codexSub">0 / 12 DISCOVERED</div>
+ <div class="msg" style="margin-top:8px;max-width:34ch">Discover cosmic bodies & phenomena as you play — each teaches real astrophysics. Collect them to unlock black-hole skins.</div>
+ <div id="codexGrid"></div>
+ <div class="skinlab">◆ BLACK HOLE SKIN</div>
+ <div id="skinRow"></div>
+ <div style="display:flex;gap:12px;margin-top:8px">
+  <button class="btn" id="codexPlay" style="margin-top:0">▶ PLAY</button>
+  <button class="btn" id="codexClose" style="margin-top:0;background:transparent;color:#8fd0ff;box-shadow:none;border:1px solid rgba(143,208,255,.4)">CLOSE</button>
  </div>
 </div>
 
@@ -326,18 +357,44 @@ function popup(worldPos,txt,color){const v=worldPos.clone().project(cam);const e
 let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
-const SEEN=new Set()
-const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE'}
+/* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured']
+const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
  neutron:'A teaspoon of it would weigh about a billion tons.',
  pulsar:'A neutron star sweeping beams — some spin 700 times a second.',
- rival:"Nothing escapes the event horizon — not even light."}
+ rival:"Nothing escapes the event horizon — not even light.",
+ surge:"A gravity slingshot — craft steal a planet's orbital speed to fling faster.",
+ tidal:'Tides near a black hole stretch you thin — "spaghettification".',
+ intermediate:'Intermediate black holes — thousands of Suns — are the rare missing link.',
+ supermassive:"Our galaxy's core hides Sagittarius A* — 4 million Suns.",
+ evaporate:'Hawking radiation: smaller black holes evaporate faster — a real prediction.',
+ devoured:'Cross the event horizon and not even light gets back out.'}
+const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
+ discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
+ count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
+// 블랙홀 스킨(강착원반 팔레트) — 코덱스 수집률로 언락. 수집이 곧 보상 = 교육을 리텐션 동력으로.
+const SKINS={void:{name:'VOID',cA:0xcaf0ff,cR:0xff4a12,ph:0xffe8bf,need:0},
+ solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:6},
+ aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:12}}
+const SKIN_ORDER=['void','solar','aurora']
+function paintDisk(cAh,cRh){const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(cAh),cR=new THREE.Color(cRh)
+ for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
+  const c=cR.clone().lerp(cA,t),b=0.3+t*t*1.7;cols.push(c.r*b,c.g*b,c.b*b)}
+ diskGeo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));diskGeo.attributes.color.needsUpdate=true}
+function skinUnlocked(id){return CODEX.count()>=(SKINS[id]?SKINS[id].need:1e9)}
+function curSkin(){let id=null;try{id=localStorage.getItem('acc_skin')}catch(e){}return (id&&SKINS[id]&&skinUnlocked(id))?id:'void'}
+function applySkin(id){const s=SKINS[id]||SKINS.void;paintDisk(s.cA,s.cR);photon.material.color.set(s.ph)}
 let codexT=0
-function codexToast(type){if(SEEN.has(type))return;SEEN.add(type)
- const el=$('codex');if(!el)return;el.innerHTML='<b>◆ CODEX · '+(NAMES[type]||type)+'</b><span>'+(FACTS[type]||'')+'</span>'
- el.classList.add('on');codexT=performance.now()+3600;AU.ui()}
+function codexToast(type){if(!CODEX.discover(type))return // 새 발견만(영구 수집 — 이미 모은 건 조용히)
+ const el=$('codex'),nu=CODEX.count(),tot=CODEX.total()
+ if(el){el.innerHTML='<b>◆ CODEX '+nu+'/'+tot+' · '+(NAMES[type]||type)+'</b><span>'+(FACTS[type]||'')+'</span>';el.classList.add('on');codexT=performance.now()+3800}
+ AU.ui()
+ for(const id of SKIN_ORDER)if(SKINS[id].need>0&&nu===SKINS[id].need)banner('◆ SKIN UNLOCKED',SKINS[id].name+' — choose it in CODEX') // 수집 보상
+}
 
 /* ===== spawn director ===== */
 function topUp(){const want=Math.min(56,34+Math.floor(S.mass*0.4))
@@ -358,7 +415,7 @@ function update(dt){
  // 호킹 복사: 상시 증발, 작을수록 빠름
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))
  S.mass=Math.max(0,S.mass-shrink*dt)
- if(S.mass<=S.evapFloor){return gameOver('evaporated')}
+ if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  // 이동(관성 활공)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
@@ -401,15 +458,15 @@ function update(dt){
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
-   if(d<omouth){return gameOver('eaten',o.mass)}
+   if(d<omouth){codexToast('devoured');return gameOver('eaten',o.mass)}
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
-    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('rival')}
+    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
   }
  }
  topUp()
  // 티어업
  const ti=tierOf(S.mass)
- if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1);$('zone').style.boxShadow=ZONES[Math.max(0,ti)].fx}
+ if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1);$('zone').style.boxShadow=ZONES[Math.max(0,ti)].fx;codexToast(ti===1?'intermediate':'supermassive')}
  S.tierIdx=ti
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 증발 경고
@@ -500,7 +557,7 @@ function doSurge(){
  if(st.mag<0.05){const vl=Math.hypot(S.vx,S.vz);if(vl>0.2){dx=S.vx/vl;dz=S.vz/vl}else dz=-1} // 입력 없으면 진행방향(정지면 화면 위)
  const l=Math.hypot(dx,dz)||1;S.vx+=dx/l*26;S.vz+=dz/l*26 // 임펄스
  S.shake=Math.min(S.shake+0.6,1.3);AU.surge();banner('⚡ SLINGSHOT','gravity assist — lunge')
- eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16)
+ eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
 }
 
 /* ===== leaderboard (Supabase · 삽입은 Edge Function 경유·읽기는 RLS 공개) ===== */
@@ -533,16 +590,33 @@ async function openBoard(){
  }).join('')
 }
 function closeBoard(){$('board').classList.add('off')}
+/* ===== 코덱스 수집화면 + 스킨 선택 ===== */
+function closeCodex(){$('codexScreen').classList.add('off')}
+function openCodex(){$('codexScreen').classList.remove('off');renderCodex()}
+function renderCodex(){
+ const nu=CODEX.count(),tot=CODEX.total()
+ $('codexSub').textContent=nu+' / '+tot+' DISCOVERED'
+ $('codexGrid').innerHTML=CODEX_ORDER.map(k=>{const got=CODEX.seen.has(k)
+  return '<div class="cdx'+(got?' got':'')+'"><div class="cn">'+(got?esc(NAMES[k]):'??? · LOCKED')+'</div><div class="cf">'+(got?esc(FACTS[k]):'Discover it in play.')+'</div></div>'}).join('')
+ const cs=curSkin()
+ $('skinRow').innerHTML=SKIN_ORDER.map(id=>{const s=SKINS[id],un=skinUnlocked(id)
+  const hx=n=>('000000'+n.toString(16)).slice(-6)
+  const sw='<span class="sw" style="background:linear-gradient(135deg,#'+hx(s.cA)+' 25%,#'+hx(s.cR)+')"></span>'
+  return '<button class="skin'+(cs===id?' sel':'')+(un?'':' lk')+'" data-skin="'+id+'"'+(un?'':' disabled')+'>'+sw+s.name+(un?'':' · '+s.need+'/'+tot)+'</button>'}).join('')
+ $('skinRow').querySelectorAll('.skin[data-skin]:not([disabled])').forEach(b=>b.onclick=()=>{try{localStorage.setItem('acc_skin',b.dataset.skin)}catch(e){}renderCodex()})
+}
+function refreshCodexBtn(){const t='◆ CODEX '+CODEX.count()+'/'+CODEX.total(),a=$('startCodex'),b=$('overCodex');if(a)a.textContent=t;if(b)b.textContent=t}
 
 /* ===== flow ===== */
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0})
  setZoneInstant(0) // 존 팔레트 초기화(청)
+ applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient()
- $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off')}
+ $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
  const evap=cause==='evaporated';if(evap)AU.evap();else AU.boom()
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,0)'
@@ -551,7 +625,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
   ?'You radiated away faster than you could feed.<br><span style="color:#7c88ad">Hawking radiation: smaller black holes evaporate faster — a real prediction.</span>'
   :'A larger black hole tidally disrupted you.<br><span style="color:#7c88ad">Spaghettification: tidal forces near a bigger mass stretch you apart.</span>'
  $('overStat').innerHTML='SCORE <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · MAX COMBO <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
- $('over').classList.remove('off')
+ $('over').classList.remove('off');refreshCodexBtn() // 이번 런 발견 반영
  // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
  lastRun=null;$('rankline').textContent=''
  if(S.score>=100){
@@ -566,6 +640,9 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
 $('startBtn').onclick=begin;$('retryBtn').onclick=begin
 $('startBoard').onclick=openBoard;$('overBoard').onclick=openBoard
 $('boardPlay').onclick=begin;$('boardClose').onclick=closeBoard
+$('startCodex').onclick=openCodex;$('overCodex').onclick=openCodex
+$('codexPlay').onclick=begin;$('codexClose').onclick=closeCodex
+refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 $('surge').onclick=doSurge // 모바일/클릭 발동(PC는 Space)
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
@@ -588,9 +665,14 @@ if(DEV){window.__acc={
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
  spawnTagged:(mass,x,z)=>{spawnObj('planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
- seen:()=>[...SEEN],types:()=>objects.map(o=>o.type),
+ seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
  objInfo:()=>objects.map(o=>({t:o.type,edible:o.mass<S.mass})),
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
+ codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
+ discover:t=>codexToast(t),skinUnlocked:id=>skinUnlocked(id),curSkin:()=>curSkin(),
+ setSkin:id=>{try{localStorage.setItem('acc_skin',id)}catch(e){}return curSkin()},
+ resetCodex:()=>{CODEX.seen.clear();try{localStorage.removeItem('acc_codex');localStorage.removeItem('acc_skin')}catch(e){}refreshCodexBtn()},
+ openCodex,closeCodex,codexOpen:()=>!$('codexScreen').classList.contains('off'),
  codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
