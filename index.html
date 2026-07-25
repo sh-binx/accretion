@@ -107,7 +107,7 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.7.1</div>
+<div class="credit">ACCRETION · prototype 0.8</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -117,8 +117,10 @@
  <div class="msg">You are a black hole. Glide to swallow smaller bodies and grow — but you constantly <b style="color:#ff9a3c">evaporate</b> (Hawking radiation). Smaller = faster fade. Avoid larger black holes: they eat you.</div>
  <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
  <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
+ <button class="btn" id="startDaily" style="margin-top:10px;background:transparent;color:#ffcf4a;border:1px solid rgba(255,207,74,.5);box-shadow:none">◆ DAILY CHALLENGE</button>
  <div class="stat">PC: <b>WASD</b> · <b>← ↑ → ↓</b> · mouse &nbsp;|&nbsp; mobile: <b>drag to steer</b></div>
  <button class="linkbtn" id="startBoard">🏆 GLOBAL LEADERBOARD</button>
+ <button class="linkbtn" id="startDailyBoard">📅 DAILY BOARD</button>
  <button class="linkbtn" id="startCodex">◆ CODEX</button>
 </div>
 
@@ -133,7 +135,7 @@
 </div>
 
 <div class="center off" id="board">
- <div class="big" style="font-size:clamp(24px,5vw,40px)">LEADER<span class="a">BOARD</span></div>
+ <div class="big" id="boardTitle" style="font-size:clamp(24px,5vw,40px)">LEADER<span class="a">BOARD</span></div>
  <div class="tagline" id="boardSub">GLOBAL · TOP 100</div>
  <div id="boardList"></div>
  <div style="display:flex;gap:12px;margin-top:4px">
@@ -403,8 +405,8 @@ function codexToast(type){if(!CODEX.discover(type))return // 새 발견만(영�
 }
 
 /* ===== spawn director ===== */
-function topUp(){const want=Math.min(56,34+Math.floor(S.mass*0.4))
- const tt=Math.max(0,S.tierIdx),rivalP=0.18+Math.min(0.24,tt*0.12) // 성장(티어)할수록 위협 비중↑ 0.18→0.42 (후반 긴장)
+function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S.modDensity||1)) // 데일리 SWARM: 밀도↑
+ const tt=Math.max(0,S.tierIdx),rivalP=Math.min(0.62,(0.18+Math.min(0.24,tt*0.12))*(S.modRivals||1)) // 위협 비중↑(데일리 DARK FOREST: 라이벌↑)
  while(objects.length<want){
   const roll=Math.random()
   // 비-라이벌은 전부 '먹이'(크기별) · 위협축=라이벌 블랙홀 — 성장할수록 더 많고 더 커짐
@@ -419,7 +421,7 @@ function update(dt){
  if(!S.alive||orientPaused)return // 세로(모바일)면 일시정지 — 증발 안 되게
  S.t+=dt
  // 호킹 복사: 상시 증발, 작을수록 빠름
- const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))
+ const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1) // 데일리 FAMINE: 증발↑
  S.mass=Math.max(0,S.mass-shrink*dt)
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  // 이동(관성 활공)
@@ -458,9 +460,9 @@ function update(dt){
   // 상호작용
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
-   S.combo=(performance.now()-S.comboAt<1400)?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo)
+   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
    S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+0.09) // 먹으면 서지 충전
-   S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)) // 콤보 배수 점수
+   S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)*(S.modFrenzy?1.3:1)) // 콤보 배수 점수(FRENZY 1.3×)
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
    popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
@@ -480,7 +482,7 @@ function update(dt){
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 네메시스 생애: INTERMEDIATE+면 항상 하나. 처치 후엔 잠깐 뒤 더 큰 게 등장.
  if(nemPending&&S.t>nemPending)nemPending=0
- if(S.tierIdx>=1&&!nemesis&&!nemPending)spawnNemesis()
+ if(S.tierIdx>=(S.modHunted?0:1)&&!nemesis&&!nemPending)spawnNemesis() // 데일리 HUNTED: 처음부터
  // 증발 경고
  S.warnT-=dt
  const danger=S.mass<S.evapFloor*2.0
@@ -582,23 +584,38 @@ const LB={
  KEY:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpuYm9lc2p5dW5ma2ZxZXBzdW11Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMwNTczODAsImV4cCI6MjA5ODYzMzM4MH0.iCpln-ZRd0WkeutlAfC-G93mE3kyKtY9VhRoCXT-wUU',
  get name(){return (localStorage.getItem('acc_name')||'').replace(/[^\x20-\x7e]/g,'').trim().slice(0,16)},
  set name(v){try{localStorage.setItem('acc_name',String(v).slice(0,16))}catch(e){}},
- async submit(score,mass,tier,dur){
+ async submit(score,mass,tier,dur,day,modifier){
   try{
-   const r=await fetch(this.URL+'/functions/v1/accretion-submit',{method:'POST',headers:{'Content-Type':'application/json','apikey':this.KEY},body:JSON.stringify({name:this.name||'ANON',score,mass,tier,dur})})
+   const r=await fetch(this.URL+'/functions/v1/accretion-submit',{method:'POST',headers:{'Content-Type':'application/json','apikey':this.KEY},body:JSON.stringify({name:this.name||'ANON',score,mass,tier,dur,day:day||null,modifier:modifier||null})})
    const j=await r.json().catch(()=>null)
    if(r.ok&&j&&j.ok)return {ok:true,rank:j.rank}
    return {ok:false,reason:(j&&j.error)||('http '+r.status)} // 서버 응답했으나 거부(검증/안티치트)
   }catch(e){return null} // 네트워크 실패
  },
- async top(limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
+ async top(limit){return this._q('&day=is.null',limit)},          // 글로벌 = 일반런만
+ async topDaily(day,limit){return this._q('&day=eq.'+day,limit)}, // 데일리 = 그날
+ async _q(filter,limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur,modifier'+filter+'&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
 }
+/* ===== 데일리 챌린지 — 날짜별 모디파이어(그날은 모두 같은 규칙) + 데일리 리더보드 ===== */
+function dayKey(){const d=new Date();return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
+function dayIndex(){const d=new Date();return Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())/86400000)}
+const DAILY_MODS=[
+ {id:'SWARM',name:'SWARM',desc:'The void teems — far more bodies to swallow',fx:s=>{s.modDensity=1.5}},
+ {id:'DARK_FOREST',name:'DARK FOREST',desc:'Rival black holes lurk everywhere',fx:s=>{s.modRivals=1.7}},
+ {id:'FAMINE',name:'FAMINE',desc:'You bleed away faster — feed or fade',fx:s=>{s.modEvap=1.7}},
+ {id:'HUNTED',name:'HUNTED',desc:'The apex hunts from your first breath',fx:s=>{s.modHunted=true}},
+ {id:'FRENZY',name:'FRENZY',desc:'Combos burn longer & score hotter',fx:s=>{s.modFrenzy=true}}
+]
+function todayMod(){return DAILY_MODS[((dayIndex()%DAILY_MODS.length)+DAILY_MODS.length)%DAILY_MODS.length]}
 const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
 let lastRun=null
-async function openBoard(){
+async function openBoard(daily){
  $('board').classList.remove('off')
+ $('boardTitle').innerHTML=daily?'DAILY<span class="a"> BOARD</span>':'LEADER<span class="a">BOARD</span>'
+ $('boardSub').textContent=daily?('TODAY · '+todayMod().name):'GLOBAL · TOP 100'
  const list=$('boardList');list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">loading…</div>'
- const rows=await LB.top(100)
- if(!rows.length){list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">no runs yet — be the first ◆</div>';return}
+ const rows=daily?await LB.topDaily(dayKey(),100):await LB.top(100)
+ if(!rows.length){list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">'+(daily?"no runs today — set the pace ◆":'no runs yet — be the first ◆')+'</div>';return}
  list.innerHTML=rows.map((r,i)=>{
   const me=lastRun&&r.name===lastRun.name&&r.score===lastRun.score
   const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)
@@ -643,6 +660,8 @@ function begin(){AU.unlock()
  setZoneInstant(0) // 존 팔레트 초기화(청)
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
+ S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false // 모디파이어 리셋
+ if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient()
@@ -659,19 +678,24 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
  // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
  lastRun=null;$('rankline').textContent=''
  if(S.score>=100){
-  $('rankline').innerHTML='<span style="color:#7c88ad">submitting to global board…</span>'
+  const isD=!!S.daily,lbl=isD?('DAILY · '+S.daily.name):'GLOBAL'
+  $('rankline').innerHTML='<span style="color:#7c88ad">submitting to '+(isD?'daily':'global')+' board…</span>'
   const tier=TIERS[Math.max(0,tierOf(S.peak))].n
   lastRun={name:LB.name||'ANON',score:S.score}
-  LB.submit(S.score,Math.round(S.peak*100)/100,tier,Math.round(S.t)).then(res=>{
-   if(res&&res.ok&&res.rank)$('rankline').innerHTML='GLOBAL RANK <b>#'+res.rank+'</b>'
+  LB.submit(S.score,Math.round(S.peak*100)/100,tier,Math.round(S.t),isD?dayKey():null,isD?S.daily.id:null).then(res=>{
+   if(res&&res.ok&&res.rank)$('rankline').innerHTML=lbl+' RANK <b>#'+res.rank+'</b>'
    else{lastRun=null;$('rankline').innerHTML='<span style="color:#7c88ad">'+(res&&!res.ok?'score not ranked':'board offline — saved this session')+'</span>'}
   })
  }}
-$('startBtn').onclick=begin;$('retryBtn').onclick=begin
-$('startBoard').onclick=openBoard;$('overBoard').onclick=openBoard
-$('boardPlay').onclick=begin;$('boardClose').onclick=closeBoard
+$('startBtn').onclick=()=>{S.daily=null;begin()};$('retryBtn').onclick=begin // AGAIN=같은 모드 재시도(데일리 유지)
+$('startBoard').onclick=()=>openBoard(false);$('overBoard').onclick=()=>openBoard(!!S.daily) // 게임오버 보드는 방금 모드 기준
+$('boardPlay').onclick=()=>{S.daily=null;begin()};$('boardClose').onclick=closeBoard
 $('startCodex').onclick=openCodex;$('overCodex').onclick=openCodex
-$('codexPlay').onclick=begin;$('codexClose').onclick=closeCodex
+$('codexPlay').onclick=()=>{S.daily=null;begin()};$('codexClose').onclick=closeCodex
+$('startDaily').onclick=()=>{S.daily=todayMod();begin()};$('startDailyBoard').onclick=()=>openBoard(true)
+S.daily=null // 기본=일반런
+function refreshDailyBtn(){const m=todayMod(),el=$('startDaily');if(el)el.innerHTML='◆ DAILY · <b style="color:#fff">'+m.name+'</b>'}
+refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 $('surge').onclick=doSurge // 모바일/클릭 발동(PC는 Space)
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
@@ -706,6 +730,12 @@ if(DEV){window.__acc={
  nemesis:()=>nemesis?{mass:Math.round(nemesis.mass*100)/100,dist:Math.round(nemesis.g.position.distanceTo(hole.position)*10)/10,vuln:nemesis.mass<S.mass}:null,
  spawnNemesis:()=>spawnNemesis(),apexKills:()=>S.apexKills||0,
  eatNemesis:()=>{if(nemesis){nemesisConsumed(nemesis);return true}return false},
+ todayMod:()=>({id:todayMod().id,name:todayMod().name}),dayKey:()=>dayKey(),
+ daily:()=>S.daily?{id:S.daily.id,name:S.daily.name}:null,
+ startDaily:()=>{S.daily=todayMod();begin()},setDaily:v=>{S.daily=v?todayMod():null},
+ forceDaily:id=>{S.daily=DAILY_MODS.find(m=>m.id===id)||null;begin();return !!S.daily},
+ mods:()=>({density:S.modDensity,rivals:Math.round((S.modRivals||1)*100)/100,evap:S.modEvap,hunted:!!S.modHunted,frenzy:!!S.modFrenzy}),
+ submitDaily:(s,m,t,d)=>LB.submit(s,m,t,d,dayKey(),todayMod().id),topDaily:l=>LB.topDaily(dayKey(),l),
  codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
