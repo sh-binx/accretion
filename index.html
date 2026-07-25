@@ -107,7 +107,7 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.7</div>
+<div class="credit">ACCRETION · prototype 0.7.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -268,9 +268,9 @@ const SPH=new THREE.SphereGeometry(1,18,14)
 const objects=[]
 function mkVisual(type,mass){
  const g=new THREE.Group()
- if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true})))}
- else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.55,0.55)
-  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1})))}
+ if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true,emissive:0x6a7284,emissiveIntensity:0.18})))}
+ else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.6,0.55)
+  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1,emissive:col,emissiveIntensity:0.42})))} // emissive=고유색 → 존 조명(금색)에도 색 유지
  else if(type==='star'){const col=Math.random()<.5?0xffd27a:0x9fc0ff
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
  else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
