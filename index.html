@@ -100,39 +100,37 @@
  .skin.sel{border-color:#ffcf4a;color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.3)}
  .skin.lk{opacity:.45;cursor:not-allowed;color:#5d6889}
  .skinlab{font-size:10px;letter-spacing:2px;color:#7c88ad;margin-top:10px}
- /* ===== 메인 메뉴 — 시네마틱 히어로(좌 UI · 우 블랙홀 · 하단 성과 스트립) ===== */
- #start{align-items:flex-start;text-align:left;padding:0 clamp(20px,6.5vw,110px);backdrop-filter:none;
-  background:linear-gradient(90deg,rgba(3,4,10,.95) 0%,rgba(3,4,10,.87) 34%,rgba(3,4,10,.45) 62%,rgba(3,4,10,.08) 84%,rgba(3,4,10,0) 100%)}
- #start .col{width:min(560px,54%)}
- #start .big{font-size:clamp(30px,5.4vw,54px);letter-spacing:5px;margin-top:4px}
- #start .tagline{margin-top:0}
- #start .msg{max-width:44ch;margin-top:13px;font-size:13px}
- #start .namerow{margin-top:18px}
- #start .btnrow{display:flex;gap:11px;flex-wrap:wrap;margin-top:17px}
- #start .btnrow .btn{margin-top:0}
- #start .linkrow{display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:17px}
- #start .linkrow .linkbtn{margin-top:0}
- .btn.alt{background:transparent;color:#ffcf4a;border:1px solid rgba(255,207,74,.5);box-shadow:none}
- .btn.alt:hover{background:rgba(255,207,74,.12)}
- .keys{font-size:10px;letter-spacing:1.4px;color:#7c88ad;border:1px solid rgba(120,150,220,.2);border-radius:20px;padding:4px 11px;white-space:nowrap}
- #strip{position:absolute;left:clamp(20px,6.5vw,110px);right:clamp(20px,6.5vw,110px);bottom:clamp(16px,5vh,44px);display:flex;gap:10px;pointer-events:none}
- #strip .st{flex:1;background:linear-gradient(180deg,rgba(22,28,50,.84),rgba(10,14,30,.72));border:1px solid rgba(120,150,220,.18);border-radius:12px;padding:9px 13px;backdrop-filter:blur(3px)}
- #strip .lab{font-size:9px;letter-spacing:2px;color:#5d6889}
- #strip .v{font-size:15px;font-weight:800;color:#eaf1ff;margin-top:2px;font-variant-numeric:tabular-nums}
- #strip .v.c{color:#8fd0ff}#strip .v.g{color:#ffcf4a}
- #strip .bar{height:5px;border-radius:4px;background:rgba(120,150,220,.16);overflow:hidden;margin-top:6px}
- #strip .bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#35a0ff,#8fd0ff);transition:width .5s}
- /* 좁은 화면 = 중앙 정렬 회귀(홀은 뒤 배경으로) */
- @media(max-width:860px){
-  #start{align-items:center;text-align:center;padding:0 20px;backdrop-filter:blur(2px);
-   background:radial-gradient(ellipse 75% 62% at 50% 46%,rgba(3,4,10,.86),rgba(3,4,10,.93))}
-  #start .col{width:100%}
-  #start .msg{margin-left:auto;margin-right:auto}
-  #start .namerow,#start .btnrow,#start .linkrow{justify-content:center}
- }
- @media(max-width:860px),(max-height:560px){#strip{display:none}}
- /* 낮은 화면(모바일 가로) — 넘침 방지 */
- @media(max-height:520px){#start .msg{display:none}#start .big{font-size:clamp(24px,5vw,38px)}#start .btnrow,#start .linkrow,#start .namerow{margin-top:11px}}
+ /* ===== 메인 메뉴 — PORTAL(C): 상단 블랙홀 히어로 · 워드마크 · 거대 PLAY ===== */
+ #start{justify-content:flex-end;align-items:center;text-align:center;padding:0 20px clamp(18px,4.5vh,44px);backdrop-filter:none;
+  background:linear-gradient(180deg,rgba(4,5,12,0) 0%,rgba(4,5,12,.18) 34%,rgba(4,5,12,.72) 56%,rgba(4,5,12,.93) 76%,#04050c 100%)}
+ #start .col{width:100%;max-width:720px;display:flex;flex-direction:column;align-items:center}
+ /* 워드마크 — 두껍고 타이트하게(모노 대신 디스플레이 감각) */
+ #start .wm{font-family:system-ui,-apple-system,"Helvetica Neue",sans-serif;font-weight:900;letter-spacing:-.045em;line-height:.92;
+  font-size:clamp(38px,8.4vw,92px);background:linear-gradient(180deg,#ffffff 28%,#8fd0ff 100%);-webkit-background-clip:text;background-clip:text;
+  color:transparent;filter:drop-shadow(0 0 30px rgba(53,180,255,.34))}
+ #start .tl{font-family:ui-monospace,Menlo,monospace;font-size:clamp(9px,1.15vw,11px);letter-spacing:3.4px;color:#ffcf4a;margin-top:9px}
+ #start .namerow{margin-top:clamp(12px,2.4vh,20px);justify-content:center}
+ #start .play{margin-top:clamp(10px,2vh,16px);pointer-events:auto;cursor:pointer;border:0;
+  font-family:ui-monospace,Menlo,monospace;font-weight:900;font-size:clamp(15px,1.7vw,18px);letter-spacing:2.4px;color:#04060e;
+  background:linear-gradient(180deg,#bde6ff,#54b8ff);border-radius:13px;padding:14px clamp(38px,6vw,58px);
+  box-shadow:0 0 44px rgba(53,180,255,.46),0 4px 0 rgba(18,86,146,.55)}
+ #start .play:hover{background:linear-gradient(180deg,#d6f0ff,#6ec5ff)}
+ #start .keys{font-family:ui-monospace,Menlo,monospace;font-size:10px;letter-spacing:1.5px;color:#7c88ad;margin-top:11px}
+ /* 데일리 리본 — 우상단 */
+ #ribbon{position:absolute;right:clamp(14px,3.4vw,42px);top:clamp(14px,3.4vh,34px);z-index:3;pointer-events:auto;cursor:pointer;
+  display:flex;align-items:center;gap:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;font-weight:800;letter-spacing:1.4px;
+  color:#ffcf4a;background:linear-gradient(90deg,rgba(255,207,74,.17),rgba(255,207,74,.06));border:1px solid rgba(255,207,74,.42);
+  border-radius:22px;padding:7px 15px}
+ #ribbon:hover{background:linear-gradient(90deg,rgba(255,207,74,.28),rgba(255,207,74,.1))}
+ /* 하단 칩 — 클릭 가능(보드·코덱스 진입) */
+ #chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:clamp(12px,2.6vh,22px)}
+ #chips .chip{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:7px;background:rgba(16,22,44,.78);
+  border:1px solid rgba(130,160,225,.28);border-radius:22px;padding:7px 15px;font-family:ui-monospace,Menlo,monospace}
+ #chips .chip:hover{border-color:rgba(143,208,255,.55);background:rgba(22,30,58,.9)}
+ #chips .k{font-size:9px;letter-spacing:1.7px;color:#59637f}
+ #chips .v{font-size:11.5px;font-weight:800;color:#eef3ff;font-variant-numeric:tabular-nums}
+ #chips .v.g{color:#ffcf4a}
+ @media(max-height:520px){#start .wm{font-size:clamp(30px,6vw,52px)}#start .keys{display:none}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -146,32 +144,23 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.3</div>
+<div class="credit">ACCRETION · prototype 1.4</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
 <div class="center" id="start">
+ <div id="ribbon"><span id="ribbonTxt">◆ DAILY</span></div>
  <div class="col">
-  <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
-  <div class="big">ACC<span class="a">RETION</span></div>
-  <div class="msg">You are a black hole — swallow to grow, but you <b style="color:#ff9a3c">evaporate</b> every second. Stop feeding and you fade. Avoid the greater ones: they eat you.</div>
+  <div class="wm">ACCRETION</div>
+  <div class="tl">BECOME THE BLACK HOLE</div>
   <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
-  <div class="btnrow">
-   <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
-   <button class="btn alt" id="startDaily">◆ DAILY CHALLENGE</button>
+  <button class="play" id="startBtn">▶ PLAY</button>
+  <div class="keys">WASD · ← ↑ → ↓ · DRAG</div>
+  <div id="chips">
+   <button class="chip" id="startBoard"><span class="k">BEST</span><span class="v" id="chipBest">–</span></button>
+   <button class="chip" id="startDailyBoard"><span class="k">RANK</span><span class="v g" id="chipRank">–</span></button>
+   <button class="chip" id="startCodex"><span class="k">CODEX</span><span class="v" id="chipCodex">–</span></button>
   </div>
-  <div class="linkrow">
-   <button class="linkbtn" id="startBoard">🏆 GLOBAL</button>
-   <button class="linkbtn" id="startDailyBoard">📅 DAILY</button>
-   <button class="linkbtn" id="startCodex">◆ CODEX</button>
-   <span class="keys">WASD · ← ↑ → ↓ · DRAG</span>
-  </div>
- </div>
- <div id="strip">
-  <div class="st"><div class="lab">CODEX</div><div class="v c" id="stCodex">–</div><div class="bar"><i id="stCodexBar"></i></div></div>
-  <div class="st"><div class="lab">YOUR BEST</div><div class="v" id="stBest">–</div></div>
-  <div class="st"><div class="lab">GLOBAL RANK</div><div class="v g" id="stRank">–</div></div>
-  <div class="st"><div class="lab">TODAY</div><div class="v g" id="stToday">–</div></div>
  </div>
 </div>
 
@@ -328,7 +317,9 @@ const FORMS=[
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
 const accEff=()=>1/(1+Math.max(0,S.mass-85)/45)
+applyFormInit()
 function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
+function applyFormInit(){applyForm(2)} // 메뉴 히어로는 블랙홀 — 게임 아이덴티티(렌징)를 전면에
 function applyForm(fi){ // 형태 전환 = 메시 교체(변신 체감)
  const bh=fi===2
  for(const p of bhParts)p.visible=bh
@@ -596,12 +587,12 @@ function update(dt){
 /* ===== camera + render ===== */
 let menuShift=0
 function updateCamera(dt){
- const hero=!S.alive&&innerWidth>860 // 넓은 화면 메뉴 = 시네마틱 히어로(우측 대형 홀) · 좁으면 홀은 배경으로 물림
+ const hero=!S.alive // 메뉴면 항상 히어로 구도(좁은 화면도 동일) // 넓은 화면 메뉴 = 시네마틱 히어로(우측 대형 홀) · 좁으면 홀은 배경으로 물림
  const camDist=(22+rad(S.mass)*7)*(S.alive?1:(hero?0.56:1.25))
  const asp=innerWidth/innerHeight
- const wantShift=hero?camDist*0.52*Math.min(1,Math.max(0,(asp-1.05)/0.6)):0
+ const wantShift=hero?camDist*0.26:0 // 홀을 화면 위쪽으로 — 아래에 워드마크·CTA 공간
  menuShift+=(wantShift-menuShift)*Math.min(1,dt*3)
- const tx=hole.position.x-menuShift,tz=hole.position.z
+ const tx=hole.position.x,tz=hole.position.z+menuShift // z+ = 화면상 홀이 위로
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
  cam.position.x+=(tx+sx-cam.position.x)*Math.min(1,dt*(dt?6:1))
  cam.position.z+=(tz+camDist*0.72+sz-cam.position.z)*Math.min(1,dt*6)
@@ -627,8 +618,9 @@ function render(){
  const p=hole.position.clone().project(cam)
  lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
  const hr=rad(S.mass)
- lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens // 블랙홀이 되는 순간 렌징이 켜진다
- lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)
+ if(S.alive){lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens // 블랙홀이 되는 순간 렌징이 켜진다
+  lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)}
+ else{lensMat.uniforms.uStrength.value=0.082;lensMat.uniforms.uEH.value=0.058} // 메뉴 히어로 — 아크 왜곡은 강하게, 광자링은 얇고 또렷하게
  lensMat.uniforms.uAspect.value=innerWidth/innerHeight
  renderer.autoClear=true;renderer.render(postScene,postCam)
  // 3) 게임플레이 위에
@@ -662,7 +654,7 @@ function hud(){
 let last=performance.now(),acc=0
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
- if(!S.alive)hole.userData.disk.rotation.z+=dt*0.5 // 메뉴에서도 강착원반은 돈다(생동감)
+ if(!S.alive){hole.userData.disk.rotation.z+=dt*0.5;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
  update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
@@ -752,7 +744,7 @@ function renderCodex(){
   return '<button class="skin'+(cs===id?' sel':'')+(un?'':' lk')+'" data-skin="'+id+'"'+(un?'':' disabled')+'>'+sw+s.name+(un?'':' · '+s.need+'/'+tot)+'</button>'}).join('')
  $('skinRow').querySelectorAll('.skin[data-skin]:not([disabled])').forEach(b=>b.onclick=()=>{try{localStorage.setItem('acc_skin',b.dataset.skin)}catch(e){}renderCodex()})
 }
-function refreshCodexBtn(){const t='◆ CODEX '+CODEX.count()+'/'+CODEX.total(),a=$('startCodex'),b=$('overCodex');if(a)a.textContent=t;if(b)b.textContent=t}
+function refreshCodexBtn(){const b=$('overCodex');if(b)b.textContent='◆ CODEX '+CODEX.count()+'/'+CODEX.total()} // 시작화면은 칩이 담당
 /* ===== 메인 성과 스트립 — 돌아올 이유를 메뉴에 상시 노출 ===== */
 const STATS={
  get best(){return +(localStorage.getItem('acc_best')||0)||0},
@@ -762,11 +754,9 @@ const STATS={
 }
 function refreshStrip(){
  const n=CODEX.count(),t=CODEX.total()
- if($('stCodex'))$('stCodex').textContent=n+' / '+t
- if($('stCodexBar'))$('stCodexBar').style.width=Math.round(n/t*100)+'%'
- if($('stBest'))$('stBest').textContent=STATS.best?STATS.best.toLocaleString():'–'
- if($('stRank'))$('stRank').textContent=STATS.rank?('#'+STATS.rank):'–'
- if($('stToday'))$('stToday').textContent=todayMod().name
+ if($('chipCodex'))$('chipCodex').textContent=n+'/'+t
+ if($('chipBest'))$('chipBest').textContent=STATS.best?fmtBig(STATS.best):'–'
+ if($('chipRank'))$('chipRank').textContent=STATS.rank?('#'+STATS.rank):'–'
 }
 
 /* ===== flow ===== */
@@ -859,9 +849,9 @@ $('startBoard').onclick=()=>openBoard(false);$('overBoard').onclick=()=>openBoar
 $('boardPlay').onclick=()=>{S.daily=null;begin()};$('boardClose').onclick=closeBoard
 $('startCodex').onclick=openCodex;$('overCodex').onclick=openCodex
 $('codexPlay').onclick=()=>{S.daily=null;begin()};$('codexClose').onclick=closeCodex
-$('startDaily').onclick=()=>{S.daily=todayMod();begin()};$('startDailyBoard').onclick=()=>openBoard(true)
+$('ribbon').onclick=()=>{S.daily=todayMod();begin()};$('startDailyBoard').onclick=()=>openBoard(true)
 S.daily=null // 기본=일반런
-function refreshDailyBtn(){const m=todayMod(),el=$('startDaily');if(el)el.innerHTML='◆ DAILY · <b style="color:#fff">'+m.name+'</b>'}
+function refreshDailyBtn(){const m=todayMod(),el=$('ribbonTxt');if(el)el.innerHTML='◆ DAILY · <b style="color:#fff">'+m.name+'</b>'}
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
@@ -909,6 +899,7 @@ if(DEV){window.__acc={
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
  holeScreen:()=>{const v=hole.position.clone().project(cam);return {x:v.x*.5+.5,y:-v.y*.5+.5}}, // 홀의 화면 좌표(0~1) — 메뉴 히어로 배치 검증
  menuShift:()=>Math.round(menuShift*10)/10,
+ bestScore:()=>STATS.best,
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,

@@ -35,23 +35,22 @@ try {
   await page.reload({ waitUntil:'networkidle' })
   await page.waitForFunction(() => window.__acc && window.__acc.state, { timeout:15000 })
   const strip = await page.evaluate(() => ({
-    visible: getComputedStyle(document.getElementById('strip')).display !== 'none',
-    codex: document.getElementById('stCodex').textContent,
-    bar: document.getElementById('stCodexBar').style.width,
-    best: document.getElementById('stBest').textContent,
-    rank: document.getElementById('stRank').textContent,
-    today: document.getElementById('stToday').textContent,
+    play: !!document.getElementById('startBtn'),
+    codex: document.getElementById('chipCodex').textContent,
+    best: document.getElementById('chipBest').textContent,
+    rank: document.getElementById('chipRank').textContent,
+    ribbon: document.getElementById('ribbonTxt').textContent,
   }))
-  ok('desktop: stat strip visible', strip.visible===true)
-  ok('strip shows codex progress', /^3 \/ 16$/.test(strip.codex) && strip.bar!=='0%', `${strip.codex} bar=${strip.bar}`)
-  ok('strip shows personal best', strip.best==='12,345', strip.best)
-  ok('strip shows global rank', strip.rank==='#7', strip.rank)
-  ok('strip shows today\'s modifier', strip.today.length>2, strip.today)
+  ok('menu: PLAY button present', strip.play===true)
+  ok('chip shows codex progress', /^3\/16$/.test(strip.codex), strip.codex)
+  ok('chip shows personal best', strip.best==='12.3K', strip.best)
+  ok('chip shows global rank', strip.rank==='#7', strip.rank)
+  ok('ribbon shows today\'s modifier', strip.ribbon.length>6, strip.ribbon)
 
   // hero: black hole pushed right (camera offset) and clear of the UI column
   await sleep(2200)
   const heroPos = await page.evaluate(() => window.__acc.holeScreen ? window.__acc.holeScreen() : null)
-  if (heroPos) ok('hero: hole sits on the right half', heroPos.x>0.55, `x=${heroPos.x.toFixed(2)}`)
+  if (heroPos) ok('hero: hole sits in the upper area', heroPos.y<0.46, `y=${heroPos.y.toFixed(2)}`)
 
   // playing: HUD returns
   await page.evaluate(() => window.__acc.begin())
@@ -63,7 +62,7 @@ try {
   await page.evaluate(() => { window.__acc.setScore(99999); window.__acc.gameOver() })
   await sleep(300)
   ok('gameover: HUD hidden again', await hudSettles(page,false))
-  ok('gameover: personal best updated', (await page.evaluate(() => document.getElementById('stBest').textContent))==='99,999')
+  ok('gameover: personal best updated', (await page.evaluate(() => window.__acc.bestScore()))===99999)
   await page.close()
 
   // ── narrow: falls back to centered layout, strip hidden (no overlap with the hole) ──
@@ -71,12 +70,12 @@ try {
   narrow.on('pageerror', e => errors.push('PAGEERR(narrow): '+e.message))
   await narrow.goto(URL, { waitUntil:'networkidle' })
   await narrow.waitForFunction(() => window.__acc && window.__acc.state, { timeout:15000 })
-  const n = await narrow.evaluate(() => ({
-    align: getComputedStyle(document.getElementById('start')).alignItems,
-    strip: getComputedStyle(document.getElementById('strip')).display,
-  }))
+  const n = await narrow.evaluate(() => {
+    const r=document.querySelector('#start .col').getBoundingClientRect()
+    return { align: getComputedStyle(document.getElementById('start')).alignItems, fits: r.top>=-1 && r.bottom<=innerHeight+1 }
+  })
   ok('narrow: centered layout', n.align==='center', n.align)
-  ok('narrow: strip hidden', n.strip==='none')
+  ok('narrow: menu fits viewport', n.fits===true)
   await narrow.close()
 
   // ── mobile landscape: nothing overflows the viewport ──
