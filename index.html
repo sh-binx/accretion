@@ -17,6 +17,9 @@
  #right{position:fixed;top:14px;right:16px;z-index:5;text-align:right;pointer-events:none}
  #right .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
  #right .v{font-size:15px;font-weight:700;color:#eaf1ff}
+ /* 게임 중에만 HUD 노출 — 메뉴/게임오버에서 비쳐 보이던 것 제거 */
+ #hud,#massbar,#right{opacity:0;transition:opacity .35s}
+ body.playing #hud,body.playing #massbar,body.playing #right{opacity:1}
  .center{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(8,6,20,.5),rgba(3,4,10,.86));backdrop-filter:blur(2px)}
  .center.off{display:none}
  .big{font-size:clamp(30px,7vw,58px);font-weight:850;letter-spacing:6px;color:#8fd0ff;text-shadow:0 0 34px rgba(53,180,255,.7)}
@@ -95,6 +98,39 @@
  .skin.sel{border-color:#ffcf4a;color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.3)}
  .skin.lk{opacity:.45;cursor:not-allowed;color:#5d6889}
  .skinlab{font-size:10px;letter-spacing:2px;color:#7c88ad;margin-top:10px}
+ /* ===== 메인 메뉴 — 시네마틱 히어로(좌 UI · 우 블랙홀 · 하단 성과 스트립) ===== */
+ #start{align-items:flex-start;text-align:left;padding:0 clamp(20px,6.5vw,110px);backdrop-filter:none;
+  background:linear-gradient(90deg,rgba(3,4,10,.95) 0%,rgba(3,4,10,.87) 34%,rgba(3,4,10,.45) 62%,rgba(3,4,10,.08) 84%,rgba(3,4,10,0) 100%)}
+ #start .col{width:min(560px,54%)}
+ #start .big{font-size:clamp(30px,5.4vw,54px);letter-spacing:5px;margin-top:4px}
+ #start .tagline{margin-top:0}
+ #start .msg{max-width:44ch;margin-top:13px;font-size:13px}
+ #start .namerow{margin-top:18px}
+ #start .btnrow{display:flex;gap:11px;flex-wrap:wrap;margin-top:17px}
+ #start .btnrow .btn{margin-top:0}
+ #start .linkrow{display:flex;gap:15px;align-items:center;flex-wrap:wrap;margin-top:17px}
+ #start .linkrow .linkbtn{margin-top:0}
+ .btn.alt{background:transparent;color:#ffcf4a;border:1px solid rgba(255,207,74,.5);box-shadow:none}
+ .btn.alt:hover{background:rgba(255,207,74,.12)}
+ .keys{font-size:10px;letter-spacing:1.4px;color:#7c88ad;border:1px solid rgba(120,150,220,.2);border-radius:20px;padding:4px 11px;white-space:nowrap}
+ #strip{position:absolute;left:clamp(20px,6.5vw,110px);right:clamp(20px,6.5vw,110px);bottom:clamp(16px,5vh,44px);display:flex;gap:10px;pointer-events:none}
+ #strip .st{flex:1;background:linear-gradient(180deg,rgba(22,28,50,.84),rgba(10,14,30,.72));border:1px solid rgba(120,150,220,.18);border-radius:12px;padding:9px 13px;backdrop-filter:blur(3px)}
+ #strip .lab{font-size:9px;letter-spacing:2px;color:#5d6889}
+ #strip .v{font-size:15px;font-weight:800;color:#eaf1ff;margin-top:2px;font-variant-numeric:tabular-nums}
+ #strip .v.c{color:#8fd0ff}#strip .v.g{color:#ffcf4a}
+ #strip .bar{height:5px;border-radius:4px;background:rgba(120,150,220,.16);overflow:hidden;margin-top:6px}
+ #strip .bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,#35a0ff,#8fd0ff);transition:width .5s}
+ /* 좁은 화면 = 중앙 정렬 회귀(홀은 뒤 배경으로) */
+ @media(max-width:860px){
+  #start{align-items:center;text-align:center;padding:0 20px;backdrop-filter:blur(2px);
+   background:radial-gradient(ellipse 75% 62% at 50% 46%,rgba(3,4,10,.86),rgba(3,4,10,.93))}
+  #start .col{width:100%}
+  #start .msg{margin-left:auto;margin-right:auto}
+  #start .namerow,#start .btnrow,#start .linkrow{justify-content:center}
+ }
+ @media(max-width:860px),(max-height:560px){#strip{display:none}}
+ /* 낮은 화면(모바일 가로) — 넘침 방지 */
+ @media(max-height:520px){#start .msg{display:none}#start .big{font-size:clamp(24px,5vw,38px)}#start .btnrow,#start .linkrow,#start .namerow{margin-top:11px}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -107,21 +143,33 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.8</div>
+<div class="credit">ACCRETION · prototype 0.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
 <div class="center" id="start">
- <div class="big">ACC<span class="a">RETION</span></div>
- <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
- <div class="msg">You are a black hole. Glide to swallow smaller bodies and grow — but you constantly <b style="color:#ff9a3c">evaporate</b> (Hawking radiation). Smaller = faster fade. Avoid larger black holes: they eat you.</div>
- <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
- <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
- <button class="btn" id="startDaily" style="margin-top:10px;background:transparent;color:#ffcf4a;border:1px solid rgba(255,207,74,.5);box-shadow:none">◆ DAILY CHALLENGE</button>
- <div class="stat">PC: <b>WASD</b> · <b>← ↑ → ↓</b> · mouse &nbsp;|&nbsp; mobile: <b>drag to steer</b></div>
- <button class="linkbtn" id="startBoard">🏆 GLOBAL LEADERBOARD</button>
- <button class="linkbtn" id="startDailyBoard">📅 DAILY BOARD</button>
- <button class="linkbtn" id="startCodex">◆ CODEX</button>
+ <div class="col">
+  <div class="tagline">GRAZE THE COSMOS · FEED OR FADE</div>
+  <div class="big">ACC<span class="a">RETION</span></div>
+  <div class="msg">You are a black hole — swallow to grow, but you <b style="color:#ff9a3c">evaporate</b> every second. Stop feeding and you fade. Avoid the greater ones: they eat you.</div>
+  <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
+  <div class="btnrow">
+   <button class="btn" id="startBtn">▶ ENTER THE VOID</button>
+   <button class="btn alt" id="startDaily">◆ DAILY CHALLENGE</button>
+  </div>
+  <div class="linkrow">
+   <button class="linkbtn" id="startBoard">🏆 GLOBAL</button>
+   <button class="linkbtn" id="startDailyBoard">📅 DAILY</button>
+   <button class="linkbtn" id="startCodex">◆ CODEX</button>
+   <span class="keys">WASD · ← ↑ → ↓ · DRAG</span>
+  </div>
+ </div>
+ <div id="strip">
+  <div class="st"><div class="lab">CODEX</div><div class="v c" id="stCodex">–</div><div class="bar"><i id="stCodexBar"></i></div></div>
+  <div class="st"><div class="lab">YOUR BEST</div><div class="v" id="stBest">–</div></div>
+  <div class="st"><div class="lab">GLOBAL RANK</div><div class="v g" id="stRank">–</div></div>
+  <div class="st"><div class="lab">TODAY</div><div class="v g" id="stToday">–</div></div>
+ </div>
 </div>
 
 <div class="center off" id="over">
@@ -492,9 +540,14 @@ function update(dt){
 }
 
 /* ===== camera + render ===== */
+let menuShift=0
 function updateCamera(dt){
- const camDist=22+rad(S.mass)*7 // 질량^⅓로 완만 줌아웃 → 성장할수록 화면에서 홀이 커 보임(성장 체감)
- const tx=hole.position.x,tz=hole.position.z
+ const hero=!S.alive&&innerWidth>860 // 넓은 화면 메뉴 = 시네마틱 히어로(우측 대형 홀) · 좁으면 홀은 배경으로 물림
+ const camDist=(22+rad(S.mass)*7)*(S.alive?1:(hero?0.56:1.25))
+ const asp=innerWidth/innerHeight
+ const wantShift=hero?camDist*0.52*Math.min(1,Math.max(0,(asp-1.05)/0.6)):0
+ menuShift+=(wantShift-menuShift)*Math.min(1,dt*3)
+ const tx=hole.position.x-menuShift,tz=hole.position.z
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
  cam.position.x+=(tx+sx-cam.position.x)*Math.min(1,dt*(dt?6:1))
  cam.position.z+=(tz+camDist*0.72+sz-cam.position.z)*Math.min(1,dt*6)
@@ -553,6 +606,7 @@ function hud(){
 let last=performance.now(),acc=0
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
+ if(!S.alive)hole.userData.disk.rotation.z+=dt*0.5 // 메뉴에서도 강착원반은 돈다(생동감)
  update(dt);updateParticles(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
@@ -624,7 +678,7 @@ async function openBoard(daily){
 }
 function closeBoard(){$('board').classList.add('off')}
 /* ===== 코덱스 수집화면 + 스킨 선택 ===== */
-function closeCodex(){$('codexScreen').classList.add('off')}
+function closeCodex(){$('codexScreen').classList.add('off');refreshStrip();refreshCodexBtn()} // 수집·스킨 변경 반영
 function openCodex(){$('codexScreen').classList.remove('off');renderCodex()}
 function renderCodex(){
  const nu=CODEX.count(),tot=CODEX.total()
@@ -639,6 +693,21 @@ function renderCodex(){
  $('skinRow').querySelectorAll('.skin[data-skin]:not([disabled])').forEach(b=>b.onclick=()=>{try{localStorage.setItem('acc_skin',b.dataset.skin)}catch(e){}renderCodex()})
 }
 function refreshCodexBtn(){const t='◆ CODEX '+CODEX.count()+'/'+CODEX.total(),a=$('startCodex'),b=$('overCodex');if(a)a.textContent=t;if(b)b.textContent=t}
+/* ===== 메인 성과 스트립 — 돌아올 이유를 메뉴에 상시 노출 ===== */
+const STATS={
+ get best(){return +(localStorage.getItem('acc_best')||0)||0},
+ set best(v){try{localStorage.setItem('acc_best',String(Math.round(v)))}catch(e){}},
+ get rank(){return localStorage.getItem('acc_rank')||''},
+ set rank(v){try{localStorage.setItem('acc_rank',String(v))}catch(e){}}
+}
+function refreshStrip(){
+ const n=CODEX.count(),t=CODEX.total()
+ if($('stCodex'))$('stCodex').textContent=n+' / '+t
+ if($('stCodexBar'))$('stCodexBar').style.width=Math.round(n/t*100)+'%'
+ if($('stBest'))$('stBest').textContent=STATS.best?STATS.best.toLocaleString():'–'
+ if($('stRank'))$('stRank').textContent=STATS.rank?('#'+STATS.rank):'–'
+ if($('stToday'))$('stToday').textContent=todayMod().name
+}
 
 /* ===== flow ===== */
 /* ===== 네메시스(에이펙스 포식자) — 중반부터 쫓는 항상 더 큰 블랙홀. 키워서 되먹으면 클라이맥스·다음 등장 ===== */
@@ -665,8 +734,12 @@ function begin(){AU.unlock()
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient()
+ document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
+ document.body.classList.remove('playing') // HUD 숨김
+ if(S.score>STATS.best){STATS.best=S.score} // 개인 최고점(메인 스트립)
+ refreshStrip()
  const evap=cause==='evaporated';if(evap)AU.evap();else AU.boom()
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,0)'
  $('overTitle').textContent=evap?'EVAPORATED':'DEVOURED'
@@ -683,7 +756,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
   const tier=TIERS[Math.max(0,tierOf(S.peak))].n
   lastRun={name:LB.name||'ANON',score:S.score}
   LB.submit(S.score,Math.round(S.peak*100)/100,tier,Math.round(S.t),isD?dayKey():null,isD?S.daily.id:null).then(res=>{
-   if(res&&res.ok&&res.rank)$('rankline').innerHTML=lbl+' RANK <b>#'+res.rank+'</b>'
+   if(res&&res.ok&&res.rank){$('rankline').innerHTML=lbl+' RANK <b>#'+res.rank+'</b>';if(!isD){STATS.rank=res.rank;refreshStrip()}} // 글로벌 랭크는 메인 스트립에 저장
    else{lastRun=null;$('rankline').innerHTML='<span style="color:#7c88ad">'+(res&&!res.ok?'score not ranked':'board offline — saved this session')+'</span>'}
   })
  }}
@@ -697,6 +770,7 @@ S.daily=null // 기본=일반런
 function refreshDailyBtn(){const m=todayMod(),el=$('startDaily');if(el)el.innerHTML='◆ DAILY · <b style="color:#fff">'+m.name+'</b>'}
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
+refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
 $('surge').onclick=doSurge // 모바일/클릭 발동(PC는 Space)
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
@@ -739,6 +813,8 @@ if(DEV){window.__acc={
  codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
+ holeScreen:()=>{const v=hole.position.clone().project(cam);return {x:v.x*.5+.5,y:-v.y*.5+.5}}, // 홀의 화면 좌표(0~1) — 메뉴 히어로 배치 검증
+ menuShift:()=>Math.round(menuShift*10)/10,
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
  LB,openBoard,closeBoard,
