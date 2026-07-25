@@ -143,7 +143,7 @@
 <div id="vig"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.9</div>
+<div class="credit">ACCRETION · prototype 0.9.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -321,7 +321,8 @@ function mkVisual(type,mass){
  if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true,emissive:0x6a7284,emissiveIntensity:0.18})))}
  else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.6,0.55)
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1,emissive:col,emissiveIntensity:0.42})))} // emissive=고유색 → 존 조명(금색)에도 색 유지
- else if(type==='star'){const col=Math.random()<.5?0xffd27a:0x9fc0ff
+ else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
+  const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
  else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
  else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
@@ -461,7 +462,8 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
   let mass,type
   if(roll<rivalP){mass=S.mass*rnd(0.7,1.9+tt*0.45);type='rival'}                                       // 라이벌 — 티어↑ 시 최대 2.8×(포식자)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
-  else{mass=S.mass*rnd(0.12,0.82);type=mass<0.5?'rock':(mass<7?'planet':'star')}                       // 식량(암석·행성·별)
+  else{const rel=rnd(0.12,0.82);mass=S.mass*rel                                                         // 식량 — 타입은 **상대 크기**로 결정
+   type=rel<0.30?'rock':(rel<0.62?'planet':'star')}                                                     // (절대질량 기준이면 커질수록 전부 star가 돼 화면이 창백해짐)
   spawnObj(type,Math.max(0.2,mass))}}
 
 /* ===== core update ===== */
