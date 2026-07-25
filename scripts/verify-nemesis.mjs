@@ -19,19 +19,19 @@ try {
 
   // no nemesis below INTERMEDIATE (stellar-mass)
   const low = await page.evaluate(() => { const A=window.__acc; A.begin(); A.setMass(3); A.step(0.2); return A.nemesis() })
-  ok('no apex in early game (stellar)', low===null)
+  ok('no apex in early game (pre-black-hole)', low===null)
 
   // reaching INTERMEDIATE spawns the apex, bigger than you (hunting)
-  const spawned = await page.evaluate(() => { const A=window.__acc; A.begin(); A.setMass(12); A.step(0.3); return A.nemesis() })
-  ok('apex spawns at INTERMEDIATE', spawned!==null, JSON.stringify(spawned))
-  ok('apex is bigger than you (hunts)', spawned && spawned.mass>12 && spawned.vuln===false, spawned&&`mass=${spawned.mass} vuln=${spawned.vuln}`)
+  const spawned = await page.evaluate(() => { const A=window.__acc; A.begin(); A.setMass(60); A.step(0.3); return A.nemesis() })
+  ok('apex spawns once INTERMEDIATE black hole', spawned!==null, JSON.stringify(spawned))
+  ok('apex is bigger than you (hunts)', spawned && spawned.mass>60 && spawned.vuln===false, spawned&&`mass=${spawned.mass} vuln=${spawned.vuln}`)
 
   // it hunts — distance closes when you hold still
-  const hunt = await page.evaluate(() => { const A=window.__acc; const d0=A.nemesis().dist; for(let i=0;i<8;i++){A.setMass(12);A.step(0.2)} return { d0, d1:A.nemesis().dist } })
+  const hunt = await page.evaluate(() => { const A=window.__acc; const d0=A.nemesis().dist; for(let i=0;i<8;i++){A.setMass(60);A.step(0.2)} return { d0, d1:A.nemesis().dist } })
   ok('apex hunts (closes distance)', hunt.d1 < hunt.d0, `${hunt.d0} → ${hunt.d1}`)
 
   // outgrowing it (mass spike) flips it to VULNERABLE (its mass lags)
-  const vuln = await page.evaluate(() => { const A=window.__acc; A.setMass(40); A.step(0.1); return A.nemesis() })
+  const vuln = await page.evaluate(() => { const A=window.__acc; A.setMass(200); A.step(0.1); return A.nemesis() })
   ok('mass spike → apex VULNERABLE (lag)', vuln && vuln.vuln===true, JSON.stringify(vuln))
 
   // consuming it = climax: score+, apexKill+, QUASAR discovered, then a bigger one rises
@@ -42,7 +42,7 @@ try {
     const after=A.state.score, k1=A.apexKills(), gone=A.nemesis()
     const quasar=A.codex().seen.includes('quasar')
     // step past the respawn delay → a new (bigger) apex rises
-    for(let i=0;i<20;i++){A.setMass(40);A.step(0.2)}
+    for(let i=0;i<20;i++){A.setMass(200);A.step(0.2)}
     return { ate, gain:after-before, k0, k1, goneRightAfter:gone, quasar, respawned:A.nemesis() }
   })
   ok('consume apex → apexKill++', climax.ate===true && climax.k1===climax.k0+1, `k ${climax.k0}→${climax.k1}`)
@@ -52,8 +52,8 @@ try {
 
   // apex can kill you (threat) — hold still tiny while a big apex closes
   const death = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.3)
-    for(let i=0;i<60 && A.state.alive;i++){ A.setMass(12); A.step(0.2) } // it eventually catches a stationary hole
+    const A=window.__acc; A.begin(); A.setMass(60); A.step(0.3)
+    for(let i=0;i<60 && A.state.alive;i++){ A.setMass(60); A.step(0.2) } // it eventually catches a stationary hole
     return { alive:A.state.alive }
   })
   ok('apex is lethal if you sit still', death.alive===false)

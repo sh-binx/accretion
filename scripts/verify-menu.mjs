@@ -43,7 +43,7 @@ try {
     today: document.getElementById('stToday').textContent,
   }))
   ok('desktop: stat strip visible', strip.visible===true)
-  ok('strip shows codex progress', /^3 \/ 13$/.test(strip.codex) && strip.bar!=='0%', `${strip.codex} bar=${strip.bar}`)
+  ok('strip shows codex progress', /^3 \/ 15$/.test(strip.codex) && strip.bar!=='0%', `${strip.codex} bar=${strip.bar}`)
   ok('strip shows personal best', strip.best==='12,345', strip.best)
   ok('strip shows global rank', strip.rank==='#7', strip.rank)
   ok('strip shows today\'s modifier', strip.today.length>2, strip.today)

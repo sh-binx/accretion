@@ -21,14 +21,14 @@ try {
   // clean slate
   await page.evaluate(() => window.__acc.resetCodex())
   const c0 = await page.evaluate(() => window.__acc.codex())
-  ok('codex resets to 0/13', c0.count===0 && c0.total===13, JSON.stringify(c0))
+  ok('codex resets to 0/15', c0.count===0 && c0.total===15, JSON.stringify(c0))
 
   // discover 6 → SOLAR unlocks
-  await page.evaluate(() => ['rock','planet','star','neutron','pulsar','surge'].forEach(t => window.__acc.discover(t)))
+  await page.evaluate(() => ['rock','planet','star','neutron','pulsar','surge','tidal'].forEach(t => window.__acc.discover(t)))
   const c6 = await page.evaluate(() => ({ count: window.__acc.codex().count, solar: window.__acc.skinUnlocked('solar'), aurora: window.__acc.skinUnlocked('aurora') }))
-  ok('6 discoveries → count 6', c6.count===6, `count=${c6.count}`)
-  ok('SOLAR skin unlocks at 6', c6.solar===true)
-  ok('AURORA still locked (<12)', c6.aurora===false)
+  ok('7 discoveries → count 7', c6.count===7, `count=${c6.count}`)
+  ok('SOLAR skin unlocks at 7', c6.solar===true)
+  ok('AURORA still locked (<15)', c6.aurora===false)
 
   // select unlocked skin sticks; locked skin does not
   const s1 = await page.evaluate(() => window.__acc.setSkin('solar'))
@@ -41,7 +41,7 @@ try {
   await page.reload({ waitUntil:'networkidle' })
   await page.waitForFunction(() => window.__acc && window.__acc.codex, { timeout:15000 })
   const cP = await page.evaluate(() => ({ count: window.__acc.codex().count, skin: window.__acc.curSkin() }))
-  ok('codex persists across reload', cP.count===6, `count=${cP.count}`)
+  ok('codex persists across reload', cP.count===7, `count=${cP.count}`)
   ok('selected skin persists', cP.skin==='solar', cP.skin)
 
   // codex screen opens + renders entries (discovered vs locked)
@@ -49,8 +49,8 @@ try {
   await sleep(300)
   const grid = await page.evaluate(() => ({ open: window.__acc.codexOpen(), total: document.querySelectorAll('#codexGrid .cdx').length, got: document.querySelectorAll('#codexGrid .cdx.got').length, locked: document.querySelectorAll('#codexGrid .cdx:not(.got)').length, skins: document.querySelectorAll('#skinRow .skin').length }))
   ok('codex screen opens', grid.open===true)
-  ok('grid shows all 13 entries', grid.total===13, `${grid.total}`)
-  ok('6 discovered + 7 locked shown', grid.got===6 && grid.locked===7, `got=${grid.got} locked=${grid.locked}`)
+  ok('grid shows all 15 entries', grid.total===15, `${grid.total}`)
+  ok('7 discovered + 8 locked shown', grid.got===7 && grid.locked===8, `got=${grid.got} locked=${grid.locked}`)
   ok('3 skins listed', grid.skins===3, `${grid.skins}`)
   await page.evaluate(() => window.__acc.closeCodex())
 
@@ -58,8 +58,8 @@ try {
   const ev = await page.evaluate(async () => {
     const A = window.__acc; A.resetCodex()
     A.begin(); A.setEnergy(1); A.doSurge()                 // → surge
-    A.setMass(14); A.step(0.3)                              // → intermediate
-    A.setMass(60); A.step(0.3)                              // → supermassive
+    A.setMass(60); A.step(0.3)                              // → intermediate(블랙홀 티어 임계 상향)
+    A.setMass(250); A.step(0.3)                             // → supermassive
     A.setMass(0.1); A.step(0.1)                             // force evaporate → evaporate
     return window.__acc.codex().seen
   })

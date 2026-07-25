@@ -74,6 +74,8 @@
  .brow.me .bn{color:#ffcf4a}
  /* ===== tier zone wash + surge ability ===== */
  #zone{position:fixed;inset:0;z-index:2;pointer-events:none;transition:box-shadow 1.6s ease;box-shadow:inset 0 0 320px 60px rgba(40,80,200,.20)}
+ #flash{position:fixed;inset:0;z-index:8;pointer-events:none;background:#fff;opacity:0;transition:opacity .5s ease-out}
+ #flash.on{opacity:.82;transition:opacity .04s}
  #surge{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:7;display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:auto;cursor:pointer;user-select:none}
  #surge.on{display:flex}
  #surge .track{width:180px;height:8px;border-radius:5px;background:rgba(120,150,220,.14);overflow:hidden;border:1px solid rgba(120,150,220,.2)}
@@ -133,7 +135,7 @@
  @media(max-height:520px){#start .msg{display:none}#start .big{font-size:clamp(24px,5vw,38px)}#start .btnrow,#start .linkrow,#start .namerow{margin-top:11px}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
-<div id="massbar"><div class="t">◀ EVAPORATING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
+<div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
 <div id="apex"></div>
 <div id="combo"></div>
@@ -141,9 +143,10 @@
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
+<div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 0.9.1</div>
+<div class="credit">ACCRETION · prototype 1.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -304,7 +307,29 @@ disk.rotation.x=Math.PI*0.5-0.26;hole.add(disk);hole.userData.disk=disk
 const photon=new THREE.Mesh(new THREE.RingGeometry(1.0,1.13,80),new THREE.MeshBasicMaterial({color:0xffe8bf,transparent:true,opacity:0.92,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
 hole.add(photon);hole.userData.photon=photon
 hole.add(glow(0x66a8ff,4.2,0.28)) // 은은한 코어 글로우(작게)
+/* ===== 진화 아크 — 블랙홀은 시작이 아니라 도달. 형태별 플레이어 메시(실제 별의 일생) ===== */
+const bhParts=[eh,disk,photon,hole.children[hole.children.length-1]] // 블랙홀 전용 파츠
+// 1) 미행성 — 회색 암석 덩어리(자기 색 emissive로 존 조명에도 형태 유지)
+const pRock=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x9aa3b8,roughness:.95,flatShading:true,emissive:0x555d70,emissiveIntensity:.35}))
+hole.add(pRock)
+// 2) 주계열성 — 스스로 빛나는 구체 + 코로나
+const pStar=new THREE.Group()
+pStar.add(new THREE.Mesh(new THREE.SphereGeometry(1,26,18),new THREE.MeshBasicMaterial({color:0xffd98a,fog:false})))
+pStar.add(glow(0xffb254,4.6,0.85));pStar.add(glow(0xfff2c8,2.6,0.5))
+hole.add(pStar)
 scene.add(hole)
+// 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
+const FORMS=[
+ {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:2.2,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.08},
+ {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.14},
+ {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
+]
+function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
+function applyForm(fi){ // 형태 전환 = 메시 교체(변신 체감)
+ const bh=fi===2
+ for(const p of bhParts)p.visible=bh
+ pRock.visible=fi===0;pStar.visible=fi===1
+}
 // 시차 먼지 — 이동 체감(월드 공간, 홀 주위로 랩 → 무한 시차 필드)
 const DUSTN=460,dustPos=new Float32Array(DUSTN*3),DUSTR=120
 for(let i=0;i<DUSTN;i++){dustPos[i*3]=rnd(-DUSTR,DUSTR);dustPos[i*3+1]=rnd(-26,26);dustPos[i*3+2]=rnd(-DUSTR,DUSTR)}
@@ -371,8 +396,9 @@ const AU={ac:null,master:null,amb:[],muted:false,
  toggleMute(){this.muted=!this.muted;if(this.master)this.master.gain.value=this.muted?0:0.85;if(this.muted)this.stopAmbient();else if(typeof S!=='undefined'&&S.alive)this.startAmbient();return this.muted}}
 
 /* ===== state ===== */
-const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0}
-const TIERS=[{n:'STELLAR-MASS',max:8},{n:'INTERMEDIATE',max:40},{n:'SUPERMASSIVE',max:1e9}]
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0}
+// 블랙홀 도달(질량 12) 이후의 규모 티어 — 진화 아크가 앞단을 담당하므로 임계 상향
+const TIERS=[{n:'STELLAR-MASS',max:45},{n:'INTERMEDIATE',max:160},{n:'SUPERMASSIVE',max:1e9}]
 function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;return TIERS.length-1}
 
 /* ===== input ===== */
@@ -414,9 +440,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -429,14 +455,16 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  supermassive:"Our galaxy's core hides Sagittarius A* — 4 million Suns.",
  evaporate:'Hawking radiation: smaller black holes evaporate faster — a real prediction.',
  devoured:'Cross the event horizon and not even light gets back out.',
- quasar:'A supermassive black hole feeding so fiercely it outshines its whole galaxy.'}
+ quasar:'A supermassive black hole feeding so fiercely it outshines its whole galaxy.',
+ mainsequence:'Fusion ignites near 10 million K — a star is born and shines for billions of years.',
+ supernova:'For days it outshines its entire galaxy — and forges the heavy atoms in your body.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
 // 블랙홀 스킨(강착원반 팔레트) — 코덱스 수집률로 언락. 수집이 곧 보상 = 교육을 리텐션 동력으로.
 const SKINS={void:{name:'VOID',cA:0xcaf0ff,cR:0xff4a12,ph:0xffe8bf,need:0},
- solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:6},
- aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:12}}
+ solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:7},
+ aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:15}}
 const SKIN_ORDER=['void','solar','aurora']
 function paintDisk(cAh,cRh){const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(cAh),cR=new THREE.Color(cRh)
  for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
@@ -455,7 +483,9 @@ function codexToast(type){if(!CODEX.discover(type))return // 새 발견만(영�
 
 /* ===== spawn director ===== */
 function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S.modDensity||1)) // 데일리 SWARM: 밀도↑
- const tt=Math.max(0,S.tierIdx),rivalP=Math.min(0.62,(0.18+Math.min(0.24,tt*0.12))*(S.modRivals||1)) // 위협 비중↑(데일리 DARK FOREST: 라이벌↑)
+ // 위협 비중 = 형태 기본 + 블랙홀 티어 가산. 진화 전엔 낮고, 고질량 과밀도 완화(실측 45% → ~34%)
+ const tt=S.formIdx===2?Math.max(0,S.tierIdx):0
+ const rivalP=Math.min(0.30,(FORMS[S.formIdx].rival+tt*0.05)*(S.modRivals||1))
  while(objects.length<want){
   const roll=Math.random()
   // 비-라이벌은 전부 '먹이'(크기별) · 위협축=라이벌 블랙홀 — 성장할수록 더 많고 더 커짐
@@ -470,20 +500,31 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
 function update(dt){
  if(!S.alive||orientPaused)return // 세로(모바일)면 일시정지 — 증발 안 되게
  S.t+=dt
- // 호킹 복사: 상시 증발, 작을수록 빠름
- const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1) // 데일리 FAMINE: 증발↑
+ if(S.invT>0)S.invT-=dt
+ // 진화 단계 — 임계 질량을 넘으면 형태가 바뀐다(항성 → 초신성 → 블랙홀)
+ const nf=formOf(S.mass)
+ if(nf!==S.formIdx){
+  const wasStar=S.formIdx===1
+  S.formIdx=nf;applyForm(nf)
+  if(nf===2&&wasStar)supernova() // 항성 붕괴 = 절정
+  else if(nf===1){banner('☀ IGNITION','fusion begins — you are a STAR');codexToast('mainsequence');AU.tierUp()}
+  else if(nf===0){banner('◆ '+FORMS[0].n,'')}
+ }
+ const F=FORMS[S.formIdx]
+ // 질량 유출 — 형태마다 이유가 다르다(침식 / 항성풍 / 호킹 복사) = 전부 실제 현상
+ const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1)*F.shrink
  S.mass=Math.max(0,S.mass-shrink*dt)
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
- // 이동(관성 활공)
+ // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
- const st=steer(),maxSpd=(16+rad(S.mass)*5)*(surging?2.3:1) // 최고속=크기 비례↑ — 줌아웃 보정(커져도 화면상 이동감 유지, "멈추는 느낌" 제거)
+ const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
  const hr=rad(S.mass);hole.scale.setScalar(hr)
  hole.userData.disk.rotation.z+=dt*1.2
- const mouth=hr*1.9*(surging?1.6:1) // 서지 중 포식 반경 확대(사냥)
+ const mouth=hr*F.mouth*(surging?1.6:1) // 포식 반경(형태별) · 서지 중 확대
  // 객체 처리
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
   if(o.eaten){o.g.position.lerp(hole.position,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
@@ -499,7 +540,7 @@ function update(dt){
   const edible=o.mass<S.mass,threat=(o.type==='rival')&&o.mass>=S.mass
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
-   const pull=mouth*3.8 // 중력 흡입권(넓게) — 블랙홀 중력우물
+   const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
    if(d>0.01&&d<pull){const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김 → near-miss도 포획(가장자리도 유효)
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
     const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp}} // 중력권 들면 표류 속도 감쇠 → 스쳐도 빠져나가지 못하고 빨려듦
@@ -519,7 +560,7 @@ function update(dt){
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
-   if(d<omouth){codexToast('devoured');return gameOver('eaten',o.mass)}
+   if(d<omouth&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)} // 초신성 직후 무적
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
     AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus,'#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
   }
@@ -532,7 +573,7 @@ function update(dt){
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 네메시스 생애: INTERMEDIATE+면 항상 하나. 처치 후엔 잠깐 뒤 더 큰 게 등장.
  if(nemPending&&S.t>nemPending)nemPending=0
- if(S.tierIdx>=(S.modHunted?0:1)&&!nemesis&&!nemPending)spawnNemesis() // 데일리 HUNTED: 처음부터
+ if(S.formIdx===2&&S.tierIdx>=(S.modHunted?0:1)&&!nemesis&&!nemPending)spawnNemesis() // 블랙홀 도달 후 · 데일리 HUNTED는 즉시
  // 증발 경고
  S.warnT-=dt
  const danger=S.mass<S.evapFloor*2.0
@@ -574,7 +615,7 @@ function render(){
  const p=hole.position.clone().project(cam)
  lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
  const hr=rad(S.mass)
- lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens
+ lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens // 블랙홀이 되는 순간 렌징이 켜진다
  lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)
  lensMat.uniforms.uAspect.value=innerWidth/innerHeight
  renderer.autoClear=true;renderer.render(postScene,postCam)
@@ -585,7 +626,8 @@ function render(){
 /* ===== HUD ===== */
 function hud(){
  $('mval').textContent=S.mass<10?S.mass.toFixed(1):Math.round(S.mass)
- $('tier').textContent=TIERS[Math.max(0,S.tierIdx)].n
+ $('tier').textContent=S.formIdx<2?FORMS[S.formIdx].n:TIERS[Math.max(0,S.tierIdx)].n
+ $('drain').textContent=FORMS[S.formIdx].drain
  $('tval').textContent=S.t.toFixed(1)+'s'
  $('sval').textContent=S.score.toLocaleString()
  $('pval').textContent=(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))
@@ -609,18 +651,22 @@ let last=performance.now(),acc=0
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive)hole.userData.disk.rotation.z+=dt*0.5 // 메뉴에서도 강착원반은 돈다(생동감)
- update(dt);updateParticles(dt);updateCamera(dt);hud();render()}
+ update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
+// 진화 단계(0 미행성·1 항성) + 블랙홀 규모 티어(2~4) = 총 5개 존
 const ZONES=[
- {fog:new THREE.Color(0x05060f),hemi:new THREE.Color(0x9fc0ff),lens:1.0,fx:'inset 0 0 320px 60px rgba(40,80,200,.20)'},   // STELLAR — 청
- {fog:new THREE.Color(0x0b0718),hemi:new THREE.Color(0xb89cff),lens:1.18,fx:'inset 0 0 320px 72px rgba(150,70,255,.24)'}, // INTERMEDIATE — 보라
- {fog:new THREE.Color(0x140b06),hemi:new THREE.Color(0xffd39a),lens:1.4,fx:'inset 0 0 340px 92px rgba(255,180,60,.26)'}    // SUPERMASSIVE — 금
+ {fog:new THREE.Color(0x070910),hemi:new THREE.Color(0x9fb0cc),lens:1.0,fx:'inset 0 0 300px 50px rgba(70,90,130,.16)'},   // PLANETESIMAL — 회청(먼지)
+ {fog:new THREE.Color(0x120c07),hemi:new THREE.Color(0xffd9a0),lens:1.0,fx:'inset 0 0 320px 66px rgba(255,160,70,.20)'},  // MAIN SEQUENCE — 온기
+ {fog:new THREE.Color(0x05060f),hemi:new THREE.Color(0x9fc0ff),lens:1.0,fx:'inset 0 0 320px 60px rgba(40,80,200,.20)'},   // BH STELLAR — 청
+ {fog:new THREE.Color(0x0b0718),hemi:new THREE.Color(0xb89cff),lens:1.18,fx:'inset 0 0 320px 72px rgba(150,70,255,.24)'}, // BH INTERMEDIATE — 보라
+ {fog:new THREE.Color(0x140b06),hemi:new THREE.Color(0xffd39a),lens:1.4,fx:'inset 0 0 340px 92px rgba(255,180,60,.26)'}    // BH SUPERMASSIVE — 금
 ]
+const zoneIdx=()=>S.formIdx<2?S.formIdx:2+Math.max(0,S.tierIdx)
 let zoneLens=1.0
-function setZoneInstant(ti){const z=ZONES[Math.max(0,ti)];scene.fog.color.copy(z.fog);hemiLight.color.copy(z.hemi);zoneLens=z.lens;$('zone').style.boxShadow=z.fx}
-function applyZone(dt){const z=ZONES[Math.max(0,S.tierIdx)],k=Math.min(1,dt*0.7)
+function setZoneInstant(zi){const z=ZONES[Math.max(0,zi)];scene.fog.color.copy(z.fog);hemiLight.color.copy(z.hemi);zoneLens=z.lens;$('zone').style.boxShadow=z.fx}
+function applyZone(dt){const z=ZONES[zoneIdx()],k=Math.min(1,dt*0.7)
  scene.fog.color.lerp(z.fog,k);hemiLight.color.lerp(z.hemi,k);zoneLens+=(z.lens-zoneLens)*k}
 const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
 // 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
@@ -712,6 +758,39 @@ function refreshStrip(){
 }
 
 /* ===== flow ===== */
+/* ===== 초신성 — 항성 → 블랙홀 전이의 절정. 한 번의 대폭발로 화면을 쓸고 형태가 바뀐다 ===== */
+const shockGeo=new THREE.RingGeometry(0.94,1,72)
+const shock=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xfff0d0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+shock.rotation.x=-Math.PI/2;shock.visible=false;scene.add(shock)
+let shockT=0
+function supernova(){
+ S.invT=1.6 // 무적
+ shock.position.copy(hole.position);shock.visible=true;shockT=1
+ S.shake=Math.min(S.shake+1.6,2);AU.boom();AU.tierUp()
+ $('flash').classList.add('on');setTimeout(()=>$('flash').classList.remove('on'),90)
+ // 충격파: 주변을 쓸어버린다 — 작은 것은 흡수(점수), 큰 것·라이벌은 밀려남
+ let swept=0
+ const R=(22+rad(S.mass)*7)*1.5
+ for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten)continue
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
+  if(d>R)continue
+  if(o.mass<S.mass*0.9&&o.type!=='rival'){S.score+=Math.round(o.mass*10);swept++;o.eaten=true;o.eatT=0.3
+   eatBurst(o.g.position.x,o.g.position.z,0xffd0a0,4)}
+  else{const push=(1-d/R)*46;o.vx+=(dx/d)*push;o.vz+=(dz/d)*push} // 밀어냄
+ }
+ eatBurst(hole.position.x,hole.position.z,0xfff0c0,40)
+ banner('★ SUPERNOVA','the core collapses — you are a BLACK HOLE'+(swept?' · +'+swept+' swept':''))
+ codexToast('supernova')
+}
+function updateShock(dt){
+ if(!shock.visible)return
+ shockT+=dt*2.1
+ const R=(22+rad(S.mass)*7)*1.5,s=Math.min(1,shockT)*R
+ shock.scale.setScalar(Math.max(0.001,s));shock.position.copy(hole.position)
+ shock.material.opacity=Math.max(0,0.9*(1-shockT))
+ if(shockT>=1)shock.visible=false
+}
+
 /* ===== 네메시스(에이펙스 포식자) — 중반부터 쫓는 항상 더 큰 블랙홀. 키워서 되먹으면 클라이맥스·다음 등장 ===== */
 let nemesis=null,nemPending=0
 function spawnNemesis(){
@@ -727,8 +806,9 @@ function nemesisConsumed(o){
 }
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles()
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0})
- setZoneInstant(0) // 존 팔레트 초기화(청)
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
+ S.formIdx=0;S.invT=0;applyForm(0);shock.visible=false // 진화 아크 리셋 — 미행성으로 시작
+ setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false // 모디파이어 리셋
@@ -817,6 +897,9 @@ if(DEV){window.__acc={
  lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
  holeScreen:()=>{const v=hole.position.clone().project(cam);return {x:v.x*.5+.5,y:-v.y*.5+.5}}, // 홀의 화면 좌표(0~1) — 메뉴 히어로 배치 검증
  menuShift:()=>Math.round(menuShift*10)/10,
+ form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
+ formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
+ shockOn:()=>shock.visible,
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
  LB,openBoard,closeBoard,
