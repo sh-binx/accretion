@@ -21,14 +21,14 @@ try {
   // clean slate
   await page.evaluate(() => window.__acc.resetCodex())
   const c0 = await page.evaluate(() => window.__acc.codex())
-  ok('codex resets to 0/15', c0.count===0 && c0.total===15, JSON.stringify(c0))
+  ok('codex resets to 0/16', c0.count===0 && c0.total===16, JSON.stringify(c0))
 
   // discover 6 → SOLAR unlocks
   await page.evaluate(() => ['rock','planet','star','neutron','pulsar','surge','tidal'].forEach(t => window.__acc.discover(t)))
   const c6 = await page.evaluate(() => ({ count: window.__acc.codex().count, solar: window.__acc.skinUnlocked('solar'), aurora: window.__acc.skinUnlocked('aurora') }))
   ok('7 discoveries → count 7', c6.count===7, `count=${c6.count}`)
   ok('SOLAR skin unlocks at 7', c6.solar===true)
-  ok('AURORA still locked (<15)', c6.aurora===false)
+  ok('AURORA still locked (<16)', c6.aurora===false)
 
   // select unlocked skin sticks; locked skin does not
   const s1 = await page.evaluate(() => window.__acc.setSkin('solar'))
@@ -49,8 +49,8 @@ try {
   await sleep(300)
   const grid = await page.evaluate(() => ({ open: window.__acc.codexOpen(), total: document.querySelectorAll('#codexGrid .cdx').length, got: document.querySelectorAll('#codexGrid .cdx.got').length, locked: document.querySelectorAll('#codexGrid .cdx:not(.got)').length, skins: document.querySelectorAll('#skinRow .skin').length }))
   ok('codex screen opens', grid.open===true)
-  ok('grid shows all 15 entries', grid.total===15, `${grid.total}`)
-  ok('7 discovered + 8 locked shown', grid.got===7 && grid.locked===8, `got=${grid.got} locked=${grid.locked}`)
+  ok('grid shows all 16 entries', grid.total===16, `${grid.total}`)
+  ok('7 discovered + 9 locked shown', grid.got===7 && grid.locked===9, `got=${grid.got} locked=${grid.locked}`)
   ok('3 skins listed', grid.skins===3, `${grid.skins}`)
   await page.evaluate(() => window.__acc.closeCodex())
 

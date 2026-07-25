@@ -146,7 +146,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.0</div>
+<div class="credit">ACCRETION · prototype 1.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -214,7 +214,8 @@ const DEV=/[?&]dev/.test(location.search)
 const $=id=>document.getElementById(id)
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v)
 const rnd=(a,b)=>a+Math.random()*(b-a)
-const rad=m=>Math.cbrt(Math.max(0.001,m)) // 반지름 ∝ 질량^(1/3) (부피=질량 근사)
+const rad=m=>Math.cbrt(Math.max(0.001,m))
+const fmtBig=v=>v<1e3?(v<10?v.toFixed(1):String(Math.round(v))):v<1e6?(v/1e3).toFixed(1)+'K':v<1e9?(v/1e6).toFixed(2)+'M':(v/1e9).toFixed(2)+'B' // 반지름 ∝ 질량^(1/3) (부피=질량 근사)
 
 /* ===== renderer + scenes ===== */
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'})
@@ -324,6 +325,8 @@ const FORMS=[
  {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.14},
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
+// 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
+const accEff=()=>1/(1+Math.max(0,S.mass-60)/40)
 function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
 function applyForm(fi){ // 형태 전환 = 메시 교체(변신 체감)
  const bh=fi===2
@@ -440,9 +443,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -457,14 +460,15 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  devoured:'Cross the event horizon and not even light gets back out.',
  quasar:'A supermassive black hole feeding so fiercely it outshines its whole galaxy.',
  mainsequence:'Fusion ignites near 10 million K — a star is born and shines for billions of years.',
- supernova:'For days it outshines its entire galaxy — and forges the heavy atoms in your body.'}
+ supernova:'For days it outshines its entire galaxy — and forges the heavy atoms in your body.',
+ eddington:'A black hole can only feed so fast — its own radiation pressure pushes the meal away.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
 // 블랙홀 스킨(강착원반 팔레트) — 코덱스 수집률로 언락. 수집이 곧 보상 = 교육을 리텐션 동력으로.
 const SKINS={void:{name:'VOID',cA:0xcaf0ff,cR:0xff4a12,ph:0xffe8bf,need:0},
  solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:7},
- aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:15}}
+ aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:16}}
 const SKIN_ORDER=['void','solar','aurora']
 function paintDisk(cAh,cRh){const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(cAh),cR=new THREE.Color(cRh)
  for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
@@ -552,7 +556,8 @@ function update(dt){
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
-   S.mass+=o.mass*0.62;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+0.09) // 먹으면 서지 충전
+   S.mass+=o.mass*0.62*accEff();o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+0.09) // 에딩턴 한계로 감쇠 + 서지 충전
+   if(accEff()<0.5)codexToast('eddington')
    S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)*(S.modFrenzy?1.3:1)) // 콤보 배수 점수(FRENZY 1.3×)
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
@@ -596,6 +601,7 @@ function updateCamera(dt){
  cam.position.z+=(tz+camDist*0.72+sz-cam.position.z)*Math.min(1,dt*6)
  cam.position.y+=(camDist*0.82-cam.position.y)*Math.min(1,dt*6)
  cam.lookAt(tx,0,tz)
+ scene.fog.density=0.047/camDist // 안개는 '보기 좋을 만큼'만 — 고질량서 100% 포화돼 전부 무채색이 되던 버그 수리
  S.shake=Math.max(0,S.shake-dt*3)
 }
 function render(){
@@ -625,12 +631,12 @@ function render(){
 
 /* ===== HUD ===== */
 function hud(){
- $('mval').textContent=S.mass<10?S.mass.toFixed(1):Math.round(S.mass)
+ $('mval').textContent=fmtBig(S.mass)
  $('tier').textContent=S.formIdx<2?FORMS[S.formIdx].n:TIERS[Math.max(0,S.tierIdx)].n
  $('drain').textContent=FORMS[S.formIdx].drain
  $('tval').textContent=S.t.toFixed(1)+'s'
  $('sval').textContent=S.score.toLocaleString()
- $('pval').textContent=(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))
+ $('pval').textContent=fmtBig(S.peak)
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
@@ -828,7 +834,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
  $('overMsg').innerHTML=evap
   ?'You radiated away faster than you could feed.<br><span style="color:#7c88ad">Hawking radiation: smaller black holes evaporate faster — a real prediction.</span>'
   :'A larger black hole tidally disrupted you.<br><span style="color:#7c88ad">Spaghettification: tidal forces near a bigger mass stretch you apart.</span>'
- $('overStat').innerHTML='SCORE <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · PEAK <b>'+(S.peak<10?S.peak.toFixed(1):Math.round(S.peak))+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · MAX COMBO <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
+ $('overStat').innerHTML='SCORE <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · PEAK <b>'+fmtBig(S.peak)+' M☉</b> · '+TIERS[Math.max(0,tierOf(S.peak))].n+' · MAX COMBO <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
  $('over').classList.remove('off');refreshCodexBtn() // 이번 런 발견 반영
  // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
  lastRun=null;$('rankline').textContent=''
@@ -900,6 +906,7 @@ if(DEV){window.__acc={
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,
+ accEff:()=>Math.round(accEff()*1000)/1000,fogDensity:()=>scene.fog.density,
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
  LB,openBoard,closeBoard,
