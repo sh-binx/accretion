@@ -146,7 +146,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.1</div>
+<div class="credit">ACCRETION · prototype 1.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -312,6 +312,7 @@ hole.add(glow(0x66a8ff,4.2,0.28)) // 은은한 코어 글로우(작게)
 const bhParts=[eh,disk,photon,hole.children[hole.children.length-1]] // 블랙홀 전용 파츠
 // 1) 미행성 — 회색 암석 덩어리(자기 색 emissive로 존 조명에도 형태 유지)
 const pRock=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x9aa3b8,roughness:.95,flatShading:true,emissive:0x555d70,emissiveIntensity:.35}))
+pRock.add(glow(0x7fd4ff,3.0,0.42)) // '나'를 소행성 먹이와 구분
 hole.add(pRock)
 // 2) 주계열성 — 스스로 빛나는 구체 + 코로나
 const pStar=new THREE.Group()
@@ -321,8 +322,8 @@ hole.add(pStar)
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
- {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:2.2,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.08},
- {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.14},
+ {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:2.2,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.06},
+ {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10},
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
@@ -506,7 +507,7 @@ function update(dt){
  S.t+=dt
  if(S.invT>0)S.invT-=dt
  // 진화 단계 — 임계 질량을 넘으면 형태가 바뀐다(항성 → 초신성 → 블랙홀)
- const nf=formOf(S.mass)
+ const nf=Math.max(S.formIdx,formOf(S.mass)) // 단조 증가 — 되돌아가지 않음(깜빡임·초신성 재폭발 방지)
  if(nf!==S.formIdx){
   const wasStar=S.formIdx===1
   S.formIdx=nf;applyForm(nf)
@@ -536,12 +537,14 @@ function update(dt){
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
   if(o.nemesis){o.mass+=(S.mass*1.35-o.mass)*Math.min(1,dt*0.35);o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)} // 네메시스=내 1.35× 지연추종(급성장 시 잠깐 추월→되먹을 창)
-  if(o.type==='rival'&&d>0.6){const chase=o.mass>=S.mass,dir=chase?-1:1,rs=1+rad(S.mass)*0.6
-   let spd=(chase?4.6:5.6)*rs;if(o.nemesis)spd*=chase?1.35:0.75 // 네메시스: 추격은 집요(1.35×)·도망은 느려(0.75×) 따라잡기 쉽게
+  if(o.type==='rival'&&d>0.6){const hunts=o.mass>=S.mass||S.formIdx<2,dir=hunts?-1:1,rs=1+rad(S.mass)*0.6
+   let spd=(hunts?4.6:5.6)*rs;if(o.nemesis)spd*=hunts?1.35:0.75 // 네메시스: 추격은 집요(1.35×)·도망은 느려(0.75×) 따라잡기 쉽게
    o.vx+=((dx/d)*spd*dir-o.vx)*Math.min(1,dt*1.6);o.vz+=((dz/d)*spd*dir-o.vz)*Math.min(1,dt*1.6)}
   const omouth=rad(o.mass)*1.55
   // 후광 가독성
-  const edible=o.mass<S.mass,threat=(o.type==='rival')&&o.mass>=S.mass
+  // 블랙홀은 질량과 무관하게 비-블랙홀(암석·별)에겐 언제나 죽음 — 반대로 삼키는 건 물리적으로 불가능
+  const bhThreat=o.type==='rival'&&S.formIdx<2
+  const edible=o.mass<S.mass&&!bhThreat,threat=(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
@@ -882,7 +885,7 @@ if(DEV){window.__acc={
  spawnTagged:(mass,x,z)=>{spawnObj('planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
- objInfo:()=>objects.map(o=>({t:o.type,edible:o.mass<S.mass})),
+ objInfo:()=>objects.map(o=>({t:o.type,edible:o.mass<S.mass&&!(o.type==='rival'&&S.formIdx<2)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
  codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
  discover:t=>codexToast(t),skinUnlocked:id=>skinUnlocked(id),curSkin:()=>curSkin(),

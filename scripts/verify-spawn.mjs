@@ -17,6 +17,7 @@ page.on('console', m => { if (m.type()==='error' && !/Failed to load resource/.t
 async function survey(mass) {
   return await page.evaluate((m) => {
     const A = window.__acc; A.begin(); A.setMass(m); A.step(0.1)
+    A.clearObjs(); A.setMass(m); A.step(0.1)   // 필드를 비우고 이 질량 기준으로 새로 채워 측정
     const info = A.objInfo()
     const planets = info.filter(o => o.t==='planet')
     const nonRival = info.filter(o => o.t!=='rival')
