@@ -17,8 +17,9 @@ page.on('console', m => { if (m.type()==='error' && !/Failed to load resource/.t
 async function survey(mass) {
   return await page.evaluate((m) => {
     const A = window.__acc; A.begin(); A.setMass(m); A.step(0.1)
-    A.clearObjs(); A.setMass(m); A.step(0.1)   // 필드를 비우고 이 질량 기준으로 새로 채워 측정
-    const info = A.objInfo()
+    // 필드를 비우고 이 질량 기준으로 3회 리필해 합산 — 라이벌 비중이 낮아 단발 표본은 흔들림
+    let info = []
+    for (let r=0;r<3;r++){ A.clearObjs(); A.setMass(m); A.step(0.1); info = info.concat(A.objInfo()) }
     const planets = info.filter(o => o.t==='planet')
     const nonRival = info.filter(o => o.t!=='rival')
     return {
