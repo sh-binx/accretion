@@ -144,7 +144,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.4</div>
+<div class="credit">ACCRETION · prototype 1.5</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -361,6 +361,67 @@ function spawnObj(type,mass,x,z){
  objects.push(o);return o}
 function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
+/* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
+const feats=[]
+function mkFeat(type,x,z){
+ const g=new THREE.Group();let r
+ if(type==='nebula'){ // 성운 — 별이 태어나는 가스 구름. 안에 있으면 질량이 차오른다(증발의 오아시스)
+  r=26
+  for(let i=0;i<7;i++){const c=[0x7a5cff,0x4a7bff,0xff6ab0][i%3]
+   const sp=glow(c,r*rnd(1.1,1.8),0.13);sp.position.set(rnd(-r*.5,r*.5),rnd(-2,2),rnd(-r*.5,r*.5));g.add(sp)}
+ } else if(type==='wormhole'){ // 웜홀 — 시공간 지름길. 들어가면 멀리 튀어나온다(추격 탈출구)
+  r=6
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(r*0.8,r*0.13,12,48),new THREE.MeshBasicMaterial({color:0x9affe0,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}))
+  ring.rotation.x=Math.PI/2;g.add(ring);g.userData.ring=ring
+  const core=new THREE.Mesh(new THREE.CircleGeometry(r*0.72,36),new THREE.MeshBasicMaterial({color:0x06121a,transparent:true,opacity:.92,side:THREE.DoubleSide,fog:false}))
+  core.rotation.x=-Math.PI/2;g.add(core);g.add(glow(0x6fffd0,r*2.6,0.42))
+ } else { // 초신성 잔해 — 무거운 원소가 흩어진 껍질. 큰 질량 보상
+  r=9
+  const sh=new THREE.Mesh(new THREE.TorusGeometry(r*0.75,r*0.2,10,40),new THREE.MeshBasicMaterial({color:0xffb070,transparent:true,opacity:.8,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}))
+  sh.rotation.x=Math.PI/2+0.2;g.add(sh);g.add(glow(0xff8a4a,r*3,0.5));g.userData.ring=sh
+ }
+ g.position.set(x,0,z);scene.add(g)
+ const f={type,g,r,life:type==='nebula'?60:38,cd:0};feats.push(f);return f
+}
+function releaseFeat(f){scene.remove(f.g);const i=feats.indexOf(f);if(i>=0)feats.splice(i,1)}
+function clearFeats(){for(const f of feats.slice())releaseFeat(f)}
+function topUpFeats(){
+ if(S.formIdx<1)return // 미행성 단계는 기본기에 집중 — 항성부터 등장
+ const want=S.formIdx===2?2:1
+ while(feats.length<want){
+  const a=rnd(0,6.283),dist=(22+rad(S.mass)*7)*rnd(1.3,2.2)
+  const roll=Math.random(),type=roll<0.45?'nebula':(roll<0.78?'wormhole':'remnant')
+  mkFeat(type,hole.position.x+Math.cos(a)*dist,hole.position.z+Math.sin(a)*dist)}
+}
+function updateFeats(dt){
+ const hx=hole.position.x,hz=hole.position.z,hr=rad(S.mass)
+ for(let i=feats.length-1;i>=0;i--){const f=feats[i]
+  f.life-=dt;if(f.cd>0)f.cd-=dt
+  if(f.g.userData.ring)f.g.userData.ring.rotation.z+=dt*(f.type==='wormhole'?1.6:0.4)
+  const d=Math.hypot(f.g.position.x-hx,f.g.position.z-hz)
+  if(f.life<=0&&d>f.r*2){releaseFeat(f);continue} // 멀리 있을 때만 정리(눈앞에서 사라지지 않게)
+  if(d>(22+hr*7)*3.2){releaseFeat(f);continue}
+  if(d<f.r+hr){
+   if(f.type==='nebula'){ // 머무는 동안 질량 회복 — 증발과 싸우는 안전지대
+    S.mass+=Math.max(0.35,S.mass*0.035)*dt;S.energy=Math.min(1,S.energy+0.06*dt)
+    if(f.cd<=0){f.cd=2.4;popup(hole.position,'NEBULA','#b07bff');codexToast('nebula')}
+   } else if(f.type==='wormhole'&&f.cd<=0){ // 순간이동 — 포위·추격 탈출구
+    f.cd=99;const a=rnd(0,6.283),dist=(22+hr*7)*2.4
+    hole.position.set(hx+Math.cos(a)*dist,0,hz+Math.sin(a)*dist)
+    S.vx*=0.3;S.vz*=0.3;S.invT=Math.max(S.invT,0.8);S.shake=Math.min(S.shake+0.7,1.2)
+    eatBurst(hx,hz,0x6fffd0,18);eatBurst(hole.position.x,hole.position.z,0x6fffd0,18)
+    AU.surge();banner('◎ WORMHOLE','a shortcut through spacetime');codexToast('wormhole');releaseFeat(f);continue
+   } else if(f.type==='remnant'&&f.cd<=0){ // 잔해 흡수 — 큰 질량 + 점수
+    f.cd=99;const gain=Math.max(2,S.mass*0.5)*accEff();S.mass+=gain;S.score+=Math.round(gain*14)
+    S.shake=Math.min(S.shake+0.6,1.2);AU.tierUp();eatBurst(f.g.position.x,f.g.position.z,0xffb070,26)
+    popup(f.g.position,'+'+fmtBig(gain),'#ffb070');banner('✦ SUPERNOVA REMNANT','heavy elements — absorbed');codexToast('remnant');releaseFeat(f);continue
+   }
+  }
+ }
+ topUpFeats()
+}
+
+
 /* ===== particles — 강착 스파클(먹을 때 물질이 나선으로 빨려듦) ===== */
 const PPOOL=[],particles=[]
 function getP(){let s=PPOOL.pop();if(!s){s=new THREE.Sprite(new THREE.SpriteMaterial({map:GT,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));scene.add(s)}s.visible=true;return s}
@@ -435,9 +496,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -453,14 +514,17 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  quasar:'A supermassive black hole feeding so fiercely it outshines its whole galaxy.',
  mainsequence:'Fusion ignites near 10 million K — a star is born and shines for billions of years.',
  supernova:'For days it outshines its entire galaxy — and forges the heavy atoms in your body.',
- eddington:'A black hole can only feed so fast — its own radiation pressure pushes the meal away.'}
+ eddington:'A black hole can only feed so fast — its own radiation pressure pushes the meal away.',
+ nebula:'Cold clouds of gas and dust — the nurseries where new stars are born.',
+ wormhole:'General relativity permits shortcuts through spacetime. None has ever been observed.',
+ remnant:'What a supernova leaves behind — the gold and uranium in your world came from one.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
 // 블랙홀 스킨(강착원반 팔레트) — 코덱스 수집률로 언락. 수집이 곧 보상 = 교육을 리텐션 동력으로.
 const SKINS={void:{name:'VOID',cA:0xcaf0ff,cR:0xff4a12,ph:0xffe8bf,need:0},
- solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:7},
- aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:16}}
+ solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:8},
+ aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:19}}
 const SKIN_ORDER=['void','solar','aurora']
 function paintDisk(cAh,cRh){const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(cAh),cR=new THREE.Color(cRh)
  for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
@@ -567,7 +631,7 @@ function update(dt){
     AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
   }
  }
- topUp()
+ topUp();updateFeats(dt)
  // 티어업
  const ti=tierOf(S.mass)
  if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,'now consuming '+(ti===1?'stars & clusters':'galactic cores'));AU.tierUp();S.shake=Math.min(S.shake+0.5,1);S.score+=500*(ti+1);$('zone').style.boxShadow=ZONES[Math.max(0,ti)].fx;codexToast(ti===1?'intermediate':'supermassive')}
@@ -746,6 +810,10 @@ function renderCodex(){
 }
 function refreshCodexBtn(){const b=$('overCodex');if(b)b.textContent='◆ CODEX '+CODEX.count()+'/'+CODEX.total()} // 시작화면은 칩이 담당
 /* ===== 메인 성과 스트립 — 돌아올 이유를 메뉴에 상시 노출 ===== */
+// 점수 스케일 리셋 — 진화 아크·에딩턴 이후 이전 점수는 비교 불가(폭주 버그 기록 포함).
+// 코덱스·스킨·파일럿 이름은 보존한다(수집은 밸런스와 무관).
+const SCOREVER='2'
+try{ if(localStorage.getItem('acc_scorever')!==SCOREVER){ localStorage.removeItem('acc_best');localStorage.removeItem('acc_rank');localStorage.setItem('acc_scorever',SCOREVER) } }catch(e){}
 const STATS={
  get best(){return +(localStorage.getItem('acc_best')||0)||0},
  set best(v){try{localStorage.setItem('acc_best',String(Math.round(v)))}catch(e){}},
@@ -807,7 +875,7 @@ function nemesisConsumed(o){
  banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+' · a greater hunter will rise');codexToast('quasar')
 }
 function begin(){AU.unlock()
- for(const o of objects.slice())releaseObj(o);clearParticles()
+ for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
  S.formIdx=0;S.invT=0;applyForm(0);shock.visible=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
@@ -903,6 +971,9 @@ if(DEV){window.__acc={
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,
+ feats:()=>feats.map(f=>({t:f.type,d:Math.round(f.g.position.distanceTo(hole.position))})),
+ spawnFeat:(t,dx,dz)=>{const f=mkFeat(t,hole.position.x+(dx||0),hole.position.z+(dz||0));return f.type},
+ clearFeats,
  accEff:()=>Math.round(accEff()*1000)/1000,fogDensity:()=>scene.fog.density,
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},

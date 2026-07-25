@@ -42,7 +42,7 @@ try {
     ribbon: document.getElementById('ribbonTxt').textContent,
   }))
   ok('menu: PLAY button present', strip.play===true)
-  ok('chip shows codex progress', /^3\/16$/.test(strip.codex), strip.codex)
+  ok('chip shows codex progress', /^3\/19$/.test(strip.codex), strip.codex)
   ok('chip shows personal best', strip.best==='12.3K', strip.best)
   ok('chip shows global rank', strip.rank==='#7', strip.rank)
   ok('ribbon shows today\'s modifier', strip.ribbon.length>6, strip.ribbon)
