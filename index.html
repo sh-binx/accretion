@@ -144,7 +144,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.5</div>
+<div class="credit">ACCRETION · prototype 1.6</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -316,7 +316,7 @@ const FORMS=[
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
-const accEff=()=>1/(1+Math.max(0,S.mass-85)/45)
+const accEff=()=>1/(1+Math.max(0,S.mass-85)/120)
 applyFormInit()
 function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
 function applyFormInit(){applyForm(2)} // 메뉴 히어로는 블랙홀 — 게임 아이덴티티(렌징)를 전면에
@@ -348,7 +348,8 @@ function mkVisual(type,mass){
  else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
   for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
  else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
-  const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.9,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d);g.add(glow(0xff5a2a,4,0.5))}
+  const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
+  const rgl=glow(0xff5a2a,4,0.55);g.add(rgl);g.userData.rdisk=d;g.userData.rglow=rgl} // 원반·글로우를 런타임에 위협/먹이 색으로 칠한다
  const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
  return g}
 function spawnObj(type,mass,x,z){
@@ -608,9 +609,14 @@ function update(dt){
    if(d>0.01&&d<pull){const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김 → near-miss도 포획(가장자리도 유효)
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
     const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp}} // 중력권 들면 표류 속도 감쇠 → 스쳐도 빠져나가지 못하고 빨려듦
-  else if(threat){h.material.color.setHex(0xff5060);h.material.opacity=0.55+Math.sin(S.t*9)*0.22}
+  else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24}
   else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
+  if(o.type==='rival'){ // 크기로는 못 알아본다(반경=질량^⅓ → 1.5배 무거워도 1.14배) → 색으로 확실히
+   const rd=o.g.userData.rdisk,rg=o.g.userData.rglow
+   if(rd)rd.material.color.setHex(threat?0xff3040:0x66e84a)
+   if(rg)rg.material.color.setHex(threat?0xff2a1a:0x4ad03a)}
+
   if(o.nmCd>0)o.nmCd-=dt
   // 상호작용
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
@@ -972,6 +978,7 @@ if(DEV){window.__acc={
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,
  feats:()=>feats.map(f=>({t:f.type,d:Math.round(f.g.position.distanceTo(hole.position))})),
+ rivalColors:()=>objects.filter(o=>o.type==='rival').map(o=>({mass:Math.round(o.mass),edible:o.mass<S.mass&&S.formIdx>=2,disk:o.g.userData.rdisk?o.g.userData.rdisk.material.color.getHexString():null})),
  spawnFeat:(t,dx,dz)=>{const f=mkFeat(t,hole.position.x+(dx||0),hole.position.z+(dz||0));return f.type},
  clearFeats,
  accEff:()=>Math.round(accEff()*1000)/1000,fogDensity:()=>scene.fog.density,
