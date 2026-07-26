@@ -68,14 +68,15 @@ try {
 
   // codex grew to 19 and skins re-tuned
   const cdx = await page.evaluate(() => ({ total: window.__acc.codex().total }))
-  ok('codex now has 19 entries', cdx.total===19, `${cdx.total}`)
+  ok('codex now has 20 entries', cdx.total===20, `${cdx.total}`)
 
   // regression: restarting clears features, growth still works
   const reg = await page.evaluate(async () => {
-    const A=window.__acc; A.begin(); const f=A.feats().length; const m0=A.state.mass
-    for(let k=0;k<12;k++){ A.eatNearest(); A.step(0.4) }
-    // 미행성 단계에선 사냥당해 죽을 수 있으므로 최종 질량이 아니라 peak(최대 도달)으로 성장을 판정
-    return { f, grew:A.state.peak>m0 }
+    const A=window.__acc; A.begin(); const f=A.feats().length
+    // 결정론적 확인 — 필드를 비우고 확실한 먹이만 옆에 두고 먹는다(위협·충돌 변수 제거)
+    A.clearObjs(); A.clearFeats(); const m0=A.state.mass
+    for(let k=0;k<6;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4) }
+    return { f, grew:A.state.mass>m0 }
   })
   ok('begin() clears features', reg.f===0)
   ok('regression: growth intact', reg.grew===true)

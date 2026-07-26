@@ -144,7 +144,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.6</div>
+<div class="credit">ACCRETION · prototype 1.7</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -497,9 +497,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -518,14 +518,15 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  eddington:'A black hole can only feed so fast — its own radiation pressure pushes the meal away.',
  nebula:'Cold clouds of gas and dust — the nurseries where new stars are born.',
  wormhole:'General relativity permits shortcuts through spacetime. None has ever been observed.',
- remnant:'What a supernova leaves behind — the gold and uranium in your world came from one.'}
+ remnant:'What a supernova leaves behind — the gold and uranium in your world came from one.',
+ collision:'Planetesimals shatter when they strike something bigger — that rubble became the asteroid belt.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
 // 블랙홀 스킨(강착원반 팔레트) — 코덱스 수집률로 언락. 수집이 곧 보상 = 교육을 리텐션 동력으로.
 const SKINS={void:{name:'VOID',cA:0xcaf0ff,cR:0xff4a12,ph:0xffe8bf,need:0},
  solar:{name:'SOLAR',cA:0xffe08a,cR:0xff3a1e,ph:0xffd070,need:8},
- aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:19}}
+ aurora:{name:'AURORA',cA:0x9affd0,cR:0xb04aff,ph:0xd0ffe0,need:20}}
 const SKIN_ORDER=['void','solar','aurora']
 function paintDisk(cAh,cRh){const pos=diskGeo.attributes.position,cols=[],cA=new THREE.Color(cAh),cR=new THREE.Color(cRh)
  for(let i=0;i<pos.count;i++){const ang=Math.atan2(pos.getY(i),pos.getX(i)),t=0.5+0.5*Math.cos(ang-1.15)
@@ -555,6 +556,8 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
   let mass,type
   if(roll<rivalP){mass=S.mass*rnd(0.7,1.9+tt*0.45);type='rival'}                                       // 라이벌 — 티어↑ 시 최대 2.8×(포식자)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
+  else if(roll<rivalP+0.30){const rel=rnd(1.15,2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
+   type=rel<1.5?'planet':'star'}
   else{const rel=rnd(0.12,0.82);mass=S.mass*rel                                                         // 식량 — 타입은 **상대 크기**로 결정
    type=rel<0.30?'rock':(rel<0.62?'planet':'star')}                                                     // (절대질량 기준이면 커질수록 전부 star가 돼 화면이 창백해짐)
   spawnObj(type,Math.max(0.2,mass))}}
@@ -601,8 +604,11 @@ function update(dt){
   const omouth=rad(o.mass)*1.55
   // 후광 가독성
   // 블랙홀은 질량과 무관하게 비-블랙홀(암석·별)에겐 언제나 죽음 — 반대로 삼키는 건 물리적으로 불가능
-  const bhThreat=o.type==='rival'&&S.formIdx<2
-  const edible=o.mass<S.mass&&!bhThreat,threat=(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
+  const bhThreat=o.type==='rival'&&S.formIdx<2, isBH=S.formIdx===2
+  // 블랙홀은 무엇이든(비-라이벌) 삼킨다 · 행성·별 단계에선 나보다 큰 천체는 삼킬 수 없고 부딪히면 부서진다
+  const edible=!bhThreat&&(o.type!=='rival'?(isBH||o.mass<S.mass):o.mass<S.mass)
+  const threat=(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
+  const crush=!isBH&&o.type!=='rival'&&o.mass>=S.mass // 충돌 위험 천체
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
@@ -610,6 +616,7 @@ function update(dt){
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
     const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp}} // 중력권 들면 표류 속도 감쇠 → 스쳐도 빠져나가지 못하고 빨려듦
   else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24}
+  else if(crush){h.material.color.setHex(0xffa83c);h.material.opacity=0.5+Math.sin(S.t*7)*0.2} // 충돌 위험(부서짐)
   else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
   if(o.type==='rival'){ // 크기로는 못 알아본다(반경=질량^⅓ → 1.5배 무거워도 1.14배) → 색으로 확실히
@@ -630,11 +637,41 @@ function update(dt){
    popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
+  if(crush&&d<mouth+o.r*0.6&&o.nmCd<=0){ // 충돌 — 미행성·항성은 더 큰 천체를 못 삼킨다. 서로 부서진다(실제 미행성 충돌)
+   o.nmCd=1.6
+   const loss=Math.min(S.mass*0.22,o.mass*0.3)
+   S.mass=Math.max(S.evapFloor*1.02,S.mass-loss)
+   o.mass*=0.55;o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15) // 상대도 깨져 작아진다(먹을 수 있게 됨)
+   const nx=(o.g.position.x-hole.position.x)/(d||1),nz=(o.g.position.z-hole.position.z)/(d||1)
+   o.vx+=nx*16;o.vz+=nz*16;S.vx-=nx*14;S.vz-=nz*14 // 서로 튕김
+   S.shake=Math.min(S.shake+0.7,1.2);AU.boom();S.combo=0
+   eatBurst(o.g.position.x,o.g.position.z,0xffa83c,12)
+   popup(hole.position,'−'+fmtBig(loss),'#ffa83c');codexToast('collision')
+   if(S.mass<=S.evapFloor*1.05){codexToast('evaporate');return gameOver('evaporated')}
+   continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
    if(d<omouth&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)} // 초신성 직후 무적
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
     S.energy=Math.min(1,S.energy+0.22) // 아슬아슬하게 스칠수록 서지가 찬다 — 포위 상황의 탈출구
     AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
+  }
+ }
+
+ // ── 객체 간 상호작용: 라이벌 블랙홀도 주변을 삼킨다(서로 포함) ──
+ // 필드가 스스로 정리돼 "거대 블랙홀만 쌓이는" 문제가 완화되고, 남의 싸움을 이용할 수 있다.
+ for(const a of objects){
+  if(a.type!=='rival'||a.eaten)continue
+  const ar=rad(a.mass),reach=ar*1.7
+  for(const bq of objects){
+   if(bq===a||bq.eaten||bq.mass>=a.mass)continue
+   const ddx=bq.g.position.x-a.g.position.x,ddz=bq.g.position.z-a.g.position.z
+   const dd=Math.hypot(ddx,ddz)
+   if(dd<reach+bq.r*0.6){
+    a.mass=Math.min(a.mass+bq.mass*0.4,S.mass*3.4) // 성장 상한 — 무한 비대화 방지
+    a.r=rad(a.mass);a.g.scale.setScalar(a.r*1.15)
+    bq.eaten=true;bq.eatT=0.28
+    if(a.g.position.distanceTo(hole.position)<(22+rad(S.mass)*7)*1.6)eatBurst(bq.g.position.x,bq.g.position.z,0xff8a5a,4)
+   }
   }
  }
  topUp();updateFeats(dt)
@@ -949,10 +986,12 @@ if(DEV){window.__acc={
  setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
- spawnTagged:(mass,x,z)=>{spawnObj('planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
+ spawnTagged:(mass,x,z,type)=>{spawnObj(type||'planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
+ tagMass:()=>{const o=window.__accTag;return o?Math.round(o.mass*10)/10:null},
  seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
- objInfo:()=>objects.map(o=>({t:o.type,edible:o.mass<S.mass&&!(o.type==='rival'&&S.formIdx<2)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
+ objInfo:()=>objects.map(o=>({t:o.type,mass:Math.round(o.mass*10)/10,bigger:o.mass>=S.mass,
+  edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
  codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
  discover:t=>codexToast(t),skinUnlocked:id=>skinUnlocked(id),curSkin:()=>curSkin(),

@@ -43,7 +43,7 @@ try {
   ok('early planets are edible', early.ediblePlanets>=3, `ediblePlanets=${early.ediblePlanets}`)
   ok('mid game spawns planets', mid.planets>=3, `planets=${mid.planets}/${mid.n}`)
   ok('mid planets are edible', mid.ediblePlanets>=3, `ediblePlanets=${mid.ediblePlanets}`)
-  ok('non-rivals are (almost) all food', early.nonRivalEdibleFrac>0.95 && mid.nonRivalEdibleFrac>0.95, `early=${early.nonRivalEdibleFrac.toFixed(2)} mid=${mid.nonRivalEdibleFrac.toFixed(2)}`)
+  ok('non-rivals are mostly food, some are bigger hazards', early.nonRivalEdibleFrac>0.7 && early.nonRivalEdibleFrac<0.95 && mid.nonRivalEdibleFrac>0.7, `early=${early.nonRivalEdibleFrac.toFixed(2)} mid=${mid.nonRivalEdibleFrac.toFixed(2)}`)
   ok('rivals still present (threat axis)', early.rivals>=1 && mid.rivals>=1, `early=${early.rivals} mid=${mid.rivals}`)
 
   // a planted planet near-miss gets eaten (planet-specific capture)
