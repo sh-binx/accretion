@@ -154,7 +154,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.9</div>
+<div class="credit">ACCRETION · prototype 1.9.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -606,7 +606,9 @@ function update(dt){
  const mouth=hr*F.mouth*(surging?1.6:1) // 포식 반경(형태별) · 서지 중 확대
  // 객체 처리
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
-  if(o.eaten){o.g.position.lerp(hole.position,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
+  if(o.eaten){ // 먹은 주체 쪽으로 빨려든다 — 라이벌이 먹은 것까지 플레이어에게 날아오던 버그 수리
+   const dst=(o.eatBy&&!o.eatBy.eaten&&objects.indexOf(o.eatBy)>=0)?o.eatBy.g.position:hole.position
+   o.g.position.lerp(dst,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
   o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=(o.type==='pulsar'?o.spin*4:o.spin)*dt // 펄서는 빠르게 회전(빔 스윕)
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
@@ -685,7 +687,7 @@ function update(dt){
    if(dd<reach+bq.r*0.6){
     a.mass=Math.min(a.mass+bq.mass*0.4,S.mass*3.4) // 성장 상한 — 무한 비대화 방지
     a.r=rad(a.mass);a.g.scale.setScalar(a.r*1.15)
-    bq.eaten=true;bq.eatT=0.28
+    bq.eaten=true;bq.eatT=0.28;bq.eatBy=a // 이 라이벌에게 빨려들게
     if(a.g.position.distanceTo(hole.position)<(22+rad(S.mass)*7)*1.6)eatBurst(bq.g.position.x,bq.g.position.z,0xff8a5a,4)
    }
   }
@@ -1008,7 +1010,7 @@ function supernova(){
  for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten)continue
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
   if(d>R)continue
-  if(o.mass<S.mass*0.9&&o.type!=='rival'){S.score+=Math.round(o.mass*10);swept++;o.eaten=true;o.eatT=0.3
+  if(o.mass<S.mass*0.9&&o.type!=='rival'){S.score+=Math.round(o.mass*10);swept++;o.eaten=true;o.eatT=0.3;o.eatBy=null
    eatBurst(o.g.position.x,o.g.position.z,0xffd0a0,4)}
   else{const push=(1-d/R)*46;o.vx+=(dx/d)*push;o.vz+=(dz/d)*push} // 밀어냄
  }
@@ -1128,6 +1130,7 @@ if(DEV){window.__acc={
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  tagMass:()=>{const o=window.__accTag;return o?Math.round(o.mass*10)/10:null},
  tagDist:()=>{const o=window.__accTag;return o?Math.round(o.g.position.distanceTo(hole.position)*10)/10:null},
+ eatenInfo:()=>objects.filter(o=>o.eaten).map(o=>({t:o.type,byRival:!!o.eatBy,dPlayer:Math.round(o.g.position.distanceTo(hole.position))})),
  seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
  objInfo:()=>objects.map(o=>({t:o.type,mass:Math.round(o.mass*10)/10,bigger:o.mass>=S.mass,
   edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)

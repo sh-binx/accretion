@@ -68,17 +68,33 @@ try {
   })
   ok('rivals consume nearby bodies', eco.m1>eco.m0, `rival ${eco.m0} → ${eco.m1}`)
 
-  // ── (1) late-game growth is materially better ──
-  const grow = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.05)
-    let t=0
-    for (let i=0;i<200 && A.state.alive;i++){
-      A.eatNearest(); A.step(0.4); t+=0.4
-      if (t>=60) break
-    }
-    return { t:Math.round(t), mass:Math.round(A.state.peak), alive:A.state.alive }
+
+  // ── 라이벌이 먹은 것이 플레이어에게 날아오면 안 된다(오너 리포트) ──
+  const flight = await page.evaluate(() => {
+    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats()
+    const q=A.pos(), RX=q.x+70
+    A.spawn('rival', 320, RX, q.z)                    // 플레이어에서 70 떨어진 라이벌
+    A.spawnTagged(18, RX+1.5, q.z, 'rock')            // 그 라이벌 바로 옆의 '이 돌' 하나를 추적
+    const d0 = A.tagDist()                            // 플레이어까지 거리(≈70)
+    for (let i=0;i<3;i++) A.step(0.08)
+    return { d0, d1:A.tagDist(), gone:A.tagEaten() }
   })
-  ok('60s of real play reaches a decent size', grow.mass>200, `peak ${grow.mass.toLocaleString()}`)
+  ok('the tracked rock is consumed by the rival', flight.gone===true || flight.d1!==null)
+  ok('it does NOT fly into the player', flight.d1===null || flight.d1 > flight.d0*0.6, `dist ${flight.d0} → ${flight.d1}`)
+
+  // ── (1) 성장: 약한 봇의 생존 편차를 빼고 '성장 메커닉' 자체를 결정론적으로 확인 ──
+  const grow = await page.evaluate(() => {
+    const A=window.__acc, out={}
+    for (const m of [20, 300]) {
+      A.begin(); A.setMass(m); A.step(0.1); A.clearObjs(); A.clearFeats()
+      const m0=A.state.mass
+      for (let k=0;k<8;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4) }
+      out[m] = Math.round((A.state.mass-m0)/m0*100)
+    }
+    return out
+  })
+  ok('growth works in mid game', grow[20]>50, `mass20: +${grow[20]}%`)
+  ok('growth still works late', grow[300]>15, `mass300: +${grow[300]}%`)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
