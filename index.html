@@ -81,6 +81,11 @@
  #surge .track{width:180px;height:8px;border-radius:5px;background:rgba(120,150,220,.14);overflow:hidden;border:1px solid rgba(120,150,220,.2)}
  #surge .fill{height:100%;width:0;border-radius:5px;background:linear-gradient(90deg,#35a0ff,#8fd0ff);transition:width .12s}
  #surge .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
+ #surge .acts{display:flex;gap:6px;margin-top:5px}
+ #surge .act{pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:10px;font-weight:800;letter-spacing:1.2px;
+  color:#7c88ad;background:rgba(16,22,44,.75);border:1px solid rgba(130,160,225,.22);border-radius:7px;padding:5px 11px}
+ #surge.ready .act{color:#ffcf4a;border-color:rgba(255,207,74,.5)}
+ #surge .act:hover{color:#eaf1ff;border-color:rgba(143,208,255,.55)}
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
  @keyframes sp{0%,100%{opacity:.55}50%{opacity:1}}
@@ -148,8 +153,8 @@
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.8</div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div class="credit">ACCRETION · prototype 1.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -660,8 +665,11 @@ function update(dt){
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
    if(d<omouth&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)} // 초신성 직후 무적
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
-    S.energy=Math.min(1,S.energy+0.22);S.nmCount=(S.nmCount||0)+1 // 아슬아슬하게 스칠수록 서지가 찬다 — 포위 상황의 탈출구
-    AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
+    S.grazeChain=(performance.now()-(S.grazeAt||0)<3200)?(S.grazeChain||0)+1:1;S.grazeAt=performance.now()
+    S.grazeMax=Math.max(S.grazeMax||0,S.grazeChain)
+    const gm=Math.min(S.grazeChain,6) // 연쇄가 길수록 보상↑ — 위험한 플레이가 곧 강해지는 플레이
+    S.energy=Math.min(1,S.energy+0.16+gm*0.04);S.nmCount=(S.nmCount||0)+1;S.score+=bonus*(gm-1)
+    AU.nearMiss();popup(o.g.position,'GRAZE ×'+gm+'  +'+(bonus*gm)+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
   }
  }
 
@@ -697,7 +705,7 @@ function update(dt){
  if(danger&&S.warnT<=0){S.warnT=0.5;AU.warn()}
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,'+(danger?(0.18+Math.sin(S.t*10)*0.12):0)+')'
  if(S.mass>S.peak)S.peak=S.mass
- checkAch()
+ onboardTick();checkAch()
 }
 
 /* ===== camera + render ===== */
@@ -759,7 +767,7 @@ function hud(){
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
- $('surgeLab').textContent=ready?(COARSE?'⚡ TAP TO SURGE':'⚡ SURGE · SPACE'):'⚡ SURGE'
+ $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':'SPACE · SHIFT'):'⚡ CHARGING'
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
  if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
   ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?' — CONSUME IT':'')}
@@ -798,6 +806,22 @@ function doSurge(){
  const l=Math.hypot(dx,dz)||1;S.vx+=dx/l*26;S.vz+=dz/l*26 // 임펄스
  S.shake=Math.min(S.shake+0.6,1.3);AU.surge();banner('⚡ SLINGSHOT','gravity assist — lunge')
  eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
+}
+
+function doPulse(){ // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
+ if(!S.alive||S.surgeT>0||S.energy<1)return
+ S.energy=0;S.invT=Math.max(S.invT,0.6);S.pulseCount=(S.pulseCount||0)+1
+ const hr=rad(S.mass),R=hr*7.5,isBH=S.formIdx===2
+ for(const o of objects){ if(o.eaten)continue
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
+  if(d>R)continue
+  const eat=o.type!=='rival'?(isBH||o.mass<S.mass):(isBH&&o.mass<S.mass)
+  if(eat){o.g.position.x-=dx/d*d*0.8;o.g.position.z-=dz/d*d*0.8;o.vx*=0.15;o.vz*=0.15} // 먹이를 입 앞으로
+  else{o.vx+=dx/d*30;o.vz+=dz/d*30}                                                     // 위협은 밀어냄
+ }
+ S.shake=Math.min(S.shake+0.75,1.3);AU.surge();AU.boom()
+ eatBurst(hole.position.x,hole.position.z,0x9fd0ff,24)
+ banner('◉ COLLAPSE PULSE','draw the harvest in — shove the hunters out')
 }
 
 /* ===== leaderboard (Supabase · 삽입은 Edge Function 경유·읽기는 RLS 공개) ===== */
@@ -1014,6 +1038,17 @@ function nemesisConsumed(o){
  S.shake=Math.min(S.shake+0.9,1.4);AU.tierUp();AU.boom();eatBurst(o.g.position.x,o.g.position.z,0xffb060,26)
  banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+' · a greater hunter will rise');codexToast('quasar')
 }
+let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e){return false}})() // let — 같은 세션의 두 번째 런에서 힌트가 반복되던 버그
+const HINTS=[{t:0.6,m:'◆ MOVE',s:'WASD · arrows · or drag'},
+ {t:3.2,m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
+ {t:6.4,m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
+ {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'}]
+function onboardTick(){ // 첫 런에만 단계별 힌트
+ if(onboarded||S.hintIdx>=HINTS.length)return
+ const h=HINTS[S.hintIdx]
+ if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
+  if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
+}
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
@@ -1021,7 +1056,8 @@ function begin(){AU.unlock()
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
- S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0 // 업적용 런 카운터
+ S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -1066,10 +1102,10 @@ function refreshDailyBtn(){const m=todayMod(),el=$('ribbonTxt');if(el)el.innerHT
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
-$('surge').onclick=doSurge // 모바일/클릭 발동(PC는 Space)
+$('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge()})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse()})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -1080,7 +1116,9 @@ addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrien
 /* ===== DEV hooks (?dev=1) ===== */
 if(DEV){window.__acc={
  get state(){return {mass:Math.round(S.mass*100)/100,tier:TIERS[Math.max(0,S.tierIdx)].n,alive:S.alive,t:Math.round(S.t*10)/10,peak:Math.round(S.peak*100)/100,objs:objects.length,combo:S.combo,comboMax:S.comboMax,score:S.score,parts:particles.length,amb:AU.amb.length,muted:AU.muted,energy:Math.round(S.energy*100)/100,surging:S.surgeT>0}},
- doSurge,setEnergy:v=>{S.energy=v},surgeReady:()=>$('surge').classList.contains('ready'),
+ doSurge,doPulse,setEnergy:v=>{S.energy=v},
+ grazeChain:()=>S.grazeChain||0,grazeMax:()=>S.grazeMax||0,pulseCount:()=>S.pulseCount||0,
+ hintIdx:()=>S.hintIdx||0,resetOnboard:()=>{try{localStorage.removeItem('acc_onboard')}catch(e){}},surgeReady:()=>$('surge').classList.contains('ready'),
  zoneLens:()=>Math.round(zoneLens*100)/100,fogHex:()=>scene.fog.color.getHexString(),
  begin,gameOver:()=>gameOver('evaporated'),
  setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
@@ -1089,6 +1127,7 @@ if(DEV){window.__acc={
  spawnTagged:(mass,x,z,type)=>{spawnObj(type||'planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  tagMass:()=>{const o=window.__accTag;return o?Math.round(o.mass*10)/10:null},
+ tagDist:()=>{const o=window.__accTag;return o?Math.round(o.g.position.distanceTo(hole.position)*10)/10:null},
  seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
  objInfo:()=>objects.map(o=>({t:o.type,mass:Math.round(o.mass*10)/10,bigger:o.mass>=S.mass,
   edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
