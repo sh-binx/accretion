@@ -100,6 +100,11 @@
  .skin.sel{border-color:#ffcf4a;color:#ffcf4a;box-shadow:0 0 12px rgba(255,207,74,.3)}
  .skin.lk{opacity:.45;cursor:not-allowed;color:#5d6889}
  .skinlab{font-size:10px;letter-spacing:2px;color:#7c88ad;margin-top:10px}
+ .tabs{display:flex;gap:6px;justify-content:center;margin-top:12px}
+ .tabs .tab{pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-size:10.5px;font-weight:800;letter-spacing:1.4px;
+  color:#93a0c4;background:rgba(16,22,44,.7);border:1px solid rgba(130,160,225,.24);border-radius:8px;padding:7px 14px}
+ .tabs .tab:hover{border-color:rgba(143,208,255,.5);color:#eaf1ff}
+ .tabs .tab.sel{color:#04060e;background:#8fd0ff;border-color:#8fd0ff}
  /* ===== 메인 메뉴 — PORTAL(C): 상단 블랙홀 히어로 · 워드마크 · 거대 PLAY ===== */
  #start{justify-content:flex-end;align-items:center;text-align:center;padding:0 20px clamp(18px,4.5vh,44px);backdrop-filter:none;
   background:linear-gradient(180deg,rgba(4,5,12,0) 0%,rgba(4,5,12,.18) 34%,rgba(4,5,12,.72) 56%,rgba(4,5,12,.93) 76%,#04050c 100%)}
@@ -144,7 +149,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.7</div>
+<div class="credit">ACCRETION · prototype 1.8</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -160,6 +165,7 @@
    <button class="chip" id="startBoard"><span class="k">BEST</span><span class="v" id="chipBest">–</span></button>
    <button class="chip" id="startDailyBoard"><span class="k">RANK</span><span class="v g" id="chipRank">–</span></button>
    <button class="chip" id="startCodex"><span class="k">CODEX</span><span class="v" id="chipCodex">–</span></button>
+   <button class="chip" id="startAwards"><span class="k">AWARDS</span><span class="v g" id="chipAwards">–</span></button>
   </div>
  </div>
 </div>
@@ -176,7 +182,8 @@
 
 <div class="center off" id="board">
  <div class="big" id="boardTitle" style="font-size:clamp(24px,5vw,40px)">LEADER<span class="a">BOARD</span></div>
- <div class="tagline" id="boardSub">GLOBAL · TOP 100</div>
+ <div class="tagline" id="boardSub">ALL TIME · TOP 100</div>
+ <div class="tabs" id="boardTabs"></div>
  <div id="boardList"></div>
  <div style="display:flex;gap:12px;margin-top:4px">
   <button class="btn" id="boardPlay" style="margin-top:0">▶ PLAY</button>
@@ -185,9 +192,10 @@
 </div>
 
 <div class="center off" id="codexScreen">
- <div class="big" style="font-size:clamp(24px,5vw,40px)">CO<span class="a">DEX</span></div>
- <div class="tagline" id="codexSub">0 / 12 DISCOVERED</div>
- <div class="msg" style="margin-top:8px;max-width:34ch">Discover cosmic bodies & phenomena as you play — each teaches real astrophysics. Collect them to unlock black-hole skins.</div>
+ <div class="big" id="codexTitle" style="font-size:clamp(24px,5vw,40px)">CO<span class="a">DEX</span></div>
+ <div class="tagline" id="codexSub">0 / 20 DISCOVERED</div>
+ <div class="tabs" id="codexTabs"></div>
+ <div class="msg" id="codexMsg" style="margin-top:8px;max-width:34ch">Discover cosmic bodies &amp; phenomena as you play — each teaches real astrophysics. Collect them to unlock black-hole skins.</div>
  <div id="codexGrid"></div>
  <div class="skinlab">◆ BLACK HOLE SKIN</div>
  <div id="skinRow"></div>
@@ -404,16 +412,16 @@ function updateFeats(dt){
   if(d>(22+hr*7)*3.2){releaseFeat(f);continue}
   if(d<f.r+hr){
    if(f.type==='nebula'){ // 머무는 동안 질량 회복 — 증발과 싸우는 안전지대
-    S.mass+=Math.max(0.35,S.mass*0.035)*dt;S.energy=Math.min(1,S.energy+0.06*dt)
+    S.mass+=Math.max(0.35,S.mass*0.035)*dt;S.energy=Math.min(1,S.energy+0.06*dt);S.nebCount=(S.nebCount||0)+1
     if(f.cd<=0){f.cd=2.4;popup(hole.position,'NEBULA','#b07bff');codexToast('nebula')}
    } else if(f.type==='wormhole'&&f.cd<=0){ // 순간이동 — 포위·추격 탈출구
-    f.cd=99;const a=rnd(0,6.283),dist=(22+hr*7)*2.4
+    f.cd=99;S.wormCount=(S.wormCount||0)+1;const a=rnd(0,6.283),dist=(22+hr*7)*2.4
     hole.position.set(hx+Math.cos(a)*dist,0,hz+Math.sin(a)*dist)
     S.vx*=0.3;S.vz*=0.3;S.invT=Math.max(S.invT,0.8);S.shake=Math.min(S.shake+0.7,1.2)
     eatBurst(hx,hz,0x6fffd0,18);eatBurst(hole.position.x,hole.position.z,0x6fffd0,18)
     AU.surge();banner('◎ WORMHOLE','a shortcut through spacetime');codexToast('wormhole');releaseFeat(f);continue
    } else if(f.type==='remnant'&&f.cd<=0){ // 잔해 흡수 — 큰 질량 + 점수
-    f.cd=99;const gain=Math.max(2,S.mass*0.5)*accEff();S.mass+=gain;S.score+=Math.round(gain*14)
+    f.cd=99;S.remCount=(S.remCount||0)+1;const gain=Math.max(2,S.mass*0.5)*accEff();S.mass+=gain;S.score+=Math.round(gain*14)
     S.shake=Math.min(S.shake+0.6,1.2);AU.tierUp();eatBurst(f.g.position.x,f.g.position.z,0xffb070,26)
     popup(f.g.position,'+'+fmtBig(gain),'#ffb070');banner('✦ SUPERNOVA REMNANT','heavy elements — absorbed');codexToast('remnant');releaseFeat(f);continue
    }
@@ -638,7 +646,7 @@ function update(dt){
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
   if(crush&&d<mouth+o.r*0.6&&o.nmCd<=0){ // 충돌 — 미행성·항성은 더 큰 천체를 못 삼킨다. 서로 부서진다(실제 미행성 충돌)
-   o.nmCd=1.6
+   o.nmCd=1.6;S.crashCount=(S.crashCount||0)+1
    const loss=Math.min(S.mass*0.22,o.mass*0.3)
    S.mass=Math.max(S.evapFloor*1.02,S.mass-loss)
    o.mass*=0.55;o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15) // 상대도 깨져 작아진다(먹을 수 있게 됨)
@@ -652,7 +660,7 @@ function update(dt){
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
    if(d<omouth&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)} // 초신성 직후 무적
    if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
-    S.energy=Math.min(1,S.energy+0.22) // 아슬아슬하게 스칠수록 서지가 찬다 — 포위 상황의 탈출구
+    S.energy=Math.min(1,S.energy+0.22);S.nmCount=(S.nmCount||0)+1 // 아슬아슬하게 스칠수록 서지가 찬다 — 포위 상황의 탈출구
     AU.nearMiss();popup(o.g.position,'CLOSE! +'+bonus+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
   }
  }
@@ -689,6 +697,7 @@ function update(dt){
  if(danger&&S.warnT<=0){S.warnT=0.5;AU.warn()}
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,'+(danger?(0.18+Math.sin(S.t*10)*0.12):0)+')'
  if(S.mass>S.peak)S.peak=S.mass
+ checkAch()
 }
 
 /* ===== camera + render ===== */
@@ -783,7 +792,7 @@ const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
 // 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
 function doSurge(){
  if(!S.alive||S.surgeT>0||S.energy<1)return
- S.energy=0;S.surgeT=0.9
+ S.energy=0;S.surgeT=0.9;S.surgeCount=(S.surgeCount||0)+1
  const st=steer();let dx=st.x,dz=st.z
  if(st.mag<0.05){const vl=Math.hypot(S.vx,S.vz);if(vl>0.2){dx=S.vx/vl;dz=S.vz/vl}else dz=-1} // 입력 없으면 진행방향(정지면 화면 위)
  const l=Math.hypot(dx,dz)||1;S.vx+=dx/l*26;S.vz+=dz/l*26 // 임펄스
@@ -806,10 +815,14 @@ const LB={
   }catch(e){return null} // 네트워크 실패
  },
  async top(limit){return this._q('&day=is.null',limit)},          // 글로벌 = 일반런만
+ async topWeek(limit){return this._q('&day=is.null&created_at=gte.'+weekStart(),limit)}, // 이번 주
  async topDaily(day,limit){return this._q('&day=eq.'+day,limit)}, // 데일리 = 그날
  async _q(filter,limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur,modifier'+filter+'&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
 }
 /* ===== 데일리 챌린지 — 날짜별 모디파이어(그날은 모두 같은 규칙) + 데일리 리더보드 ===== */
+function weekStart(){const d=new Date();const day=(d.getUTCDay()+6)%7 // 월요일=0
+ const m=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())-day*86400000
+ return new Date(m).toISOString()}
 function dayKey(){const d=new Date();return d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0')+'-'+String(d.getUTCDate()).padStart(2,'0')}
 function dayIndex(){const d=new Date();return Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate())/86400000)}
 const DAILY_MODS=[
@@ -822,28 +835,43 @@ const DAILY_MODS=[
 function todayMod(){return DAILY_MODS[((dayIndex()%DAILY_MODS.length)+DAILY_MODS.length)%DAILY_MODS.length]}
 const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]))
 let lastRun=null
+let boardMode='global'
 async function openBoard(daily){
- $('board').classList.remove('off')
- $('boardTitle').innerHTML=daily?'DAILY<span class="a"> BOARD</span>':'LEADER<span class="a">BOARD</span>'
- $('boardSub').textContent=daily?('TODAY · '+todayMod().name):'GLOBAL · TOP 100'
+ boardMode=daily===true?'daily':(typeof daily==='string'?daily:'global')
+ $('board').classList.remove('off');renderBoardTabs()
+ const M=boardMode
+ $('boardTitle').innerHTML=M==='daily'?'DAILY<span class="a"> BOARD</span>':(M==='weekly'?'WEEKLY<span class="a"> BOARD</span>':'LEADER<span class="a">BOARD</span>')
+ $('boardSub').textContent=M==='daily'?('TODAY · '+todayMod().name):(M==='weekly'?'THIS WEEK · TOP 100':'ALL TIME · TOP 100')
  const list=$('boardList');list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">loading…</div>'
- const rows=daily?await LB.topDaily(dayKey(),100):await LB.top(100)
- if(!rows.length){list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">'+(daily?"no runs today — set the pace ◆":'no runs yet — be the first ◆')+'</div>';return}
+ const rows=M==='daily'?await LB.topDaily(dayKey(),100):(M==='weekly'?await LB.topWeek(100):await LB.top(100))
+ if(!rows.length){list.innerHTML='<div class="brow" style="justify-content:center;color:#7c88ad">'+(M==='daily'?"no runs today — set the pace ◆":(M==='weekly'?'no runs this week — go first ◆':'no runs yet — be the first ◆'))+'</div>';return}
  list.innerHTML=rows.map((r,i)=>{
   const me=lastRun&&r.name===lastRun.name&&r.score===lastRun.score
   const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)
   return '<div class="brow'+(me?' me':'')+'"><span class="br">'+medal+'</span><span class="bn">'+esc(r.name)+'</span><span class="bt">'+esc(r.tier||'')+'</span><span class="bs">'+(r.score||0).toLocaleString()+'</span></div>'
  }).join('')
 }
+function renderBoardTabs(){
+ const el=$('boardTabs');if(!el)return
+ el.innerHTML=[['global','ALL TIME'],['weekly','THIS WEEK'],['daily','DAILY']]
+  .map(([k,l])=>'<button class="tab'+(boardMode===k?' sel':'')+'" data-bm="'+k+'">'+l+'</button>').join('')
+ el.querySelectorAll('.tab').forEach(b=>b.onclick=()=>openBoard(b.dataset.bm))
+}
 function closeBoard(){$('board').classList.add('off')}
 /* ===== 코덱스 수집화면 + 스킨 선택 ===== */
 function closeCodex(){$('codexScreen').classList.add('off');refreshStrip();refreshCodexBtn()} // 수집·스킨 변경 반영
 function openCodex(){$('codexScreen').classList.remove('off');renderCodex()}
+let codexTab='codex'
 function renderCodex(){
+ if(codexTab==='awards')return renderAwards()
  const nu=CODEX.count(),tot=CODEX.total()
  $('codexSub').textContent=nu+' / '+tot+' DISCOVERED'
  $('codexGrid').innerHTML=CODEX_ORDER.map(k=>{const got=CODEX.seen.has(k)
   return '<div class="cdx'+(got?' got':'')+'"><div class="cn">'+(got?esc(NAMES[k]):'??? · LOCKED')+'</div><div class="cf">'+(got?esc(FACTS[k]):'Discover it in play.')+'</div></div>'}).join('')
+ renderCodexTabs()
+ $('codexTitle').innerHTML='CO<span class="a">DEX</span>'
+ $('codexMsg').textContent='Discover cosmic bodies & phenomena as you play — each teaches real astrophysics. Collect them to unlock black-hole skins.'
+ $('skinRow').style.display='';document.querySelector('.skinlab').style.display=''
  const cs=curSkin()
  $('skinRow').innerHTML=SKIN_ORDER.map(id=>{const s=SKINS[id],un=skinUnlocked(id)
   const hx=n=>('000000'+n.toString(16)).slice(-6)
@@ -851,7 +879,75 @@ function renderCodex(){
   return '<button class="skin'+(cs===id?' sel':'')+(un?'':' lk')+'" data-skin="'+id+'"'+(un?'':' disabled')+'>'+sw+s.name+(un?'':' · '+s.need+'/'+tot)+'</button>'}).join('')
  $('skinRow').querySelectorAll('.skin[data-skin]:not([disabled])').forEach(b=>b.onclick=()=>{try{localStorage.setItem('acc_skin',b.dataset.skin)}catch(e){}renderCodex()})
 }
+function renderCodexTabs(){
+ const el=$('codexTabs');if(!el)return
+ el.innerHTML=[['codex','◆ CODEX '+CODEX.count()+'/'+CODEX.total()],['awards','★ AWARDS '+AWARDS.count()+'/'+ACH.length]]
+  .map(([k,l])=>'<button class="tab'+(codexTab===k?' sel':'')+'" data-ct="'+k+'">'+l+'</button>').join('')
+ el.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{codexTab=b.dataset.ct;renderCodex()})
+}
+function renderAwards(){
+ renderCodexTabs()
+ $('codexTitle').innerHTML='A<span class="a">WARDS</span>'
+ $('codexMsg').textContent='Feats earned by how you play — a second collection beside the codex.'
+ $('codexSub').textContent=AWARDS.count()+' / '+ACH.length+' EARNED'
+ $('codexGrid').innerHTML=ACH.map(a=>{const got=AWARDS.has(a.id)
+  return '<div class="cdx'+(got?' got':'')+'"><div class="cn">'+(got?'★ '+esc(a.n):'☆ LOCKED')+'</div><div class="cf">'+esc(a.d)+'</div></div>'}).join('')
+ $('skinRow').innerHTML='';$('skinRow').style.display='none';document.querySelector('.skinlab').style.display='none'
+}
 function refreshCodexBtn(){const b=$('overCodex');if(b)b.textContent='◆ CODEX '+CODEX.count()+'/'+CODEX.total()} // 시작화면은 칩이 담당
+/* ===== 업적 — 코덱스 옆의 두 번째 수집축(플레이 방식에 이름을 붙여준다) ===== */
+const ACH=[
+ {id:'ignite',   n:'FIRST LIGHT',    d:'Ignite fusion — become a star'},
+ {id:'collapse', n:'COLLAPSE',       d:'Survive your own supernova'},
+ {id:'apex1',    n:'APEX HUNTER',    d:'Consume an apex predator'},
+ {id:'apex3',    n:'APEX TRIPLE',    d:'Consume 3 apex predators in one run'},
+ {id:'live90',   n:'LONG BURN',      d:'Survive 90 seconds'},
+ {id:'m100',     n:'CENTURION',      d:'Reach 100 M☉'},
+ {id:'m1000',    n:'TITAN',          d:'Reach 1,000 M☉'},
+ {id:'m10000',   n:'GALACTIC CORE',  d:'Reach 10,000 M☉'},
+ {id:'graze20',  n:'BRUSH WITH DEATH',d:'Graze death 20 times in one run'},
+ {id:'combo30',  n:'FEEDING FRENZY', d:'Reach a ×30 combo'},
+ {id:'worm3',    n:'SPELUNKER',      d:'Take 3 wormholes in one run'},
+ {id:'surge10',  n:'SLINGSHOT',      d:'Fire 10 surges in one run'},
+ {id:'rem3',     n:'SCAVENGER',      d:'Absorb 3 supernova remnants'},
+ {id:'nebula',   n:'STAR NURSERY',   d:'Refuel inside a nebula'},
+ {id:'unbroken', n:'UNBROKEN',       d:'Reach black hole without a collision'},
+ {id:'codex10',  n:'STARGAZER',      d:'Discover 10 codex entries'},
+ {id:'codexall', n:'ARCHIVIST',      d:'Discover every codex entry'},
+ {id:'daily',    n:'DAILY RUNNER',   d:'Finish a daily challenge'},
+ {id:'score1m',  n:'MILLIONAIRE',    d:'Score 1,000,000 in one run'},
+ {id:'skinall',  n:'COLLECTOR',      d:'Unlock every black hole skin'}
+]
+const AWARDS={
+ got:new Set((()=>{try{return (localStorage.getItem('acc_ach')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
+ has(id){return this.got.has(id)},
+ count(){return ACH.filter(a=>this.got.has(a.id)).length},
+ unlock(id){if(this.got.has(id)||!ACH.some(a=>a.id===id))return false
+  this.got.add(id);try{localStorage.setItem('acc_ach',[...this.got].join(','))}catch(e){}
+  const a=ACH.find(x=>x.id===id);banner('★ '+a.n,a.d);AU.tierUp();return true}
+}
+function checkAch(){ // 자주 불려도 안전(이미 얻은 건 즉시 반환)
+ const m=S.mass
+ if(S.formIdx>=1)AWARDS.unlock('ignite')
+ if(S.formIdx>=2)AWARDS.unlock('collapse')
+ if((S.apexKills||0)>=1)AWARDS.unlock('apex1')
+ if((S.apexKills||0)>=3)AWARDS.unlock('apex3')
+ if(S.t>=90)AWARDS.unlock('live90')
+ if(m>=100)AWARDS.unlock('m100')
+ if(m>=1000)AWARDS.unlock('m1000')
+ if(m>=10000)AWARDS.unlock('m10000')
+ if((S.nmCount||0)>=20)AWARDS.unlock('graze20')
+ if(S.comboMax>=30)AWARDS.unlock('combo30')
+ if((S.wormCount||0)>=3)AWARDS.unlock('worm3')
+ if((S.surgeCount||0)>=10)AWARDS.unlock('surge10')
+ if((S.remCount||0)>=3)AWARDS.unlock('rem3')
+ if((S.nebCount||0)>=1)AWARDS.unlock('nebula')
+ if(S.formIdx>=2&&(S.crashCount||0)===0)AWARDS.unlock('unbroken')
+ if(CODEX.count()>=10)AWARDS.unlock('codex10')
+ if(CODEX.count()>=CODEX.total())AWARDS.unlock('codexall')
+ if(S.score>=1000000)AWARDS.unlock('score1m')
+ if(SKIN_ORDER.every(id=>skinUnlocked(id)))AWARDS.unlock('skinall')
+}
 /* ===== 메인 성과 스트립 — 돌아올 이유를 메뉴에 상시 노출 ===== */
 // 점수 스케일 리셋 — 진화 아크·에딩턴 이후 이전 점수는 비교 불가(폭주 버그 기록 포함).
 // 코덱스·스킨·파일럿 이름은 보존한다(수집은 밸런스와 무관).
@@ -868,6 +964,7 @@ function refreshStrip(){
  if($('chipCodex'))$('chipCodex').textContent=n+'/'+t
  if($('chipBest'))$('chipBest').textContent=STATS.best?fmtBig(STATS.best):'–'
  if($('chipRank'))$('chipRank').textContent=STATS.rank?('#'+STATS.rank):'–'
+ if($('chipAwards'))$('chipAwards').textContent=AWARDS.count()+'/'+ACH.length
 }
 
 /* ===== flow ===== */
@@ -924,6 +1021,7 @@ function begin(){AU.unlock()
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
+ S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0 // 업적용 런 카운터
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -933,6 +1031,7 @@ function begin(){AU.unlock()
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
  document.body.classList.remove('playing') // HUD 숨김
+ if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
  if(S.score>STATS.best){STATS.best=S.score} // 개인 최고점(메인 스트립)
  refreshStrip()
  const evap=cause==='evaporated';if(evap)AU.evap();else AU.boom()
@@ -958,7 +1057,8 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
 $('startBtn').onclick=()=>{S.daily=null;begin()};$('retryBtn').onclick=begin // AGAIN=같은 모드 재시도(데일리 유지)
 $('startBoard').onclick=()=>openBoard(false);$('overBoard').onclick=()=>openBoard(!!S.daily) // 게임오버 보드는 방금 모드 기준
 $('boardPlay').onclick=()=>{S.daily=null;begin()};$('boardClose').onclick=closeBoard
-$('startCodex').onclick=openCodex;$('overCodex').onclick=openCodex
+$('startCodex').onclick=()=>{codexTab='codex';openCodex()};$('overCodex').onclick=()=>{codexTab='codex';openCodex()}
+$('startAwards').onclick=()=>{codexTab='awards';openCodex()}
 $('codexPlay').onclick=()=>{S.daily=null;begin()};$('codexClose').onclick=closeCodex
 $('ribbon').onclick=()=>{S.daily=todayMod();begin()};$('startDailyBoard').onclick=()=>openBoard(true)
 S.daily=null // 기본=일반런
@@ -994,6 +1094,10 @@ if(DEV){window.__acc={
   edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
  codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
+ awards:()=>({count:AWARDS.count(),total:ACH.length,got:[...AWARDS.got]}),
+ resetAwards:()=>{AWARDS.got.clear();try{localStorage.removeItem('acc_ach')}catch(e){}},
+ boardMode:()=>boardMode,openBoardMode:m=>openBoard(m),weekStart,
+ codexTab:()=>codexTab,setCodexTab:t=>{codexTab=t;renderCodex()},
  discover:t=>codexToast(t),skinUnlocked:id=>skinUnlocked(id),curSkin:()=>curSkin(),
  setSkin:id=>{try{localStorage.setItem('acc_skin',id)}catch(e){}return curSkin()},
  resetCodex:()=>{CODEX.seen.clear();try{localStorage.removeItem('acc_codex');localStorage.removeItem('acc_skin')}catch(e){}refreshCodexBtn()},
