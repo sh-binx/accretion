@@ -21,14 +21,14 @@ try {
   // clean slate
   await page.evaluate(() => window.__acc.resetCodex())
   const c0 = await page.evaluate(() => window.__acc.codex())
-  ok('codex resets to 0/20', c0.count===0 && c0.total===20, JSON.stringify(c0))
+  ok('codex resets to 0/21', c0.count===0 && c0.total===21, JSON.stringify(c0))
 
   // discover 6 → SOLAR unlocks
   await page.evaluate(() => ['rock','planet','star','neutron','pulsar','surge','tidal','rival'].forEach(t => window.__acc.discover(t)))
   const c6 = await page.evaluate(() => ({ count: window.__acc.codex().count, solar: window.__acc.skinUnlocked('solar'), aurora: window.__acc.skinUnlocked('aurora') }))
   ok('8 discoveries → count 8', c6.count===8, `count=${c6.count}`)
   ok('SOLAR skin unlocks at 8', c6.solar===true)
-  ok('AURORA still locked (<20)', c6.aurora===false)
+  ok('AURORA still locked (<21)', c6.aurora===false)
 
   // select unlocked skin sticks; locked skin does not
   const s1 = await page.evaluate(() => window.__acc.setSkin('solar'))
@@ -49,8 +49,8 @@ try {
   await sleep(300)
   const grid = await page.evaluate(() => ({ open: window.__acc.codexOpen(), total: document.querySelectorAll('#codexGrid .cdx').length, got: document.querySelectorAll('#codexGrid .cdx.got').length, locked: document.querySelectorAll('#codexGrid .cdx:not(.got)').length, skins: document.querySelectorAll('#skinRow .skin').length }))
   ok('codex screen opens', grid.open===true)
-  ok('grid shows all 20 entries', grid.total===20, `${grid.total}`)
-  ok('8 discovered + 12 locked shown', grid.got===8 && grid.locked===12, `got=${grid.got} locked=${grid.locked}`)
+  ok('grid shows all 21 entries', grid.total===21, `${grid.total}`)
+  ok('8 discovered + 13 locked shown', grid.got===8 && grid.locked===13, `got=${grid.got} locked=${grid.locked}`)
   ok('3 skins listed', grid.skins===3, `${grid.skins}`)
   await page.evaluate(() => window.__acc.closeCodex())
 
@@ -58,8 +58,8 @@ try {
   const ev = await page.evaluate(async () => {
     const A = window.__acc; A.resetCodex()
     A.begin(); A.setEnergy(1); A.doSurge()                 // → surge
-    A.setMass(60); A.step(0.3)                              // → intermediate(블랙홀 티어 임계 상향)
-    A.setMass(250); A.step(0.3)                             // → supermassive
+    A.setMass(400); A.step(0.3)                             // → intermediate(5단계 티어)
+    A.setMass(5000); A.step(0.3)                            // → supermassive
     A.setMass(0.1); A.step(0.1)                             // force evaporate → evaporate
     return window.__acc.codex().seen
   })

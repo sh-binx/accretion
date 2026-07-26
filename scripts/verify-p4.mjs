@@ -63,7 +63,7 @@ try {
     const A = window.__acc
     A.begin()
     const fog0 = A.fogHex(), lens0 = A.zoneLens()
-    A.setMass(60)        // → tier 1 (INTERMEDIATE · 진화 아크로 임계 상향)
+    A.setMass(400)       // → tier 1 (INTERMEDIATE · 5단계 티어)
     A.step(2.2)          // let zone lerp toward violet
     return { fog0, lens0, fog1: A.fogHex(), lens1: A.zoneLens(), tier: A.state.tier }
   })
