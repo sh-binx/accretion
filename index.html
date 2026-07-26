@@ -154,7 +154,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 2.2</div>
+<div class="credit">ACCRETION · prototype 2.2.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -321,12 +321,16 @@ const pStar=new THREE.Group()
 pStar.add(new THREE.Mesh(new THREE.SphereGeometry(1,26,18),new THREE.MeshBasicMaterial({color:0xffd98a,fog:false})))
 pStar.add(glow(0xffb254,4.6,0.85));pStar.add(glow(0xfff2c8,2.6,0.5))
 hole.add(pStar)
-// 상대론적 제트 — QUASAR 티어에서 점화. 실제 퀘이사는 극지방으로 물질을 광속에 가깝게 분출한다.
+// 상대론적 제트 — QUASAR 티어에서 점화(실제 퀘이사는 극에서 물질을 광속 가까이 뿜는다).
+// 탑다운 게임이라 축을 '플레이 평면(±X)'에 눕힌다 — 보이는 빔과 판정 영역을 정확히 일치시키기 위함.
+const JET_LEN=9, JET_TIP=0.62, JET_BASE=0.14
+let jetFlash=0
 const jets=new THREE.Group()
-for(const sy of [1,-1]){
- const jg=new THREE.ConeGeometry(0.55,9,14,1,true);jg.translate(0,sy*4.7,0)
- const jm=new THREE.Mesh(jg,new THREE.MeshBasicMaterial({color:0xbfe8ff,transparent:true,opacity:.42,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
- if(sy<0)jm.rotation.x=Math.PI
+for(const sx of [1,-1]){
+ const jg=new THREE.CylinderGeometry(JET_TIP,JET_BASE,JET_LEN,18,1,true) // 끝으로 갈수록 벌어지는 collimated 빔
+ jg.rotateZ(-sx*Math.PI/2)      // +Y축 → ±X축으로 눕힘
+ jg.translate(sx*(JET_LEN/2+0.1),0,0)
+ const jm=new THREE.Mesh(jg,new THREE.MeshBasicMaterial({color:0xcdeeff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  jets.add(jm)
 }
 jets.visible=false;hole.add(jets)
@@ -720,9 +724,11 @@ function update(dt){
  }
  // 제트: 회전하며 축선상의 먹이를 삼킨다(QUASAR+)
  if(jets.visible){
-  jets.rotation.y+=dt*0.9
+  jets.rotation.y+=dt*0.75
+  if(jetFlash>0)jetFlash-=dt
+  for(const jm of jets.children)jm.material.opacity=jetFlash>0?0.92:0.5
   const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
-  const reach=hr*9,wide=hr*1.5
+  const reach=hr*(JET_LEN+0.1),wide=hr*JET_TIP*1.15 // 보이는 빔과 동일 범위(약간의 여유만)
   for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten)continue
    const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z
    const along=dx*ax+dz*az, perp=Math.abs(dx*az-dz*ax)
@@ -732,7 +738,7 @@ function update(dt){
    const g2=o.mass*(o.type==='rival'?0.45*mergeEffOf(S.mass):0.62*accEff())*0.5 // 제트 포식은 절반 효율
    S.mass+=g2;S.score+=Math.round(g2*13)
    o.eaten=true;o.eatT=0.25;o.eatBy=null
-   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,5)
+   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,5);jetFlash=0.18 // 빔이 번쩍여 '이 빔이 먹었다'가 보이게
   }
  }
  topUp();updateFeats(dt)
@@ -1209,6 +1215,10 @@ if(DEV){window.__acc={
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,jetsOn:()=>jets.visible,tiers:()=>TIERS.map(t=>t.n),
+ setJetAngle:a=>{jets.rotation.y=a},
+ jetSpec:()=>({len:JET_LEN,tip:JET_TIP,ang:jets.rotation.y,n:jets.children.length,
+  dirs:jets.children.map(m=>{const v=new THREE.Vector3(1,0,0).applyQuaternion(m.quaternion);return Math.round(v.x*100)/100})}),
+ jetWorldTips:()=>jets.children.map(m=>{const p=new THREE.Vector3(0,0,0);m.geometry.computeBoundingBox();m.geometry.boundingBox.getCenter(p);m.localToWorld(p);return {x:Math.round(p.x*10)/10,z:Math.round(p.z*10)/10}}),
  feats:()=>feats.map(f=>({t:f.type,d:Math.round(f.g.position.distanceTo(hole.position))})),
  rivalColors:()=>objects.filter(o=>o.type==='rival').map(o=>({mass:Math.round(o.mass),edible:o.mass<S.mass&&S.formIdx>=2,disk:o.g.userData.rdisk?o.g.userData.rdisk.material.color.getHexString():null})),
  spawnFeat:(t,dx,dz)=>{const f=mkFeat(t,hole.position.x+(dx||0),hole.position.z+(dz||0));return f.type},

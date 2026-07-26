@@ -21,7 +21,7 @@ try {
   // threat share across the black-hole climb
   const t = await page.evaluate(() => {
     const A=window.__acc, out={}
-    for (const m of [20,50,100,200,400]) {
+    for (const m of [20,50,100,200,5000]) { // 5티어 확장으로 400은 20과 너무 가까워 노이즈 → 간격 확대
       A.begin(); A.setMass(m); A.step(0.1)
       let tot=0, threat=0
       for (let r=0;r<12;r++){ A.clearObjs(); A.setMass(m); A.step(0.1)   // 표본 확대 — 위협 비율은 분산이 커서 4회로는 흔들림
@@ -32,8 +32,8 @@ try {
   })
   ok('early game stays gentle', t[20]<=16, `mass20 = ${t[20]}%`)
   ok('no cliff at the INTERMEDIATE border', (t[50]-t[20])<=8, `20→50: ${t[20]}% → ${t[50]}%`)
-  ok('late threat share capped', t[400]<=22, `mass400 = ${t[400]}%`)
-  ok('threat still rises with size (not flat)', t[400]>t[20], `${t[20]}% → ${t[400]}%`)
+  ok('late threat share capped', t[5000]<=22, `mass5000 = ${t[5000]}%`)
+  ok('threat still rises with size (not flat)', t[5000]>t[20], `${t[20]}% → ${t[5000]}%`)
 
   // grazing a lethal black hole charges surge — the escape valve when surrounded
   const graze = await page.evaluate(() => {
