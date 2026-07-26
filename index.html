@@ -154,7 +154,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 1.9.1</div>
+<div class="credit">ACCRETION · prototype 2.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -329,7 +329,8 @@ const FORMS=[
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
-const accEff=()=>1/(1+Math.max(0,S.mass-85)/120)
+const accEffOf=m=>1/(1+Math.max(0,m-85)/120) // 에딩턴 한계는 '블랙홀의 성질' — 플레이어만 적용하면 적이 246배 빨리 큰다
+const accEff=()=>accEffOf(S.mass)
 applyFormInit()
 function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
 function applyFormInit(){applyForm(2)} // 메뉴 히어로는 블랙홀 — 게임 아이덴티티(렌징)를 전면에
@@ -685,7 +686,8 @@ function update(dt){
    const ddx=bq.g.position.x-a.g.position.x,ddz=bq.g.position.z-a.g.position.z
    const dd=Math.hypot(ddx,ddz)
    if(dd<reach+bq.r*0.6){
-    a.mass=Math.min(a.mass+bq.mass*0.4,S.mass*3.4) // 성장 상한 — 무한 비대화 방지
+    const cap=S.mass*2.6 // 라이벌도 같은 에딩턴 한계. 상한은 '더 자라지 않음'이지 '줄어듦'이 아니다(Math.min이 깎던 버그)
+    if(a.mass<cap)a.mass=Math.min(a.mass+bq.mass*0.4*accEffOf(a.mass),cap)
     a.r=rad(a.mass);a.g.scale.setScalar(a.r*1.15)
     bq.eaten=true;bq.eatT=0.28;bq.eatBy=a // 이 라이벌에게 빨려들게
     if(a.g.position.distanceTo(hole.position)<(22+rad(S.mass)*7)*1.6)eatBurst(bq.g.position.x,bq.g.position.z,0xff8a5a,4)

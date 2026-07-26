@@ -57,12 +57,13 @@ try {
 
   // ── (2) rivals eat other objects (field self-regulates) ──
   const eco = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats()
+    const A=window.__acc; A.begin(); A.setMass(400); A.step(0.1); A.clearObjs(); A.clearFeats()
     // 화면 안(컬링 밖)에 라이벌을 태그해 두고, 그 주위에 작은 천체를 깔아 '그 라이벌'의 질량 변화를 본다
+    // (플레이어 질량을 올려 라이벌이 상한 S.mass*2.6 아래에 있게 — 상한에 붙으면 성장이 멈추는 게 정상)
     const q=A.pos()
     A.spawnTagged(300, q.x+55, q.z+10, 'rival')
     const m0=A.tagMass()
-    for (let i=0;i<8;i++) A.spawnTagged ? A.spawn('rock', 18, q.x+55+(i-4)*2.2, q.z+12) : 0
+    for (let i=0;i<8;i++) A.spawn('rock', 60, q.x+55+(i-4)*2.2, q.z+12)
     for (let i=0;i<8;i++) A.step(0.12)
     return { m0, m1:A.tagMass() }
   })
@@ -81,6 +82,20 @@ try {
   })
   ok('the tracked rock is consumed by the rival', flight.gone===true || flight.d1!==null)
   ok('it does NOT fly into the player', flight.d1===null || flight.d1 > flight.d0*0.6, `dist ${flight.d0} → ${flight.d1}`)
+
+
+  // ── 라이벌도 같은 에딩턴 한계를 받는다(오너: "적들이 더 빨리 큰다") ──
+  const sym = await page.evaluate(() => {
+    const A=window.__acc; A.begin(); A.setMass(3000); A.step(0.1); A.clearObjs(); A.clearFeats()
+    const q=A.pos()
+    A.spawnTagged(3000, q.x+70, q.z, 'rival')          // 나와 같은 질량의 라이벌
+    const r0=A.tagMass()
+    for (let i=0;i<10;i++){ A.spawn('rock', 1400, q.x+70+(i-5)*2.2, q.z+2) } // 그 옆에 먹이 10개
+    for (let i=0;i<6;i++) A.step(0.12)
+    return { r0, r1:A.tagMass() }
+  })
+  const rivalGain = sym.r1 - sym.r0
+  ok('rival growth is damped like the player', rivalGain < sym.r0*0.5, `mass ${sym.r0} → ${sym.r1} (+${rivalGain.toFixed(0)})`)
 
   // ── (1) 성장: 약한 봇의 생존 편차를 빼고 '성장 메커닉' 자체를 결정론적으로 확인 ──
   const grow = await page.evaluate(() => {
