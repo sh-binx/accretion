@@ -97,6 +97,52 @@ try {
   const rivalGain = sym.r1 - sym.r0
   ok('rival growth is damped like the player', rivalGain < sym.r0*0.5, `mass ${sym.r0} → ${sym.r1} (+${rivalGain.toFixed(0)})`)
 
+
+  // ── 후반 성장 경로 = 블랙홀 병합(오너: "블랙홀을 많이 먹지 못하면 성장이 멈춘다") ──
+  const merge = await page.evaluate(() => {
+    const A=window.__acc, out={}
+    // 일반 먹이만 먹었을 때
+    A.begin(); A.setMass(20000); A.step(0.1); A.clearObjs(); A.clearFeats()
+    let m0=A.state.mass
+    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4) }
+    out.food=(A.state.mass-m0)/m0*100
+    // 라이벌(병합)만 먹었을 때
+    A.begin(); A.setMass(20000); A.step(0.1); A.clearObjs(); A.clearFeats()
+    m0=A.state.mass
+    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.8, q.x+Math.cbrt(A.state.mass)*1.2, q.z, 'rival'); A.step(0.4) }
+    out.merge=(A.state.mass-m0)/m0*100
+    out.score=A.state.score
+    return out
+  })
+  ok('late: normal food barely grows you', merge.food<3, `+${merge.food.toFixed(2)}%`)
+  ok('late: merging black holes grows you', merge.merge>8, `+${merge.merge.toFixed(1)}%`)
+  ok('merging is the clear late-game path', merge.merge > merge.food*8, `${merge.merge.toFixed(1)}% vs ${merge.food.toFixed(2)}%`)
+
+  // 라이벌 스폰 압축 — 후반에도 상당수가 먹을 수 있어야 한다
+  const edibleFrac = await page.evaluate(() => {
+    const A=window.__acc; A.begin(); A.setMass(20000); A.step(0.1)
+    let riv=0, ed=0
+    for (let r=0;r<10;r++){ A.clearObjs(); A.setMass(20000); A.step(0.1)
+      for (const o of A.objInfo()) if(o.t==='rival'){ riv++; if(o.edible)ed++ } }
+    return { riv, pct: Math.round(ed/riv*100) }
+  })
+  ok('a real share of rivals is edible late', edibleFrac.pct>=22, `${edibleFrac.pct}% of ${edibleFrac.riv}`)
+
+  // 점수가 리더보드 상한/레이트 안에 머문다
+  const score = await page.evaluate(() => {
+    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.05)
+    let t=0
+    for (let i=0;i<600 && t<220;i++){
+      A.clearObjs(); A.clearFeats()
+      const q=A.pos(), r=Math.cbrt(A.state.mass)
+      A.spawnTagged(A.state.mass*0.6, q.x+r*1.2, q.z, i%6===0?'rival':'planet') // 병합은 드문 이벤트
+      A.step(0.35); t+=0.35
+    }
+    return { t:Math.round(t), score:A.state.score, mass:Math.round(A.state.mass) }
+  })
+  ok('220s aggressive run stays under the 1e8 cap', score.score<1e8, `score ${score.score.toLocaleString()} · mass ${score.mass.toLocaleString()}`)
+  ok('and under the anti-cheat rate (40k/s)', score.score/score.t < 40000, `${Math.round(score.score/score.t).toLocaleString()}/s`)
+
   // ── (1) 성장: 약한 봇의 생존 편차를 빼고 '성장 메커닉' 자체를 결정론적으로 확인 ──
   const grow = await page.evaluate(() => {
     const A=window.__acc, out={}

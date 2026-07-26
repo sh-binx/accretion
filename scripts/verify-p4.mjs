@@ -20,8 +20,10 @@ try {
 
   // surge gauge shows during play
   await page.evaluate(() => window.__acc.begin())
-  await sleep(150)
-  const surgeOn = await page.evaluate(() => document.getElementById('surge').classList.contains('on'))
+  // HUD는 rAF에서 갱신되므로 고정 대기 대신 수렴할 때까지 폴링(간헐 실패 제거)
+  let surgeOn=false
+  for (let i=0;i<20 && !surgeOn;i++){ await sleep(60)
+    surgeOn = await page.evaluate(() => document.getElementById('surge').classList.contains('on')) }
   ok('surge gauge visible during play', surgeOn===true)
 
   // charge → ready

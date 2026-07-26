@@ -154,7 +154,7 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 2.0</div>
+<div class="credit">ACCRETION · prototype 2.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -330,6 +330,7 @@ const FORMS=[
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
 const accEffOf=m=>1/(1+Math.max(0,m-85)/120) // 에딩턴 한계는 '블랙홀의 성질' — 플레이어만 적용하면 적이 246배 빨리 큰다
+const mergeEffOf=m=>1/(1+Math.max(0,m-85)/2000) // 병합은 복사압 제약이 훨씬 약하다(그래도 무한 지수는 막는다 → 후반 선형)
 const accEff=()=>accEffOf(S.mass)
 applyFormInit()
 function formOf(m){for(let i=0;i<FORMS.length;i++)if(m<FORMS[i].max)return i;return FORMS.length-1}
@@ -563,12 +564,12 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
  const tt=S.formIdx===2?Math.max(0,S.tierIdx):0
  // 위협 비중은 질량에 따라 '연속적으로' 증가 — 티어 경계에서 갑자기 두 배가 되던 절벽 제거(오너 피드백)
  const bhProg=S.formIdx===2?Math.min(1,Math.log(Math.max(1,S.mass/12))/Math.log(400/12)):0
- const rivalP=Math.min(0.22,(FORMS[S.formIdx].rival-0.01+bhProg*0.06)*(S.modRivals||1))
+ const rivalP=Math.min(0.18,(FORMS[S.formIdx].rival-0.02+bhProg*0.05)*(S.modRivals||1))
  while(objects.length<want){
   const roll=Math.random()
   // 비-라이벌은 전부 '먹이'(크기별) · 위협축=라이벌 블랙홀 — 성장할수록 더 많고 더 커짐
   let mass,type
-  if(roll<rivalP){mass=S.mass*rnd(0.7,1.9+tt*0.45);type='rival'}                                       // 라이벌 — 티어↑ 시 최대 2.8×(포식자)
+  if(roll<rivalP){mass=S.mass*rnd(0.55,1.5+tt*0.18);type='rival'}                                      // 라이벌 — 범위 압축(먹을 수 있는 비율↑·화면을 덮는 거대함↓)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
   else if(roll<rivalP+0.30){const rel=rnd(1.15,2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
    type=rel<1.5?'planet':'star'}
@@ -645,9 +646,15 @@ function update(dt){
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
-   S.mass+=o.mass*0.62*accEff();o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+0.09) // 에딩턴 한계로 감쇠 + 서지 충전
+   // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
+   const isMerge=o.type==='rival'
+   const eff=isMerge?mergeEffOf(S.mass):accEff()
+   const gain=o.mass*(isMerge?0.45:0.62)*eff
+   S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
-   S.score+=Math.round(o.mass*8*(1+Math.min(S.combo-1,24)*0.12)*(S.modFrenzy?1.3:1)) // 콤보 배수 점수(FRENZY 1.3×)
+   if(isMerge&&!S.mergedOnce){S.mergedOnce=true;banner('◈ MERGER','black holes grow by merging — hunt them to keep growing')}
+   // 점수는 '실제로 흡수한 질량'에 비례 — 절대 질량 기준이면 후반에 폭주해 순위 등록이 거부된다
+   S.score+=Math.round(gain*13*(1+Math.min(S.combo-1,24)*0.12)*(S.modFrenzy?1.3:1)) // FRENZY 1.3×
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
    popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
@@ -1036,8 +1043,8 @@ function spawnNemesis(){
  banner('☠ APEX PREDATOR','a greater black hole hunts you — outgrow it, then consume it');AU.warn()
 }
 function nemesisConsumed(o){
- const bonus=Math.round(o.mass*45)
- S.mass+=o.mass*0.5;S.score+=bonus;S.apexKills=(S.apexKills||0)+1
+ const gain=o.mass*0.5*mergeEffOf(S.mass),bonus=Math.round(gain*22)
+ S.mass+=gain;S.score+=bonus;S.apexKills=(S.apexKills||0)+1
  o.eaten=true;o.eatT=0.5;nemesis=null;nemPending=S.t+2.8 // 더 큰 다음 에이펙스 예약(게임시간)
  S.shake=Math.min(S.shake+0.9,1.4);AU.tierUp();AU.boom();eatBurst(o.g.position.x,o.g.position.z,0xffb060,26)
  banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+' · a greater hunter will rise');codexToast('quasar')
@@ -1062,7 +1069,7 @@ function begin(){AU.unlock()
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
  S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
  S.hintIdx=0;S.grazeChain=0;S.grazeMax=0
- S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false // 모디파이어 리셋
+ S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
