@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.8</div>
+<div class="credit">ACCRETION · prototype 2.8.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -699,7 +699,7 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  supermassive:"Our galaxy's core hides Sagittarius A* — 4 million Suns.",
  evaporate:'Hawking radiation: smaller black holes evaporate faster — a real prediction.',
  devoured:'Cross the event horizon and not even light gets back out.',
- quasar:'A supermassive black hole feeding so fiercely it outshines its whole galaxy.',
+ quasar:'Jets shoot along the spin axis at near light speed — the axis barely moves, only slowly precessing over months.',
  mainsequence:'Fusion ignites near 10 million K — a star is born and shines for billions of years.',
  supernova:'For days it outshines its entire galaxy — and forges the heavy atoms in your body.',
  eddington:'A black hole can only feed so fast — its own radiation pressure pushes the meal away.',
@@ -732,7 +732,8 @@ function codexToast(type){if(!CODEX.discover(type))return // 새 발견만(영�
 }
 
 /* ===== spawn director ===== */
-function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S.modDensity||1)) // 데일리 SWARM: 밀도↑
+function topUp(){const cap=S.formIdx===2?Math.max(30,46-Math.log10(Math.max(10,S.mass))*4):56 // 후반엔 천체가 커지므로 개수를 줄여 화면을 정리
+ const want=Math.round(Math.min(cap,34+Math.floor(S.mass*0.4))*(S.modDensity||1)) // 데일리 SWARM: 밀도↑
  // 위협 비중 = 형태 기본 + 블랙홀 티어 가산. 진화 전엔 낮고, 고질량 과밀도 완화(실측 45% → ~34%)
  const tt=S.formIdx===2?Math.max(0,S.tierIdx):0
  // 위협 비중은 질량에 따라 '연속적으로' 증가 — 티어 경계에서 갑자기 두 배가 되던 절벽 제거(오너 피드백)
@@ -896,7 +897,7 @@ function update(dt){
  }
  // 제트: 회전하며 축선상의 먹이를 삼킨다(QUASAR+)
  if(jets.visible){
-  jets.rotation.y+=dt*0.75
+  jets.rotation.y+=dt*0.16 // 세차운동(Lense-Thirring) — 축이 천천히 흔들린다. 등대처럼 도는 건 펄서지 퀘이사가 아니다
   if(jetFlash>0)jetFlash-=dt
   for(const jm of jets.children)jm.material.opacity=jetFlash>0?0.92:0.5
   const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
