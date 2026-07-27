@@ -114,9 +114,11 @@ try {
     out.score=A.state.score
     return out
   })
-  ok('late: normal food barely grows you', merge.food<3, `+${merge.food.toFixed(2)}%`)
+  // 오너 리포트(2026-07-27): 후반에 일반 포식이 0.6%까지 떨어져 '성장이 멈춘 느낌'.
+  // 새 의도 = 일반 포식도 체감되되(하한), 병합이 확실히 더 낫다(상한·배율).
+  ok('late: normal food still registers', merge.food>1 && merge.food<9, `+${merge.food.toFixed(2)}%`)
   ok('late: merging black holes grows you', merge.merge>8, `+${merge.merge.toFixed(1)}%`)
-  ok('merging is the clear late-game path', merge.merge > merge.food*8, `${merge.merge.toFixed(1)}% vs ${merge.food.toFixed(2)}%`)
+  ok('merging is the clear late-game path', merge.merge > merge.food*3, `${merge.merge.toFixed(1)}% vs ${merge.food.toFixed(2)}%`)
 
   // 라이벌 스폰 압축 — 후반에도 상당수가 먹을 수 있어야 한다
   const edibleFrac = await page.evaluate(() => {
