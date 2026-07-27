@@ -141,6 +141,12 @@
  #chips .v{font-size:11.5px;font-weight:800;color:#eef3ff;font-variant-numeric:tabular-nums}
  #chips .v.g{color:#ffcf4a}
  @media(max-height:520px){#start .wm{font-size:clamp(30px,6vw,52px)}#start .keys{display:none}}
+#feedwrap{position:fixed;left:50%;bottom:136px;transform:translateX(-50%);width:210px;opacity:0;transition:opacity .16s;pointer-events:none;z-index:6}
+#feedwrap.on{opacity:1}
+#feedlbl{font:600 10px/1 ui-monospace,monospace;letter-spacing:.22em;color:#8fd0ff;text-align:center;margin-bottom:5px;text-shadow:0 0 8px #1a5f8f}
+#feedbar{height:4px;border-radius:3px;background:rgba(143,208,255,.16);overflow:hidden}
+#feedfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#4aa8e8,#9fe870);box-shadow:0 0 10px #6fd0ff;transition:width .06s linear}
+body:not(.playing) #feedwrap{opacity:0!important}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -154,7 +160,8 @@
 <div id="flash"></div>
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
-<div class="credit">ACCRETION · prototype 2.2.1</div>
+<div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
+<div class="credit">ACCRETION · prototype 2.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -338,7 +345,7 @@ function applyJets(){jets.visible=S.formIdx===2&&S.tierIdx>=3}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
- {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:2.2,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.06},
+ {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.06},
  {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10},
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
@@ -391,6 +398,34 @@ function spawnObj(type,mass,x,z){
  objects.push(o);return o}
 function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
+/* ===== 점진 흡수(TDE) — 큰 먹이는 시간이 걸린다. 그동안 느려지고 무방비가 된다 ===== */
+function startFeed(o,rel){
+ const bh=S.formIdx===2
+ S.feed={o,dur:bh?0.4+1.3*Math.min(1.8,rel):0.2+0.5*Math.min(1.2,rel),t:0,total:o.mass,given:0}
+ popup(o.g.position,'DEVOURING…','#8fd0ff');codexToast('tde')
+}
+function cancelFeed(){S.feed=null}
+function updateFeed(dt){
+ const f=S.feed;if(!f)return
+ const o=f.o
+ if(o.eaten||objects.indexOf(o)<0){S.feed=null;return} // 남이 먹었거나 사라짐
+ f.t+=dt
+ const pr=Math.min(1,f.t/f.dur)
+ const isMerge=o.type==='rival'
+ const total=f.total*(isMerge?0.45:0.62)*(isMerge?mergeEffOf(S.mass):accEff())
+ const add=total*pr-f.given
+ if(add>0){S.mass+=add;f.given+=add;S.score+=Math.round(add*13)}
+ o.g.position.lerp(hole.position,Math.min(1,dt*2.0))
+ o.g.scale.setScalar(Math.max(0.04,o.r*1.15*(1-pr*0.88)))
+ if(pr>=1){
+  o.eaten=true;o.eatT=0.2;o.eatBy=null
+  S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
+  S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
+  AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12)
+  popup(hole.position,'+'+fmtBig(total),'#9fe870');codexToast(o.type)
+  S.feed=null
+ }
+}
 /* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
 const feats=[]
 function mkFeat(type,x,z){
@@ -532,9 +567,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -555,7 +590,8 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  wormhole:'General relativity permits shortcuts through spacetime. None has ever been observed.',
  remnant:'What a supernova leaves behind — the gold and uranium in your world came from one.',
  collision:'Planetesimals shatter when they strike something bigger — that rubble became the asteroid belt.',
- ultramassive:'TON 618 holds roughly 66 billion Suns — its shadow would swallow our solar system many times over.'}
+ ultramassive:'TON 618 holds roughly 66 billion Suns — its shadow would swallow our solar system many times over.',
+ tde:'Swallowing a star is slow — a tidal disruption event feeds a black hole for months, even years.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -615,12 +651,12 @@ function update(dt){
  const F=FORMS[S.formIdx]
  // 질량 유출 — 형태마다 이유가 다르다(침식 / 항성풍 / 호킹 복사) = 전부 실제 현상
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1)*F.shrink
- S.mass=Math.max(0,S.mass-shrink*dt)
+ if(!S.feed)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
- const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)
+ const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feed?(S.formIdx===2?0.6:0.85):1) // 흡수 중엔 느려진다(무방비) — 취약한 초반은 완화
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
@@ -666,6 +702,12 @@ function update(dt){
   // 상호작용
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
+   // 큰 먹이는 한 입에 사라지지 않는다 — 실제 조석파괴사건(TDE)도 별 하나를 먹는 데 오래 걸린다.
+   // 블랙홀은 작은 것을 한 입에, 행성·항성 단계에선 비슷한 크기부터 시간이 걸린다.
+   const rel=o.mass/Math.max(1e-6,S.mass)
+   // 블랙홀끼리의 병합은 실제로도 밀리초 만에 끝난다(중력파 링다운) → 즉시.
+   // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
+   if(o.type!=='rival'&&rel>=(isBH?0.6:0.5)){ if(!S.feed)startFeed(o,rel); continue }
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
@@ -694,8 +736,17 @@ function update(dt){
    if(S.mass<=S.evapFloor*1.05){codexToast('evaporate');return gameOver('evaporated')}
    continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
-   if(d<omouth&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)} // 초신성 직후 무적
-   if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
+   const coreR=rad(o.mass)*0.72 // 사건지평선 — 넘으면 되돌릴 수 없다
+   if(d<coreR&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)}
+   if(d<omouth&&S.invT<=0){ // 조석 영역 — 스파게티화는 '과정'이다. 뜯기지만 탈출할 수 있다.
+    const depth=Math.min(1,Math.max(0,1-(d-coreR)/Math.max(0.001,omouth-coreR)))
+    S.mass-=S.mass*(0.22+0.85*depth)*dt
+    S.vx+=(dx/d)*(16+hr*2.5)*dt;S.vz+=(dz/d)*(16+hr*2.5)*dt // 안쪽으로 끌려든다
+    S.tidalT=0.3;S.tidalDepth=depth;S.combo=0
+    if(!S.tidalSeen){S.tidalSeen=true;banner('☠ TIDAL ZONE','being stripped — break away before you run out');AU.warn();codexToast('tidal')}
+    if(S.mass<=S.evapFloor){codexToast('devoured');return gameOver('eaten',o.mass)}
+   }
+   else if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
     S.grazeChain=(performance.now()-(S.grazeAt||0)<3200)?(S.grazeChain||0)+1:1;S.grazeAt=performance.now()
     S.grazeMax=Math.max(S.grazeMax||0,S.grazeChain)
     const gm=Math.min(S.grazeChain,6) // 연쇄가 길수록 보상↑ — 위험한 플레이가 곧 강해지는 플레이
@@ -729,7 +780,7 @@ function update(dt){
   for(const jm of jets.children)jm.material.opacity=jetFlash>0?0.92:0.5
   const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
   const reach=hr*(JET_LEN+0.1),wide=hr*JET_TIP*1.15 // 보이는 빔과 동일 범위(약간의 여유만)
-  for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten)continue
+  for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten||(S.feed&&S.feed.o===o))continue
    const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z
    const along=dx*ax+dz*az, perp=Math.abs(dx*az-dz*ax)
    if(Math.abs(along)>reach||perp>wide)continue
@@ -741,6 +792,7 @@ function update(dt){
    eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,5);jetFlash=0.18 // 빔이 번쩍여 '이 빔이 먹었다'가 보이게
   }
  }
+ updateFeed(dt)
  topUp();updateFeats(dt)
  // 티어업
  const ti=tierOf(S.mass)
@@ -751,10 +803,12 @@ function update(dt){
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 네메시스 생애: INTERMEDIATE+면 항상 하나. 처치 후엔 잠깐 뒤 더 큰 게 등장.
  if(nemPending&&S.t>nemPending)nemPending=0
- if(S.formIdx===2&&S.tierIdx>=(S.modHunted?0:1)&&!nemesis&&!nemPending)spawnNemesis() // 블랙홀 도달 후 · 데일리 HUNTED는 즉시
+ if((S.formIdx===2||S.modHunted)&&S.tierIdx>=(S.modHunted?0:1)&&!nemesis&&!nemPending)spawnNemesis() // 블랙홀 도달 후 · 데일리 HUNTED는 즉시
  // 증발 경고
  S.warnT-=dt
- const danger=S.mass<S.evapFloor*2.0
+ if(S.tidalT>0){S.tidalT-=dt
+  if(S.tidalT<=0){const bn=Math.round(S.mass*2);S.score+=bn;banner('★ TIDAL ESCAPE','+'+bn.toLocaleString()+' · you tore free');AU.nearMiss()}}
+ const danger=S.mass<S.evapFloor*2.0||S.tidalT>0
  if(danger&&S.warnT<=0){S.warnT=0.5;AU.warn()}
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,'+(danger?(0.18+Math.sin(S.t*10)*0.12):0)+')'
  if(S.mass>S.peak)S.peak=S.mass
@@ -812,6 +866,9 @@ function hud(){
  $('tval').textContent=S.t.toFixed(1)+'s'
  $('sval').textContent=S.score.toLocaleString()
  $('pval').textContent=fmtBig(S.peak)
+ const fw=$('feedwrap')
+ if(S.feed){fw.classList.add('on');$('feedfill').style.width=Math.round(Math.min(1,S.feed.t/S.feed.dur)*100)+'%'}
+ else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
@@ -1112,7 +1169,7 @@ function begin(){AU.unlock()
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
  S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
- S.hintIdx=0;S.grazeChain=0;S.grazeMax=0
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -1214,7 +1271,11 @@ if(DEV){window.__acc={
  bestScore:()=>STATS.best,
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
- shockOn:()=>shock.visible,jetsOn:()=>jets.visible,tiers:()=>TIERS.map(t=>t.n),
+ shockOn:()=>shock.visible,jetsOn:()=>jets.visible,
+ setInv:v=>{S.invT=v},
+ maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.6:0.85):1),
+ feedState:()=>S.feed?{t:Math.round(S.feed.t*100)/100,dur:Math.round(S.feed.dur*100)/100,given:Math.round(S.feed.given*10)/10}:null,
+ tidalState:()=>({inZone:(S.tidalT||0)>0,depth:Math.round((S.tidalDepth||0)*100)/100}),tiers:()=>TIERS.map(t=>t.n),
  setJetAngle:a=>{jets.rotation.y=a},
  jetSpec:()=>({len:JET_LEN,tip:JET_TIP,ang:jets.rotation.y,n:jets.children.length,
   dirs:jets.children.map(m=>{const v=new THREE.Vector3(1,0,0).applyQuaternion(m.quaternion);return Math.round(v.x*100)/100})}),

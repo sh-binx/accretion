@@ -45,7 +45,7 @@ try {
       A.begin(); A.setMass(m); A.step(0.1); A.clearObjs(); A.clearFeats()
       const m0=A.state.mass
       for (let k=0;k<6;k++){ const q=A.pos(), r=Math.cbrt(A.state.mass)
-        A.spawnTagged(A.state.mass*0.5, q.x+r*1.2, q.z); A.step(0.4) }
+        A.spawnTagged(A.state.mass*0.5, q.x+r*1.2, q.z); A.step(0.4); for(let z=0;z<60&&A.feedState();z++)A.step(0.05) }
       out[m] = { gain: A.state.mass-m0, pct: (A.state.mass-m0)/m0*100 }
     }
     return out

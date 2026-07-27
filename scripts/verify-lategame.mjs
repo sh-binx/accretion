@@ -62,12 +62,17 @@ try {
   // 3) regression — early game still spawns edible planets, growth works, no errors
   const early = await rivalShare(1.2)
   ok('early game still mostly food (rivals < 30%)', early.share < 0.30, `${(early.share*100).toFixed(0)}%`)
+  // 초반은 원래 고분산(약한 봇은 ~5% 확률로 급사) → 단일 런으로 성장을 단정하면 테스트가 흔들린다.
+  // 5회 중앙값으로 '성장 메커닉이 살아있는가'를 본다.
   const grew = await page.evaluate(async () => {
-    const A = window.__acc; A.begin(); const m0=A.state.mass
-    for (let k=0;k<14;k++){ A.eatNearest(); A.step(0.4) }
-    return { m0, m1:A.state.mass }
+    const A = window.__acc, runs=[]
+    for (let r=0;r<5;r++){ A.begin(); const m0=A.state.mass
+      for (let k=0;k<14;k++){ A.eatNearest(); A.step(0.4) }
+      runs.push({ m0, m1:A.state.mass }) }
+    runs.sort((a,b)=>(a.m1-a.m0)-(b.m1-b.m0))
+    return runs[2]
   })
-  ok('regression: growth intact', grew.m1 > grew.m0, `${grew.m0} → ${grew.m1}`)
+  ok('regression: growth intact (5회 중앙값)', grew.m1 > grew.m0, `${grew.m0} → ${grew.m1.toFixed(2)}`)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {

@@ -69,7 +69,7 @@ try {
   await sleep(200)
   const back = await page.evaluate(() => ({ skins: document.querySelectorAll('#skinRow .skin').length, entries: document.querySelectorAll('#codexGrid .cdx').length }))
   ok('codex tab restores skin picker', back.skins===3, `${back.skins} skins`)
-  ok('codex tab shows codex entries', back.entries===21, `${back.entries}`)
+  ok('codex tab shows codex entries', back.entries===22, `${back.entries}`)
   await page.evaluate(() => window.__acc.closeCodex())
 
   // ── weekly leaderboard ──

@@ -104,12 +104,12 @@ try {
     // 일반 먹이만 먹었을 때
     A.begin(); A.setMass(20000); A.step(0.1); A.clearObjs(); A.clearFeats()
     let m0=A.state.mass
-    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4) }
+    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4); for(let z=0;z<60&&A.feedState();z++)A.step(0.05) }
     out.food=(A.state.mass-m0)/m0*100
     // 라이벌(병합)만 먹었을 때
     A.begin(); A.setMass(20000); A.step(0.1); A.clearObjs(); A.clearFeats()
     m0=A.state.mass
-    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.8, q.x+Math.cbrt(A.state.mass)*1.2, q.z, 'rival'); A.step(0.4) }
+    for (let k=0;k<4;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.8, q.x+Math.cbrt(A.state.mass)*1.2, q.z, 'rival'); A.step(0.4); for(let z=0;z<60&&A.feedState();z++)A.step(0.05) }
     out.merge=(A.state.mass-m0)/m0*100
     out.score=A.state.score
     return out
@@ -122,7 +122,7 @@ try {
   const edibleFrac = await page.evaluate(() => {
     const A=window.__acc; A.begin(); A.setMass(20000); A.step(0.1)
     let riv=0, ed=0
-    for (let r=0;r<10;r++){ A.clearObjs(); A.setMass(20000); A.step(0.1)
+    for (let r=0;r<40;r++){ A.clearObjs(); A.setMass(20000); A.step(0.1)  // 실측 32%±5 → 표본을 키워야 22% 문턱이 안 흔들린다
       for (const o of A.objInfo()) if(o.t==='rival'){ riv++; if(o.edible)ed++ } }
     return { riv, pct: Math.round(ed/riv*100) }
   })
@@ -149,7 +149,7 @@ try {
     for (const m of [20, 300]) {
       A.begin(); A.setMass(m); A.step(0.1); A.clearObjs(); A.clearFeats()
       const m0=A.state.mass
-      for (let k=0;k<8;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4) }
+      for (let k=0;k<8;k++){ const q=A.pos(); A.spawnTagged(A.state.mass*0.5, q.x+Math.cbrt(A.state.mass)*1.2, q.z); A.step(0.4); for(let z=0;z<60&&A.feedState();z++)A.step(0.05) }
       out[m] = Math.round((A.state.mass-m0)/m0*100)
     }
     return out
