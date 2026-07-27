@@ -189,7 +189,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.4.1</div>
+<div class="credit">ACCRETION · prototype 2.4.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -344,7 +344,7 @@ const DISK_GLSL={
  vert:'varying vec2 vP;void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
  frag:[
  'precision highp float;varying vec2 vP;',
- 'uniform float uT,uIn,uOut,uPhi,uArc,uOp;uniform vec3 uCA,uCR;',
+ 'uniform float uT,uIn,uOut,uPhi,uOp;uniform vec3 uCA,uCR;',
  'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
  'float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);',
  ' return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x),mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x),f.y);}',
@@ -359,11 +359,10 @@ const DISK_GLSL={
  ' float dop=0.30+0.85*pow(1.0+0.58*cos(a-uPhi),3.0)/4.1;',       // 상대론적 도플러 빔 — 접근측이 압도적으로 밝다
  ' float rad=pow(1.0-t,1.6)*1.55+0.10;',
  ' float al=smoothstep(0.0,0.10,t)*smoothstep(1.0,0.70,t)*uOp*f*dop*rad;',
- ' if(uArc>0.5)al*=smoothstep(0.30,0.82,abs(sin(a)));', // 렌즈 아크: 원반 평면 근처를 지워 위아래 호만 남긴다
  ' col=mix(col,uCA,clamp((dop-0.95)*0.4,0.0,0.45));', ' col+=vec3(0.34,0.31,0.27)*pow(1.0-t,5.0)*dop;', ' gl_FragColor=vec4(col,clamp(al*1.85,0.0,1.0));',
  '}'].join('\n')}
 function diskMat(op,arc){return new THREE.ShaderMaterial({
- uniforms:{uT:{value:0},uIn:{value:arc?0.98:0.86},uOut:{value:arc?2.16:1.98},uPhi:{value:1.15},uArc:{value:arc?1:0},uOp:{value:op},uCA:{value:new THREE.Color(0xcaf0ff)},uCR:{value:new THREE.Color(0xff4a12)}},
+ uniforms:{uT:{value:0},uIn:{value:arc?0.98:0.86},uOut:{value:arc?2.16:1.98},uPhi:{value:1.15},uOp:{value:op},uCA:{value:new THREE.Color(0xcaf0ff)},uCR:{value:new THREE.Color(0xff4a12)}},
  vertexShader:DISK_GLSL.vert,fragmentShader:DISK_GLSL.frag,
  transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})}
 const disk=new THREE.Mesh(new THREE.RingGeometry(0.84,2.0,220,1),diskMat(1.0,false))
