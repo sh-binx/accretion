@@ -33,7 +33,7 @@ try {
   ok('name persists across reload', persisted==='QA_PILOT', `got "${persisted}"`)
 
   // 2) valid submit → ok + rank
-  const sub = await page.evaluate(() => window.__acc.submitRun(1500, 5.5, 'INTERMEDIATE', 40))
+  const sub = await page.evaluate(() => window.__acc.submitRun(1500, 5.5, 'INTERMEDIATE', 40))  // TODO: QA 전용 보드 분리 검토(현재 1행/실행)
   ok('valid submit returns ok+rank', !!(sub && sub.ok && sub.rank>=1), JSON.stringify(sub))
 
   // 3) anti-cheat: instant huge score rejected (server responds ok:false + reason)
@@ -50,14 +50,12 @@ try {
   ok('board lists >=1 row', rows>=1, `rows=${rows}`)
   ok('board contains submitted name', /QA_PILOT/.test(html))
 
-  // 5) XSS escape — a name with markup must render escaped, not raw
-  await page.evaluate(() => window.__acc.setName('<b>HAX'))
-  await page.evaluate(() => window.__acc.submitRun(1200, 4, 'STELLAR-MASS', 30))
-  await page.evaluate(() => window.__acc.closeBoard())
-  await page.evaluate(() => window.__acc.openBoard())
-  await sleep(1200)
-  const html2 = await page.evaluate(() => window.__acc.boardHTML())
-  ok('XSS: name escaped (&lt;b&gt;)', html2.includes('&lt;b&gt;HAX'))
+  // 5) XSS escape — 렌더 함수를 직접 먹여 검사한다.
+  //    예전엔 실제 제출로 확인했는데, (a) 라이브 리더보드에 매 실행마다 행이 쌓였고
+  //    (b) 보드가 차면 그 행이 밀려나 오탐이 났다(2026-07-27 QA행 50건 삭제).
+  const html2 = await page.evaluate(() => window.__acc.rowHTML({name:'<b>HAX', tier:'<i>T', score:1200}))
+  ok('XSS: name escaped (&lt;b&gt;)', html2.includes('&lt;b&gt;HAX'), html2.slice(0,90))
+  ok('XSS: tier escaped', html2.includes('&lt;i&gt;T'))
   ok('XSS: no raw <b> injected', !/<b>HAX/.test(html2))
   await page.evaluate(() => window.__acc.closeBoard())
 

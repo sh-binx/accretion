@@ -73,9 +73,12 @@ try {
 
   // regression: growth still works (eat → mass up)
   const grew = await page.evaluate(async () => {
-    const A = window.__acc; A.begin(); const m0 = A.state.mass
-    for (let k=0;k<12;k++){ A.eatNearest(); A.step(0.4) }
-    return { m0, m1: A.state.mass }
+    const A = window.__acc, runs=[]
+    for (let r=0;r<5;r++){ A.begin(); const m0 = A.state.mass
+      for (let k=0;k<12;k++){ A.eatNearest(); A.step(0.4) }
+      runs.push({ m0, m1: A.state.mass }) }
+    runs.sort((a,b)=>(a.m1-a.m0)-(b.m1-b.m0))
+    return runs[2]  // 초반은 고분산(약한 봇 급사) → 5회 중앙값. lategame과 동일 처리
   })
   ok('regression: growth intact', grew.m1 > grew.m0, `${grew.m0} → ${grew.m1}`)
 

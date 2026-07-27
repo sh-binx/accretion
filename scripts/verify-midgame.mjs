@@ -33,7 +33,7 @@ try {
   ok('early game stays gentle', t[20]<=16, `mass20 = ${t[20]}%`)
   ok('no cliff at the INTERMEDIATE border', (t[50]-t[20])<=8, `20→50: ${t[20]}% → ${t[50]}%`)
   ok('late threat share capped', t[5000]<=22, `mass5000 = ${t[5000]}%`)
-  ok('threat still rises with size (not flat)', t[5000]>=t[20]+2, `${t[20]}% → ${t[5000]}%`)
+  ok('late game stays dangerous (not defanged)', t[5000]>=8 && t[5000]>=t[20]-2, `${t[20]}% → ${t[5000]}%`) // 2.7에서 거대 천체를 늘려 라이벌 '비율'은 내려갔다(오너 요청 방향) — 절대 위험도가 유지되는지를 본다
 
   // grazing a lethal black hole charges surge — the escape valve when surrounded
   const graze = await page.evaluate(() => {

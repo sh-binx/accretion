@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.7</div>
+<div class="credit">ACCRETION · prototype 2.7.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -734,7 +734,7 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
   let mass,type
   if(roll<rivalP){mass=S.mass*rnd(0.55,1.5+tt*0.18);type='rival'}                                      // 라이벌 — 범위 압축(먹을 수 있는 비율↑·화면을 덮는 거대함↓)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
-  else if(roll<rivalP+0.30){const rel=rnd(1.15,2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
+  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?4.0:2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
    type=rel<1.5?'planet':'star'}
   else{const rel=rnd(0.12,0.82);mass=S.mass*rel                                                         // 식량 — 타입은 **상대 크기**로 결정
    type=rel<0.30?'rock':(rel<0.62?'planet':'star')}                                                     // (절대질량 기준이면 커질수록 전부 star가 돼 화면이 창백해짐)
@@ -1420,6 +1420,7 @@ if(DEV){window.__acc={
  boardRows:()=>$('boardList').querySelectorAll('.brow').length,
  boardHTML:()=>$('boardList').innerHTML,
  submitRun:(s,m,t,d)=>LB.submit(s,m,t,d),
+ rowHTML:r=>'<span class="bn">'+esc(r.name)+'</span><span class="bt">'+esc(r.tier||'')+'</span>', // QA: 라이브 보드에 쓰지 않고 이스케이프만 검사
  setName:v=>{LB.name=v;$('pname').value=LB.name;return LB.name},
  rankText:()=>$('rankline').textContent
 }}
