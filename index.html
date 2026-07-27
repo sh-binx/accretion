@@ -32,7 +32,7 @@
  .btn{margin-top:22px;pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:15px;letter-spacing:1px;color:#03040a;background:#8fd0ff;border:0;border-radius:10px;padding:12px 26px;box-shadow:0 0 26px rgba(53,180,255,.5)}
  .btn:hover{background:#b6e2ff}
  .stat{font-size:13px;color:#93a0c4;margin-top:14px}.stat b{color:#fff}
- #banner{position:fixed;top:34%;left:0;right:0;z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
+ #banner{position:fixed;top:max(23%,128px);left:50%;transform:translateX(-50%);width:min(560px,62vw);z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
  #banner .b{display:inline-block;font-size:22px;font-weight:800;letter-spacing:3px;color:#ffcf4a;text-shadow:0 0 24px rgba(255,207,74,.6)}
  #banner .s{font-size:12px;color:#c4cfe8;letter-spacing:1px;margin-top:4px}
  #vig{position:fixed;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 200px 40px rgba(255,60,80,0);transition:box-shadow .12s}
@@ -41,10 +41,11 @@
  #apex.on{opacity:1}
  #apex.hunt{color:#ff6a7a;background:rgba(255,60,80,.14);border:1px solid rgba(255,80,100,.42);text-shadow:0 0 10px rgba(255,60,80,.6);animation:sp 1.1s ease-in-out infinite}
  #apex.vuln{color:#8fffb0;background:rgba(80,255,140,.12);border:1px solid rgba(100,255,150,.42);text-shadow:0 0 10px rgba(80,255,140,.5)}
- #combo{position:fixed;left:50%;top:38%;z-index:6;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:44px;color:#ffcf4a;text-shadow:0 0 22px rgba(255,207,74,.7);opacity:0;transform:translate(-50%,-50%);transition:opacity .12s}
+ /* 콤보 = 질량바 바로 아래(상단 HUD 열). 중앙은 배너·팝업·블랙홀이 이미 쓰고 있어 겹쳤다 */
+ #combo{position:fixed;right:16px;top:130px;z-index:6;pointer-events:none;text-align:right;font-family:'Martian Mono',ui-monospace,monospace;font-weight:700;font-size:clamp(18px,2.1vw,26px);letter-spacing:.04em;color:#ffcf4a;text-shadow:0 0 18px rgba(255,207,74,.6);opacity:0;transform-origin:100% 0;transition:opacity .12s}
  #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
  #mute:hover{opacity:1}
- #codex{position:fixed;left:50%;bottom:26px;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
+ #codex{position:fixed;left:50%;bottom:78px;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
  #codex.on{opacity:1;transform:translate(-50%,0)}
  #codex b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;color:#8fd0ff;margin-bottom:3px}
  #codex span{font-size:12.5px;color:#c4cfe8}
@@ -189,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.4.2</div>
+<div class="credit">ACCRETION · prototype 2.4.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -481,7 +482,7 @@ function updateFeed(dt){
   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
   S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
   AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12)
-  popup(hole.position,'+'+fmtBig(total),'#9fe870');codexToast(o.type)
+  gainPop(hole.position,total);codexToast(o.type)
   S.feed=null
  }
 }
@@ -619,9 +620,46 @@ function steer(){
 }
 
 /* ===== popups / banners ===== */
-function popup(worldPos,txt,color){const v=worldPos.clone().project(cam);const el=document.createElement('div');el.className='pop';el.textContent=txt;el.style.color=color||'#7bed4a'
- el.style.left=(v.x*.5+.5)*innerWidth+'px';el.style.top=(-v.y*.5+.5)*innerHeight+'px';document.body.appendChild(el)
- let y=0,op=1;const iv=setInterval(()=>{y-=1.6;op-=0.04;el.style.transform='translate(-50%,'+(y-50)+'%)';el.style.opacity=op;if(op<=0){clearInterval(iv);el.remove()}},16)}
+// 팝업 슬롯 — 연속 포식 때 같은 지점에 수십 개가 쌓여 글자가 뭉개지던 문제.
+// 9칸 고정 슬롯에만 놓아 물리적으로 겹칠 수 없게 하고, 넘치면 가장 오래된 것을 밀어낸다.
+const POP_SLOTS=[[0,-56],[-152,-56],[152,-56],[-152,-8],[152,-8],[-152,40],[0,40],[152,40],[0,88]]
+const popSlot=new Array(POP_SLOTS.length).fill(null)
+let popLast=-1
+let popSeq=0
+// 포식 이득 팝업은 짧은 창(0.42s) 안에서 합산해 '하나'로 보여준다.
+// 프렌지에 같은 문구가 여러 개 겹쳐 뭉개지던 문제의 근본 해결 — 총합이 오히려 더 잘 읽힌다.
+let gainEl=null,gainSum=0,gainT=0,gainSlot=-1
+function gainPop(worldPos,amount){
+ const now=performance.now()
+ if(gainEl&&now<gainT&&gainSlot>=0&&popSlot[gainSlot]&&popSlot[gainSlot].el===gainEl){
+  gainSum+=amount;gainT=now+420
+  gainEl.textContent='+'+fmtBig(gainSum)+(S.combo>1?'  ×'+S.combo:'')
+  gainEl.style.color=S.combo>4?'#ffcf4a':'#9fe870'
+  return}
+ gainSum=amount;gainT=now+420
+ popup(worldPos,'+'+fmtBig(amount)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
+ gainSlot=popLast;gainEl=popSlot[popLast]?popSlot[popLast].el:null
+}
+function popup(worldPos,txt,color){
+ const v=worldPos.clone().project(cam)
+ let idx=popSlot.findIndex(x=>!x)
+ if(idx<0){let oldest=0;for(let k=1;k<popSlot.length;k++)if(popSlot[k].seq<popSlot[oldest].seq)oldest=k
+  clearInterval(popSlot[oldest].iv);popSlot[oldest].el.remove();idx=oldest}
+ const off=POP_SLOTS[idx]
+ const el=document.createElement('div');el.className='pop';el.textContent=txt;el.style.color=color||'#7bed4a'
+ el.style.left=((v.x*.5+.5)*innerWidth+off[0])+'px'
+ let py=(-v.y*.5+.5)*innerHeight+off[1]
+ const bn=$('banner') // 배너가 떠 있으면 그 아래로 밀어낸다(문구끼리 겹치던 원인)
+ if(bn&&parseFloat(getComputedStyle(bn).opacity)>0.05){const br=bn.getBoundingClientRect()
+  if(py>br.top-26&&py<br.bottom+12)py=br.bottom+16}
+ py=Math.max(96,Math.min(py,innerHeight-152)) // 상단 HUD·하단 토스트 침범 방지
+ el.style.top=py+'px'
+ document.body.appendChild(el)
+ let y=0,op=1
+ const iv=setInterval(()=>{y-=2.6;op-=0.045;el.style.transform='translate(-50%,'+(y-50)+'%)';el.style.opacity=op
+  if(op<=0){clearInterval(iv);el.remove();if(popSlot[idx]&&popSlot[idx].el===el)popSlot[idx]=null}},16)
+ popSlot[idx]={el,iv,seq:popSeq++};popLast=idx
+}
 let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
@@ -777,7 +815,7 @@ function update(dt){
    S.score+=Math.round(gain*13*(1+Math.min(S.combo-1,24)*0.12)*(S.modFrenzy?1.3:1)) // FRENZY 1.3×
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
-   popup(o.g.position,'+'+o.mass.toFixed(o.mass<1?1:0)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
+   gainPop(o.g.position,gain) // 연속 포식은 하나로 합산
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
   if(crush&&d<mouth+o.r*0.6&&o.nmCd<=0){ // 충돌 — 미행성·항성은 더 큰 천체를 못 삼킨다. 서로 부서진다(실제 미행성 충돌)
@@ -928,7 +966,7 @@ function hud(){
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
- cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='translate(-50%,-50%) scale('+(1+Math.min(S.combo,24)*0.025)+')'}
+ cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='scale('+(1+Math.min(S.combo,24)*0.02)+')'}
  if(performance.now()>banT)$('banner').style.opacity=0
  if(performance.now()>codexT)$('codex').classList.remove('on')
  const su=$('surge');su.classList.toggle('on',S.alive)
@@ -1226,6 +1264,8 @@ function begin(){AU.unlock()
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
  S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
+ for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
+ gainEl=null;gainSum=0;gainT=0;gainSlot=-1
  S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
