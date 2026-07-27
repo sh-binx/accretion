@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.7.1</div>
+<div class="credit">ACCRETION · prototype 2.8</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -397,7 +397,17 @@ for(const sx of [1,-1]){
  const jg=new THREE.CylinderGeometry(JET_TIP,JET_BASE,JET_LEN,18,1,true) // 끝으로 갈수록 벌어지는 collimated 빔
  jg.rotateZ(-sx*Math.PI/2)      // +Y축 → ±X축으로 눕힘
  jg.translate(sx*(JET_LEN/2+0.1),0,0)
- const jm=new THREE.Mesh(jg,new THREE.MeshBasicMaterial({color:0xcdeeff,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+ {const pos=jg.attributes.position,cols=[]
+  const cHot=new THREE.Color(0xffffff),cMid=new THREE.Color(0x9fd8ff),cEnd=new THREE.Color(0x3a6ea8)
+  for(let i=0;i<pos.count;i++){
+   const ax=Math.abs(pos.getX(i))/(JET_LEN+0.2)          // 뿌리(0) → 끝(1)
+   const rad2=Math.hypot(pos.getY(i),pos.getZ(i))
+   const edge=Math.min(1,rad2/(JET_TIP*0.9))             // 중심(0) → 가장자리(1)
+   const c=(ax<0.45?cHot.clone().lerp(cMid,ax/0.45):cMid.clone().lerp(cEnd,(ax-0.45)/0.55))
+   const b2=(1-ax*0.88)*(1-edge*0.78)                    // 끝으로·바깥으로 갈수록 어둡게
+   cols.push(c.r*b2,c.g*b2,c.b*b2)}
+  jg.setAttribute('color',new THREE.Float32BufferAttribute(cols,3))}
+ const jm=new THREE.Mesh(jg,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.5,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  jets.add(jm)
 }
 jets.visible=false;hole.add(jets)
@@ -734,7 +744,7 @@ function topUp(){const want=Math.round(Math.min(56,34+Math.floor(S.mass*0.4))*(S
   let mass,type
   if(roll<rivalP){mass=S.mass*rnd(0.55,1.5+tt*0.18);type='rival'}                                      // 라이벌 — 범위 압축(먹을 수 있는 비율↑·화면을 덮는 거대함↓)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
-  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?4.0:2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
+  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?2.8:2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
    type=rel<1.5?'planet':'star'}
   else{const rel=rnd(0.12,0.82);mass=S.mass*rel                                                         // 식량 — 타입은 **상대 크기**로 결정
    type=rel<0.30?'rock':(rel<0.62?'planet':'star')}                                                     // (절대질량 기준이면 커질수록 전부 star가 돼 화면이 창백해짐)
@@ -803,8 +813,10 @@ function update(dt){
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
   if(o.type==='rival'){ // 크기로는 못 알아본다(반경=질량^⅓ → 1.5배 무거워도 1.14배) → 색으로 확실히
    const rd=o.g.userData.rdisk,rg=o.g.userData.rglow
-   if(rd)rd.material.color.setHex(threat?0xff3040:0x66e84a)
-   if(rg)rg.material.color.setHex(threat?0xff2a1a:0x4ad03a)}
+   // 원반은 언제나 뜨거운 강착원반 — 먹을 수 있는지는 후광(halo)이 이미 알려준다.
+   // 예전엔 원반을 민트/적색으로 칠해 라이벌이 '고리 두른 사탕 행성'처럼 보였다.
+   if(rd){rd.material.color.setHex(0xff8a44);rd.material.opacity=threat?0.98:0.8}
+   if(rg)rg.material.color.setHex(threat?0xff3020:0x66e84a)} // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
 
   if(o.nmCd>0)o.nmCd-=dt
   // 상호작용
@@ -1409,7 +1421,11 @@ if(DEV){window.__acc={
   dirs:jets.children.map(m=>{const v=new THREE.Vector3(1,0,0).applyQuaternion(m.quaternion);return Math.round(v.x*100)/100})}),
  jetWorldTips:()=>jets.children.map(m=>{const p=new THREE.Vector3(0,0,0);m.geometry.computeBoundingBox();m.geometry.boundingBox.getCenter(p);m.localToWorld(p);return {x:Math.round(p.x*10)/10,z:Math.round(p.z*10)/10}}),
  feats:()=>feats.map(f=>({t:f.type,d:Math.round(f.g.position.distanceTo(hole.position))})),
- rivalColors:()=>objects.filter(o=>o.type==='rival').map(o=>({mass:Math.round(o.mass),edible:o.mass<S.mass&&S.formIdx>=2,disk:o.g.userData.rdisk?o.g.userData.rdisk.material.color.getHexString():null})),
+ rivalColors:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>({
+  edible:o.mass<S.mass,
+  disk:o.g.userData.rdisk?o.g.userData.rdisk.material.color.getHexString():null,
+  glow:o.g.userData.rglow?o.g.userData.rglow.material.color.getHexString():null,
+  halo:o.g.userData.halo?o.g.userData.halo.material.color.getHexString():null})),
  spawnFeat:(t,dx,dz)=>{const f=mkFeat(t,hole.position.x+(dx||0),hole.position.z+(dz||0));return f.type},
  clearFeats,
  accEff:()=>Math.round(accEff()*1000)/1000,fogDensity:()=>scene.fog.density,

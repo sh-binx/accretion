@@ -29,9 +29,10 @@ try {
   })
   const deadly = cols.find(c=>!c.edible), food = cols.find(c=>c.edible)
   ok('both rivals present', !!deadly && !!food, JSON.stringify(cols))
-  ok('deadly rival is red', deadly && deadly.disk.startsWith('ff'), deadly&&`#${deadly.disk}`)
-  ok('edible rival is green', food && /^6/.test(food.disk), food&&`#${food.disk}`)
-  ok('the two are clearly different colours', deadly && food && deadly.disk!==food.disk)
+  ok('deadly rival glows red', deadly && deadly.glow.startsWith('ff'), deadly&&`#${deadly.glow}`)
+  ok('edible rival glows green', food && /^6/.test(food.glow), food&&`#${food.glow}`)
+  ok('the two are clearly different colours', deadly && food && deadly.glow!==food.glow)
+  ok('원반은 둘 다 뜨거운 강착원반 — 라이벌이 블랙홀로 읽힌다', deadly && food && deadly.disk===food.disk, deadly&&`#${deadly.disk}`)
 
   // size alone genuinely cannot distinguish them (documents WHY colour is needed)
   const rr = await page.evaluate(() => { const A=window.__acc
