@@ -118,43 +118,56 @@
   background:linear-gradient(180deg,rgba(0,0,0,0) 42%,rgba(0,0,0,.55) 68%,rgba(0,0,0,.88) 100%)}
  #start::before,#start::after{content:'';position:absolute;left:0;right:0;height:clamp(22px,5.4vh,58px);background:#000;z-index:4}
  #start::before{top:0} #start::after{bottom:0}
- #start .col{position:absolute;left:0;right:0;bottom:clamp(52px,13.5vh,124px);z-index:5;
+ #start .col{position:absolute;left:0;right:0;bottom:clamp(34px,8.4vh,84px);z-index:5;
   display:flex;flex-direction:column;align-items:center;max-width:none}
  #start .wm{font-family:'Anton',Impact,sans-serif;font-weight:400;line-height:1;
-  font-size:clamp(28px,7vw,84px);letter-spacing:.34em;text-indent:.34em;color:#F4F7FA;
+  font-size:clamp(26px,6.4vw,78px);letter-spacing:.34em;text-indent:.34em;color:#F4F7FA;
   background:none;-webkit-text-fill-color:#F4F7FA;filter:none;text-shadow:0 0 46px rgba(180,205,235,.22)}
  #start .tl{font-family:'Martian Mono',ui-monospace,monospace;font-weight:300;
   font-size:clamp(7.5px,.86vw,10.5px);letter-spacing:.4em;text-indent:.4em;color:#7B8189;
   margin-top:clamp(9px,1.7vh,17px);text-transform:uppercase}
- #start .play{margin-top:clamp(11px,2.2vh,20px);pointer-events:auto;cursor:pointer;border:0;border-radius:0;
-  background:none;box-shadow:none;padding:6px 12px;color:#E7EBF0;
+ /* 행동 = 유일하게 형태를 가진 요소 */
+ #start .play{margin-top:clamp(12px,2.4vh,22px);pointer-events:auto;cursor:pointer;border-radius:0;
+  display:flex;align-items:center;gap:clamp(8px,1vw,14px);
+  background:rgba(255,107,61,.12);border:1px solid #FF6B3D;box-shadow:none;
+  padding:clamp(10px,1.5vh,15px) clamp(30px,4.6vw,58px);color:#FFCDB6;
+  font-family:'Martian Mono',ui-monospace,monospace;font-weight:700;
+  font-size:clamp(11px,1.16vw,15px);letter-spacing:.3em}
+ #start .play:hover{background:rgba(255,107,61,.22);color:#fff}
+ #start .play i{font-style:normal;color:#FF6B3D}
+ /* 보조 행동 = 밑줄 링크 */
+ #subs{display:flex;justify-content:center;gap:clamp(14px,2.6vw,38px);flex-wrap:wrap;
+  margin-top:clamp(12px,2.3vh,22px)}
+ #subs .lnk{pointer-events:auto;cursor:pointer;background:none;border:0;border-radius:0;padding:0 0 4px;
+  border-bottom:1px solid rgba(255,255,255,.22);color:#9AA0A8;
   font-family:'Martian Mono',ui-monospace,monospace;font-weight:500;
-  font-size:clamp(10px,1.08vw,13px);letter-spacing:.3em}
- #start .play:hover{background:none;color:#fff}
- #start .play em{font-style:normal;color:#FF6B3D}
- #start .namerow{margin-top:clamp(7px,1.4vh,13px);display:flex;align-items:center;gap:11px;justify-content:center}
- #start .nlab{font-family:'Martian Mono',monospace;font-weight:300;font-size:8.5px;letter-spacing:.26em;color:#565B62}
- #start #pname{background:none;border:0;border-bottom:1px solid rgba(255,255,255,.16);border-radius:0;
-  color:#A8AEB6;font-family:'Martian Mono',monospace;font-weight:300;font-size:10.5px;letter-spacing:.14em;
-  text-align:center;width:clamp(110px,14vw,168px);padding:4px 0}
+  font-size:clamp(8px,.86vw,11px);letter-spacing:.24em;text-transform:uppercase}
+ #subs .lnk:hover{color:#fff;border-bottom-color:rgba(255,255,255,.7)}
+ /* 파일럿 = 좌하단 구석 */
+ #start .namerow{position:absolute;left:clamp(16px,4vw,54px);bottom:clamp(30px,7.4vh,66px);z-index:5;
+  display:flex;align-items:center;gap:8px;margin:0}
+ #start .nlab{font-family:'Martian Mono',monospace;font-weight:300;font-size:8px;letter-spacing:.24em;color:#464B52}
+ #start #pname{background:none;border:0;border-bottom:1px solid rgba(255,255,255,.14);border-radius:0;
+  color:#8E949C;font-family:'Martian Mono',monospace;font-weight:300;font-size:10px;letter-spacing:.14em;
+  text-align:left;width:clamp(84px,10vw,120px);padding:3px 0}
  #start #pname:focus{outline:none;border-bottom-color:rgba(255,255,255,.45);color:#E7EBF0}
- #start .keys{font-family:'Martian Mono',monospace;font-weight:300;font-size:8.5px;letter-spacing:.22em;
-  color:#4C5158;margin-top:clamp(9px,1.7vh,16px);text-transform:uppercase}
+ #start .keys{font-family:'Martian Mono',monospace;font-weight:300;font-size:8px;letter-spacing:.22em;
+  color:#3F444B;margin-top:clamp(10px,1.9vh,18px);text-transform:uppercase}
  /* 데일리 — 좌상단 슬러그(알약 아님) */
  #ribbon{position:absolute;left:clamp(16px,4vw,54px);top:clamp(32px,8.4vh,76px);right:auto;z-index:5;
   pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:6px;background:none;border:0;border-radius:0;padding:0;
   font-family:'Martian Mono',monospace;font-weight:300;font-size:clamp(7.5px,.82vw,10px);
   letter-spacing:.3em;color:#5A5F66;text-transform:uppercase}
  #ribbon:hover{background:none;color:#989EA6}
- /* 기록 레일 — 테두리·배경 없이 활자만 */
- #chips{display:flex;gap:clamp(13px,2.9vw,42px);justify-content:center;flex-wrap:wrap;margin-top:clamp(15px,2.9vh,28px)}
- #chips .chip{pointer-events:auto;cursor:pointer;display:flex;align-items:baseline;gap:7px;background:none;
-  border:0;border-radius:0;padding:3px 2px;font-family:'Martian Mono',monospace}
- #chips .chip:hover{background:none;border:0}
- #chips .chip:hover .v{color:#fff}
- #chips .k{font-size:8.5px;font-weight:300;letter-spacing:.22em;color:#565B62;text-transform:uppercase}
- #chips .v{font-size:10.5px;font-weight:500;letter-spacing:.08em;color:#A8AEB6;font-variant-numeric:tabular-nums}
- #chips .v.g{color:#A8AEB6}
+ /* 기록 = 읽는 것. 가장 흐리게, 맨 아래 */
+ #chips{display:flex;gap:clamp(16px,3vw,42px);justify-content:center;flex-wrap:wrap;margin-top:clamp(14px,2.7vh,26px)}
+ #chips .stat{display:flex;align-items:baseline;gap:7px;background:none;border:0;border-radius:0;padding:0;
+  font-family:'Martian Mono',monospace;color:inherit}
+ #chips button.stat{pointer-events:auto;cursor:pointer}
+ #chips button.stat:hover .v{color:#fff}
+ #chips .k{font-size:8px;font-weight:300;letter-spacing:.22em;color:#3F444B;text-transform:uppercase}
+ #chips .v{font-size:9.5px;font-weight:500;letter-spacing:.08em;color:#7C828A;font-variant-numeric:tabular-nums}
+ #chips .v.g{color:#7C828A}
  @media(max-height:520px){#start .wm{font-size:clamp(30px,6vw,52px)}#start .keys{display:none}}
 #feedwrap{position:fixed;left:50%;bottom:136px;transform:translateX(-50%);width:210px;opacity:0;transition:opacity .16s;pointer-events:none;z-index:6}
 #feedwrap.on{opacity:1}
@@ -176,23 +189,26 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.4</div>
+<div class="credit">ACCRETION · prototype 2.4.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
 <div class="center" id="start">
  <div id="ribbon"><span id="ribbonTxt">◆ DAILY</span></div>
+ <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
  <div class="col">
   <div class="wm">ACCRETION</div>
   <div class="tl">BECOME THE BLACK HOLE</div>
-  <button class="play" id="startBtn">PRESS <em>▶</em> TO BEGIN</button>
-  <div class="namerow"><span class="nlab">PILOT</span><input id="pname" maxlength="16" spellcheck="false" autocomplete="off" placeholder="ANON"></div>
+  <button class="play" id="startBtn"><i>▶</i><span>BEGIN</span></button>
+  <div id="subs">
+   <button class="lnk" id="startCodex">CODEX <span id="chipCodex">–</span></button>
+   <button class="lnk" id="startBoard">LEADERBOARD</button>
+   <button class="lnk" id="startAwards">AWARDS <span id="chipAwards">–</span></button>
+  </div>
   <div class="keys">WASD · ← ↑ → ↓ · DRAG</div>
   <div id="chips">
-   <button class="chip" id="startBoard"><span class="k">BEST</span><span class="v" id="chipBest">–</span></button>
-   <button class="chip" id="startDailyBoard"><span class="k">RANK</span><span class="v g" id="chipRank">–</span></button>
-   <button class="chip" id="startCodex"><span class="k">CODEX</span><span class="v" id="chipCodex">–</span></button>
-   <button class="chip" id="startAwards"><span class="k">AWARDS</span><span class="v g" id="chipAwards">–</span></button>
+   <span class="stat"><span class="k">BEST</span><span class="v" id="chipBest">–</span></span>
+   <button class="stat" id="startDailyBoard"><span class="k">RANK</span><span class="v g" id="chipRank">–</span></button>
   </div>
  </div>
 </div>
@@ -354,7 +370,7 @@ const disk=new THREE.Mesh(new THREE.RingGeometry(0.84,2.0,220,1),diskMat(1.0,fal
 disk.rotation.x=Math.PI*0.5-0.26;hole.add(disk);hole.userData.disk=disk
 // 렌즈 아크 — 중력이 원반 뒤쪽 빛을 휘어 '그림자 위아래'로 넘겨 보낸다(실제 블랙홀 사진의 결정적 특징).
 // 원반과 같은 재질을 세워 그리고 평면 근처를 지우면 위/아래 호만 남는다.
-const diskArc=new THREE.Mesh(new THREE.RingGeometry(0.9,2.16,220,1),diskMat(0.52,true))
+const diskArc=new THREE.Mesh(new THREE.RingGeometry(0.9,2.16,220,1),diskMat(0.33,true))
 diskArc.rotation.set(0,0,0) // XY 평면 = 화면상 수직으로 서서 그림자 위아래로 호를 그린다
 hole.add(diskArc);hole.userData.diskArc=diskArc
 // 광자 고리 — 그림자를 감싸는 얇고 밝은 원(블랙홀 정체성). 카메라를 향함(빌보드)
@@ -863,7 +879,7 @@ function updateCamera(dt){
  const hero=!S.alive // 메뉴면 항상 히어로 구도(좁은 화면도 동일) // 넓은 화면 메뉴 = 시네마틱 히어로(우측 대형 홀) · 좁으면 홀은 배경으로 물림
  const camDist=(22+rad(S.mass)*7)*(S.alive?1:(hero?0.50:1.25))
  const asp=innerWidth/innerHeight
- const wantShift=hero?camDist*0.20:0 // 홀을 화면 위쪽으로 — 아래에 워드마크·CTA 공간
+ const wantShift=hero?camDist*0.34:0 // 홀을 화면 위쪽으로 — 아래에 워드마크·CTA 공간
  menuShift+=(wantShift-menuShift)*Math.min(1,dt*3)
  const tx=hole.position.x,tz=hole.position.z+menuShift // z+ = 화면상 홀이 위로
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
