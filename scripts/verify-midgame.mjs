@@ -55,7 +55,7 @@ try {
 
   // regression: still reaches the tiers under steady feeding
   const climb = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.05)
+    const A=window.__acc; A.begin(); A.setMass(20); A.step(0.05)
     let t=0, t160=null
     for (let i=0;i<200 && A.state.alive && !t160;i++){
       A.clearObjs(); const q=A.pos(), r=Math.cbrt(A.state.mass)

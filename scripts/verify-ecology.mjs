@@ -130,7 +130,7 @@ try {
 
   // 점수가 리더보드 상한/레이트 안에 머문다
   const score = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.05)
+    const A=window.__acc; A.begin(); A.setMass(20); A.step(0.05)
     let t=0
     for (let i=0;i<600 && t<220;i++){
       A.clearObjs(); A.clearFeats()

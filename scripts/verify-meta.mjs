@@ -26,7 +26,7 @@ try {
   const earned = await page.evaluate(() => {
     const A=window.__acc; A.resetAwards(); A.begin()
     A.setMass(6);  A.step(0.06)          // → star  (ignite)
-    A.setMass(13); A.step(0.06)          // → black hole via supernova (collapse)
+    A.setMass(21); A.step(0.06)          // → black hole via supernova (collapse)
     A.setMass(150); A.step(0.06)         // (m100)
     A.setMass(1200); A.step(0.06)        // (m1000)
     return A.awards()
@@ -69,7 +69,7 @@ try {
   await sleep(200)
   const back = await page.evaluate(() => ({ skins: document.querySelectorAll('#skinRow .skin').length, entries: document.querySelectorAll('#codexGrid .cdx').length }))
   ok('codex tab restores skin picker', back.skins===3, `${back.skins} skins`)
-  ok('codex tab shows codex entries', back.entries===22, `${back.entries}`)
+  ok('codex tab shows codex entries', back.entries===23, `${back.entries}`)
   await page.evaluate(() => window.__acc.closeCodex())
 
   // ── weekly leaderboard ──

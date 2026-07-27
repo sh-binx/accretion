@@ -54,17 +54,17 @@ try {
   // ── (2) form never regresses; supernova fires exactly once ──
   const mono = await page.evaluate(() => {
     const A=window.__acc; A.resetCodex(); A.begin()
-    A.setMass(12.5); A.step(0.05)                                   // cross into black hole (supernova #1)
+    A.setMass(20.5); A.step(0.05)                                   // cross into black hole (supernova #1)
     const f1=A.form().idx
-    let novas = A.shockOn()?1:0, minForm=f1
+    let minForm=f1
     for(let i=0;i<14;i++){                                          // hover across the 12 threshold repeatedly
-      A.setMass(11.4); A.step(0.06); minForm=Math.min(minForm,A.form().idx)
-      A.setMass(12.6); A.step(0.06); if(A.shockOn())novas++
+      A.setMass(19.4); A.step(0.06); minForm=Math.min(minForm,A.form().idx)
+      A.setMass(20.6); A.step(0.06)
     }
-    return { f1, minForm, finalForm:A.form().idx, novas }
+    return { f1, minForm, finalForm:A.form().idx, novas:A.novaCount() }
   })
   ok('form never regresses below black hole', mono.minForm===2, `min=${mono.minForm}`)
-  ok('supernova does not re-fire on threshold hover', mono.novas<=1, `${mono.novas} shock frames`)
+  ok('supernova does not re-fire on threshold hover', mono.novas===1, `초신성 ${mono.novas}회`)
 
   // dropping mass hard keeps you a black hole (physically one-way)
   const oneWay = await page.evaluate(() => {
@@ -77,10 +77,10 @@ try {
   const fwd = await page.evaluate(() => {
     const A=window.__acc; A.begin(); const seq=[A.form().name]
     A.setMass(5); A.step(0.05); seq.push(A.form().name)
-    A.setMass(13); A.step(0.05); seq.push(A.form().name)
+    A.setMass(21); A.step(0.05); seq.push(A.form().name)
     return { seq, shock:A.shockOn() }
   })
-  ok('forward arc intact (rock → star → black hole + nova)', fwd.seq.join('>')==='PLANETESIMAL>MAIN SEQUENCE>BLACK HOLE' && fwd.shock===true, fwd.seq.join(' → '))
+  ok('forward arc intact (protostar → star → black hole + nova)', fwd.seq.join('>')==='PROTOSTAR>MAIN SEQUENCE>BLACK HOLE' && fwd.shock===true, fwd.seq.join(' → '))
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {

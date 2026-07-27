@@ -19,7 +19,7 @@ try {
 
   // starts as a planetesimal — black hole parts hidden, lensing essentially off
   const start = await page.evaluate(() => { const A=window.__acc; A.begin(); A.step(0.05); return { f:A.form(), v:A.formVis() } })
-  ok('starts as PLANETESIMAL', start.f.name==='PLANETESIMAL' && start.f.idx===0, start.f.name)
+  ok('starts as PROTOSTAR', start.f.name==='PROTOSTAR' && start.f.idx===0, start.f.name)
   ok('black hole parts hidden at start', start.v.bh===false && start.v.disk===false && start.v.rock===true)
   ok('lensing is off before the black hole', start.f.lens<0.2, `×${start.f.lens}`)
 
@@ -32,7 +32,7 @@ try {
     const A = window.__acc
     A.resetCodex(); A.begin(); A.setMass(11.5); A.step(0.06)   // settle as a star
     const before = A.state.score
-    A.setMass(13); A.step(0.02)                                  // cross the collapse threshold
+    A.setMass(21); A.step(0.02)                                  // cross the collapse threshold
     return { shock:A.shockOn(), inv:A.form().inv, form:A.form().name, lens:A.form().lens,
              codex:A.codex().seen.includes('supernova'), gain:A.state.score-before, vis:A.formVis() }
   })
@@ -43,9 +43,13 @@ try {
   ok('after collapse → BLACK HOLE form', nova.form==='BLACK HOLE' && nova.vis.bh===true && nova.vis.star===false)
   ok('lensing switches on at black hole', nova.lens===1, `×${nova.lens}`)
 
-  // no supernova when starting straight in black-hole range (guard: only star→bh)
-  const noDouble = await page.evaluate(() => { const A=window.__acc; A.begin(); A.setMass(60); A.step(0.05); const a=A.shockOn(); A.setMass(90); A.step(0.05); return { a, b:A.shockOn(), form:A.form().name } })
-  ok('no repeat supernova inside black-hole range', noDouble.b===false, `form=${noDouble.form}`)
+  // 블랙홀 구간 안에서 질량이 더 늘어도 초신성은 다시 터지지 않는다.
+  // (충격파 표시 여부는 프록시라 부정확 — 실제 폭발 횟수를 센다)
+  const noDouble = await page.evaluate(() => { const A=window.__acc; A.begin()
+    A.setMass(60); A.step(0.05); const first=A.novaCount()
+    A.setMass(90); A.step(0.05); A.setMass(400); A.step(0.05)
+    return { first, after:A.novaCount(), form:A.form().name } })
+  ok('no repeat supernova inside black-hole range', noDouble.first===1 && noDouble.after===1, `${noDouble.first}회 → ${noDouble.after}회`)
 
   // nemesis only after the black hole exists
   const nem = await page.evaluate(() => {

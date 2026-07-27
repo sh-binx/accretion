@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.4.3</div>
+<div class="credit">ACCRETION · prototype 2.5</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -379,9 +379,9 @@ photon.renderOrder=6;hole.add(photon);hole.userData.photon=photon
 hole.add(glow(0x66a8ff,4.2,0.28)) // 은은한 코어 글로우(작게)
 /* ===== 진화 아크 — 블랙홀은 시작이 아니라 도달. 형태별 플레이어 메시(실제 별의 일생) ===== */
 const bhParts=[eh,disk,diskArc,photon,hole.children[hole.children.length-1]] // 블랙홀 전용 파츠
-// 1) 미행성 — 회색 암석 덩어리(자기 색 emissive로 존 조명에도 형태 유지)
-const pRock=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x9aa3b8,roughness:.95,flatShading:true,emissive:0x555d70,emissiveIntensity:.35}))
-pRock.add(glow(0x7fd4ff,3.0,0.42)) // '나'를 소행성 먹이와 구분
+// 1) 원시별 — 아직 핵융합 전. 수축열로 붉게 달아오른 불규칙한 구름 핵(구형이 되기 전)
+const pRock=new THREE.Mesh(new THREE.IcosahedronGeometry(1,1),new THREE.MeshStandardMaterial({color:0x6b4230,roughness:.92,flatShading:true,emissive:0x9c3e14,emissiveIntensity:.62}))
+pRock.add(glow(0xff7a3a,3.4,0.5)) // 수축 복사 — 소행성 먹이와 확실히 구분된다
 hole.add(pRock)
 // 2) 주계열성 — 스스로 빛나는 구체 + 코로나
 const pStar=new THREE.Group()
@@ -405,8 +405,8 @@ function applyJets(){jets.visible=S.formIdx===2&&S.tierIdx>=3}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
- {id:'rock',n:'PLANETESIMAL',max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ ERODING — FEED OR FADE',    rival:0.06},
- {id:'star',n:'MAIN SEQUENCE',max:12,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10},
+ {id:'rock',n:'PROTOSTAR',   max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ OUTFLOWS — FEED OR FADE',   rival:0.06},
+ {id:'star',n:'MAIN SEQUENCE',max:20,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10},
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
@@ -664,9 +664,9 @@ let banT=0
 function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -688,7 +688,8 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  remnant:'What a supernova leaves behind — the gold and uranium in your world came from one.',
  collision:'Planetesimals shatter when they strike something bigger — that rubble became the asteroid belt.',
  ultramassive:'TON 618 holds roughly 66 billion Suns — its shadow would swallow our solar system many times over.',
- tde:'Swallowing a star is slow — a tidal disruption event feeds a black hole for months, even years.'}
+ tde:'Swallowing a star is slow — a tidal disruption event feeds a black hole for months, even years.',
+ protostar:'A star is never gathered from rock. A cloud of gas collapses, and the core glows from its own contraction long before fusion begins.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -737,11 +738,13 @@ function update(dt){
  // 진화 단계 — 임계 질량을 넘으면 형태가 바뀐다(항성 → 초신성 → 블랙홀)
  const nf=Math.max(S.formIdx,formOf(S.mass)) // 단조 증가 — 되돌아가지 않음(깜빡임·초신성 재폭발 방지)
  if(nf!==S.formIdx){
-  const wasStar=S.formIdx===1
+  const prev=S.formIdx
   S.formIdx=nf;applyForm(nf)
-  if(nf===2&&wasStar)supernova() // 항성 붕괴 = 절정
+  // 블랙홀은 반드시 항성 붕괴를 거쳐야 한다 — 한 번에 뛰어넘어도(거대 천체 흡수) 초신성은 터진다.
+  // 실제로도 별 단계를 건너뛰고 항성질량 블랙홀이 되는 경로는 없다.
+  if(nf===2&&prev<2){if(prev===0){codexToast('mainsequence')}supernova()}
   else if(nf===1){banner('☀ IGNITION','fusion begins — you are a STAR');codexToast('mainsequence');AU.tierUp()}
-  else if(nf===0){banner('◆ '+FORMS[0].n,'')}
+  else if(nf===0){banner('◆ '+FORMS[0].n,'a collapsing cloud core — not yet a star');codexToast('protostar')}
  }
  const F=FORMS[S.formIdx]
  // 질량 유출 — 형태마다 이유가 다르다(침식 / 항성풍 / 호킹 복사) = 전부 실제 현상
@@ -1205,8 +1208,9 @@ const shock=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xfff0d0,
 shock.rotation.x=-Math.PI/2;shock.visible=false;scene.add(shock)
 let shockT=0
 function supernova(){
+ S.novaCount=(S.novaCount||0)+1
  S.invT=1.6 // 무적
- shock.position.copy(hole.position);shock.visible=true;shockT=1
+ shock.position.copy(hole.position);shock.visible=true;shockT=0 // 0에서 시작해야 퍼지며 사라진다(1이면 즉시 투명·숨김)
  S.shake=Math.min(S.shake+1.6,2);AU.boom();AU.tierUp()
  $('flash').classList.add('on');setTimeout(()=>$('flash').classList.remove('on'),90)
  // 충격파: 주변을 쓸어버린다 — 작은 것은 흡수(점수), 큰 것·라이벌은 밀려남
@@ -1259,7 +1263,7 @@ function onboardTick(){ // 첫 런에만 단계별 힌트
 function begin(){AU.unlock()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
- S.formIdx=0;S.invT=0;applyForm(0);shock.visible=false;jets.visible=false // 진화 아크 리셋 — 미행성으로 시작
+ S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
@@ -1370,6 +1374,7 @@ if(DEV){window.__acc={
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
  shockOn:()=>shock.visible,jetsOn:()=>jets.visible,
  bh:()=>({eh,disk,arc:diskArc,photon}),
+ novaCount:()=>S.novaCount||0,
  setInv:v=>{S.invT=v},
  maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.6:0.85):1),
  feedState:()=>S.feed?{t:Math.round(S.feed.t*100)/100,dur:Math.round(S.feed.dur*100)/100,given:Math.round(S.feed.given*10)/10}:null,

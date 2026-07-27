@@ -56,7 +56,7 @@ try {
 
   // ── still bounded: no runaway back to billions ──
   const bound = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(12); A.step(0.05)
+    const A=window.__acc; A.begin(); A.setMass(20); A.step(0.05)
     let t=0
     for (let i=0;i<300 && A.state.alive;i++){
       A.clearObjs(); A.clearFeats()
