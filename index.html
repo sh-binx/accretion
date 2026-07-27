@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.6</div>
+<div class="credit">ACCRETION · prototype 2.7</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -481,7 +481,13 @@ function updateFeed(dt){
   o.eaten=true;o.eatT=0.2;o.eatBy=null
   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
   S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
-  AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12)
+  const rel2=f.total/Math.max(1e-6,S.mass-f.given+f.total) // 삼킨 것이 나에 비해 얼마나 컸나
+  AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12+Math.round(rel2*26))
+  if(rel2>=0.55){ // 자기만 한 천체를 다 삼킨 순간 = 터진다
+   S.shake=Math.min(S.shake+0.7+rel2*0.6,1.8);AU.boom()
+   $('flash').classList.add('on');setTimeout(()=>$('flash').classList.remove('on'),110)
+   eatBurst(hole.position.x,hole.position.z,0xffd9a0,26)
+   popup(hole.position,'DEVOURED','#ffcf4a')}
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
   gainPop(hole.position,total);codexToast(o.type)
   S.feed=null
@@ -887,12 +893,23 @@ function update(dt){
    const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z
    const along=dx*ax+dz*az, perp=Math.abs(dx*az-dz*ax)
    if(Math.abs(along)>reach||perp>wide)continue
-   const canEat=o.type!=='rival'||o.mass<S.mass
-   if(!canEat)continue
-   const g2=o.mass*(o.type==='rival'?0.45*mergeEffOf(S.mass):0.62*accEff())*0.5 // 제트 포식은 절반 효율
-   S.mass+=g2;S.score+=Math.round(g2*13)
+   // 제트는 '천체'를 통째로 찢어 삼킨다 — 크기 제한 없음(상대론적 제트 앞에서 행성·항성은 크기가 무의미).
+   // 다만 다른 블랙홀은 제트로 먹을 수 없다(실제로도 제트는 사건지평선을 어쩌지 못한다) → 대신 밀어낸다.
+   if(o.type==='rival'&&o.mass>=S.mass){
+    const d2=Math.max(0.001,Math.hypot(dx,dz))
+    o.vx+=(dx/d2)*34*dt;o.vz+=(dz/d2)*34*dt // 제트압으로 밀려난다(수세에서 쓸 수 있는 카드)
+    continue}
+   const g2=o.mass*(o.type==='rival'?0.45*mergeEffOf(S.mass):0.62*accEff())*0.75
+   S.mass+=g2
+   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
+   S.comboMax=Math.max(S.comboMax,S.combo)
+   S.score+=Math.round(g2*13*(S.modFrenzy?1.3:1)) // 제트는 자동 포식이라 콤보 배수는 빼되, 콤보 카운트에는 참여
+   S.boost=Math.min(0.6,(S.boost||0)+0.13) // 제트 포식도 가속에 참여
+   S.energy=Math.min(1,S.energy+0.05)
+   S.shake=Math.min(S.shake+0.18,1.0)
    o.eaten=true;o.eatT=0.25;o.eatBy=null
-   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,5);jetFlash=0.18;AU.jet() // 빔이 번쩍여 '이 빔이 먹었다'가 보이게
+   gainPop(o.g.position,g2)
+   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,7);jetFlash=0.2;AU.eat(S.combo);AU.jet()
   }
  }
  updateFeed(dt)

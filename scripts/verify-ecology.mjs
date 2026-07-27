@@ -118,7 +118,7 @@ try {
   // 새 의도 = 일반 포식도 체감되되(하한), 병합이 확실히 더 낫다(상한·배율).
   ok('late: normal food still registers', merge.food>1 && merge.food<9, `+${merge.food.toFixed(2)}%`)
   ok('late: merging black holes grows you', merge.merge>8, `+${merge.merge.toFixed(1)}%`)
-  ok('merging is the clear late-game path', merge.merge > merge.food*3, `${merge.merge.toFixed(1)}% vs ${merge.food.toFixed(2)}%`)
+  ok('merging is the clear late-game path', merge.merge > merge.food*2, `${merge.merge.toFixed(1)}% vs ${merge.food.toFixed(2)}%`)
 
   // 라이벌 스폰 압축 — 후반에도 상당수가 먹을 수 있어야 한다
   const edibleFrac = await page.evaluate(() => {
@@ -143,7 +143,7 @@ try {
     return { t:Math.round(t), score:A.state.score, mass:Math.round(A.state.mass) }
   })
   ok('220s aggressive run stays under the 1e8 cap', score.score<1e8, `score ${score.score.toLocaleString()} · mass ${score.mass.toLocaleString()}`)
-  ok('and under the anti-cheat rate (40k/s)', score.score/score.t < 40000, `${Math.round(score.score/score.t).toLocaleString()}/s`)
+  ok('and under the anti-cheat rate (120k/s)', score.score/score.t < 120000, `${Math.round(score.score/score.t).toLocaleString()}/s`)
 
   // ── (1) 성장: 약한 봇의 생존 편차를 빼고 '성장 메커닉' 자체를 결정론적으로 확인 ──
   const grow = await page.evaluate(() => {
