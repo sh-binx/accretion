@@ -34,22 +34,25 @@ try{
       const px = place==='onAxis' ? q.x+ax*d : q.x-az*d          // 축 위 / 축에 수직(90°)
       const pz = place==='onAxis' ? q.z+az*d : q.z+ax*d
       A.spawnTagged(A.state.mass*0.2, px, pz, 'planet')
+      const m0=A.tagMass()
       A.step(0.02)                                               // 회전 전에 즉시 판정
-      return A.tagEaten()
+      const m1=A.tagMass()
+      return m1!==null && m1 < m0*0.9                            // 제트에 맞으면 부서져 질량이 급감한다
     }
     return { on0:probe(0,'onAxis'), off0:probe(0,'offAxis'),
              on1:probe(1.1,'onAxis'), off1:probe(1.1,'offAxis') }
   })
-  ok('body ON the beam axis is consumed (angle 0)', aim.on0===true)
-  ok('body OFF the axis is NOT consumed (angle 0)', aim.off0===false)
-  ok('same holds at a rotated angle (1.1 rad)', aim.on1===true && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
+  ok('빔 축 위의 천체가 제트에 걸린다 (각 0)', aim.on0===true)
+  ok('축에서 벗어난 천체는 안 맞는다 (각 0)', aim.off0===false)
+  ok('회전한 각도에서도 동일 (1.1 rad)', aim.on1===true && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
 
   // 빔 길이 밖은 먹지 않는다
   const far = await p.evaluate(()=>{
     const A=window.__acc; A.begin(); A.setMass(50000); A.step(0.1); A.clearObjs(); A.clearFeats()
     A.setJetAngle(0); const q=A.pos(), r=Math.cbrt(A.state.mass)
     A.spawnTagged(A.state.mass*0.2, q.x+r*14, q.z, 'planet')   // 빔 길이(9r) 훨씬 밖
-    A.step(0.02); return A.tagEaten()
+    const m0=A.tagMass(); A.step(0.02); const m1=A.tagMass()
+    return m1!==null && m1 < m0*0.9
   })
   ok('beyond the beam length nothing is consumed', far===false)
 
@@ -72,8 +75,24 @@ try{
     A.step(0.02)
     return { dm:A.state.mass-m0, ds:A.state.score-s0 }
   })
-  ok('jet consumption really adds mass', real.dm>0, `+${Math.round(real.dm)}`)
   ok('jet consumption really adds score', real.ds>0, `+${real.ds.toLocaleString()}`)
+
+  // 2026-07-28: 제트는 사건지평선을 어쩌지 못하므로 큰 라이벌을 '밀어낼' 수 없다.
+  // 실제로 일어나는 일은 AGN 피드백 — 제트가 주변 가스를 쓸어내 강착이 멈춘다.
+  const agn = await p.evaluate(() => { const A=window.__acc
+    A.begin(); A.setMass(48000); A.step(0.06); A.clearObjs(); A.clearFeats(); A.setInv(99)
+    const q=A.pos(), rr=Math.cbrt(48000)
+    A.spawn('rival', 120000, q.x+rr*2.2, q.z)                      // 나보다 큰 라이벌 = 제트로 못 먹는다
+    for(let i=0;i<6;i++) A.spawn('rock', A.state.mass*0.05, q.x+rr*2.2+(i-3)*rr*0.35, q.z+rr*0.4)
+    let stunned=false, first=null
+    for(let i=0;i<80;i++){ A.step(0.05)
+      if(A.jetStun().some(v=>v>0)) stunned=true
+      const r=A.objInfo().find(o=>o.t==='rival'); if(r&&first===null) first=r.mass }
+    const r2=A.objInfo().find(o=>o.t==='rival')
+    return { stunned, first, last: r2?r2.mass:null, alive: !!r2 } })
+  ok('제트가 큰 라이벌의 원반 가스를 날린다', agn.stunned===true)
+  ok('큰 라이벌은 제트로 먹히지 않는다(사건지평선)', agn.alive===true)
+  ok('원반이 날아간 라이벌은 먹이 옆에서도 못 자란다', agn.last!==null && agn.last<=agn.first, `${agn.first} → ${agn.last}`)
 
   ok('no JS/console errors', errs.length===0, errs.slice(0,2).join(' | '))
 }catch(e){console.error('FATAL',e);results.push([false,'fatal',String(e)])}

@@ -32,7 +32,7 @@ async function rivalShare(M) {
     A.begin()
     for (let i=0;i<3;i++){ A.setMass(M); A.step(0.05) }     // settle tierIdx to tier(M)
     let total=0, rivals=0, threats=0
-    for (let r=0;r<3;r++){
+    for (let r=0;r<24;r++){   // 라이벌 위협 비율 이론값 ~53% — 3회(14개 표본)로는 동전 던지기라 흔들린다
       A.clearObjs(); A.setMass(M); A.step(0.1)              // refill field fresh at this tier
       const info = A.objInfo()
       total += info.length
