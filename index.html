@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.1</div>
+<div class="credit">ACCRETION · prototype 3.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -598,6 +598,85 @@ const AU={ac:null,master:null,amb:[],muted:false,
  surge(){this.tone(150,.5,'sawtooth',.06,880);this.tone(280,.4,'sine',.045,1500,.02);this.noise(.32,.06)}, // 상승 휘익 = 슬링샷 가속
  toggleMute(){this.muted=!this.muted;if(this.master)this.master.gain.value=this.muted?0:0.85;if(this.muted)this.stopAmbient();else if(typeof S!=='undefined'&&S.alive)this.startAmbient();return this.muted}}
 
+/* ===== 포털 어댑터 — CrazyGames / Poki / 로컬 =====
+ * nova-surge에서 검증된 계약을 이식: 모든 메서드는 실패해도 게임을 막지 않고,
+ * 광고 콜백은 어떤 경우에도 반드시 불린다(워치독). 광고 중에는 강제 뮤트(사이트 뮤트 우선권).
+ */
+function pickPortal(host,search){
+ if(host.includes('crazygames'))return 'cg'
+ if(host.includes('poki-gdn')||host.includes('poki.com'))return 'poki'
+ const f=new URLSearchParams(search).get('portal')
+ if(f==='cg'||f==='poki'||f==='local')return f
+ return 'local'
+}
+const AD_COOLDOWN=120000, SDK_TIMEOUT=6000
+const PORTAL={
+ kind:'local', sdk:null, lastAd:0, loadingDone:false, adMuted:false,
+ async init(){
+  this.kind=pickPortal(location.hostname,location.search)
+  if(this.kind==='local')return
+  const url=this.kind==='cg'?'https://sdk.crazygames.com/crazygames-sdk-v3.js'
+                            :'https://game-cdn.poki.com/scripts/v2/poki-sdk.js'
+  try{
+   await new Promise((res,rej)=>{const t=setTimeout(()=>rej(new Error('timeout')),SDK_TIMEOUT)
+    const el=document.createElement('script');el.src=url
+    el.onload=()=>{clearTimeout(t);res()};el.onerror=()=>{clearTimeout(t);rej(new Error('load'))}
+    document.head.appendChild(el)})
+   if(this.kind==='cg'){await window.CrazyGames.SDK.init();this.sdk=window.CrazyGames.SDK;this.wireSave()}
+   else{await window.PokiSDK.init();this.sdk=window.PokiSDK}
+   if(this.loadingDone)this.loadingStop() // init보다 부팅이 빨랐던 경우 재생
+  }catch(e){this.sdk=null;console.warn('[portal] SDK 실패 — 로컬 폴백',e)}
+ },
+ // CG Progress Save(Data Module) — 쓰기는 SDK+로컬 이중화, 읽기는 SDK 우선.
+ // 비로그인/프리뷰에서 SDK 쓰기가 무효인 사례가 있어 로컬 미러가 진행을 지킨다(nova-surge 실측).
+ wireSave(){
+  const d=this.sdk&&this.sdk.data; if(!d||!d.getItem)return
+  const KEYS=['acc_codex','acc_skin','acc_best','acc_rank','acc_name','acc_ach','acc_onboard','acc_scorever']
+  try{for(const k of KEYS){if(d.getItem(k)==null){const v=localStorage.getItem(k);if(v!=null)d.setItem(k,v)}}}catch(e){}
+  const raw=Storage.prototype
+  try{
+   localStorage.getItem=function(k){try{const v=d.getItem(k);if(v!=null)return v}catch(e){}return raw.getItem.call(localStorage,k)}
+   localStorage.setItem=function(k,v){try{d.setItem(k,v)}catch(e){}return raw.setItem.call(localStorage,k,v)}
+  }catch(e){}
+ },
+ loadingStart(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.loadingStart();else this.sdk&&this.sdk.gameLoadingStart()}catch(e){}},
+ loadingStop(){this.loadingDone=true
+  try{if(this.kind==='cg')this.sdk&&this.sdk.game.loadingStop();else this.sdk&&this.sdk.gameLoadingFinished()}catch(e){}},
+ gameplayStart(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStart();else this.sdk&&this.sdk.gameplayStart()}catch(e){}},
+ gameplayStop(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStop();else this.sdk&&this.sdk.gameplayStop()}catch(e){}},
+ happytime(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.happytime();else this.sdk&&this.sdk.happyTime()}catch(e){}},
+ _mute(on){ // 광고 중 강제 뮤트 — 원래 뮤트 상태를 보존해 복원한다
+  if(on){this.adMuted=AU.muted;if(!AU.muted&&AU.master)AU.master.gain.value=0}
+  else if(AU.master)AU.master.gain.value=this.adMuted?0:0.85
+ },
+ midgameAd(onDone){
+  const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false);onDone&&onDone()}})()
+  const now=Date.now()
+  if(!this.sdk||now-this.lastAd<AD_COOLDOWN)return done()
+  this.lastAd=now;this._mute(true)
+  const wd=setTimeout(done,15000) // 워치독 — SDK가 콜백을 안 줘도 게임이 멈추지 않는다
+  const fin=()=>{clearTimeout(wd);done()}
+  try{
+   if(this.kind==='cg')this.sdk.ad.requestAd('midgame',{adFinished:fin,adError:fin,adStarted:()=>{}})
+   else this.sdk.commercialBreak().then(fin).catch(fin)
+  }catch(e){fin()}
+ },
+ rewardedAd(onReward,onDone){
+  let rewarded=false
+  const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false)
+   if(rewarded&&onReward)onReward();onDone&&onDone()}})()
+  if(!this.sdk)return done()
+  this._mute(true)
+  const wd=setTimeout(done,20000)
+  const fin=()=>{clearTimeout(wd);done()}
+  try{
+   if(this.kind==='cg')this.sdk.ad.requestAd('rewarded',{adFinished:()=>{rewarded=true;fin()},adError:fin,adStarted:()=>{}})
+   else this.sdk.rewardedBreak().then(ok=>{rewarded=!!ok;fin()}).catch(fin)
+  }catch(e){fin()}
+ }
+}
+PORTAL.init()
+
 /* ===== state ===== */
 const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0}
 // 블랙홀 도달(질량 12) 이후의 규모 티어 — 진화 아크가 앞단을 담당하므로 임계 상향
@@ -772,7 +851,7 @@ function update(dt){
   // 블랙홀은 반드시 항성 붕괴를 거쳐야 한다 — 한 번에 뛰어넘어도(거대 천체 흡수) 초신성은 터진다.
   // 실제로도 별 단계를 건너뛰고 항성질량 블랙홀이 되는 경로는 없다.
   if(nf===2&&prev<2){if(prev===0){codexToast('mainsequence')}supernova()}
-  else if(nf===1){banner('☀ IGNITION','fusion begins — you are a STAR');codexToast('mainsequence');AU.tierUp()}
+  else if(nf===1){PORTAL.happytime();banner('☀ IGNITION','fusion begins — you are a STAR');codexToast('mainsequence');AU.tierUp()}
   else if(nf===0){banner('◆ '+FORMS[0].n,'a collapsing cloud core — not yet a star');codexToast('protostar')}
  }
  const F=FORMS[S.formIdx]
@@ -1049,6 +1128,7 @@ function updateFX(dt){fxT+=dt;fxN++
   else if(fxLow&&fxFps>54)fxLow=false}}
 const partCap=()=>fxLow?45:140
 function frame(now){requestAnimationFrame(frame)
+requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
  updateFX(dt);update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
@@ -1327,7 +1407,7 @@ function onboardTick(){ // 첫 런에만 단계별 힌트
  if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
   if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
 }
-function begin(){AU.unlock()
+function begin(){AU.unlock();PORTAL.gameplayStart()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false // 진화 아크 리셋 — 미행성으로 시작
@@ -1346,7 +1426,7 @@ function begin(){AU.unlock()
  topUp();AU.startAmbient()
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
-function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient()
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();PORTAL.gameplayStop()
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
  if(S.score>STATS.best){STATS.best=S.score} // 개인 최고점(메인 스트립)
@@ -1371,7 +1451,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
    else{lastRun=null;$('rankline').innerHTML='<span style="color:#7c88ad">'+(res&&!res.ok?'score not ranked':'board offline — saved this session')+'</span>'}
   })
  }}
-$('startBtn').onclick=()=>{S.daily=null;begin()};$('retryBtn').onclick=begin // AGAIN=같은 모드 재시도(데일리 유지)
+$('startBtn').onclick=()=>{S.daily=null;begin()};$('retryBtn').onclick=()=>PORTAL.midgameAd(begin) // AGAIN — 자연스러운 휴지점에서만 광고(쿨다운 120s·워치독 15s)
 $('startBoard').onclick=()=>openBoard(false);$('overBoard').onclick=()=>openBoard(!!S.daily) // 게임오버 보드는 방금 모드 기준
 $('boardPlay').onclick=()=>{S.daily=null;begin()};$('boardClose').onclick=closeBoard
 $('startCodex').onclick=()=>{codexTab='codex';openCodex()};$('overCodex').onclick=()=>{codexTab='codex';openCodex()}
@@ -1443,7 +1523,11 @@ if(DEV){window.__acc={
  shockOn:()=>shock.visible,jetsOn:()=>jets.visible,
  bh:()=>({eh,disk,arc:diskArc,photon}),
  novaCount:()=>S.novaCount||0,
- fx:()=>({low:fxLow,fps:Math.round(fxFps),cap:partCap()}),setFxLow:v=>{fxLow=!!v},
+ fx:()=>({low:fxLow,fps:Math.round(fxFps),cap:partCap()}),
+ portal:()=>({kind:PORTAL.kind,sdk:!!PORTAL.sdk,loadingDone:PORTAL.loadingDone}),
+ audioGain:()=>AU.master?AU.master.gain.value:null,
+ pickPortal:(h,q)=>pickPortal(h,q),
+ testAd:cb=>PORTAL.midgameAd(cb),testRewarded:(r,d)=>PORTAL.rewardedAd(r,d),setFxLow:v=>{fxLow=!!v},
  setInv:v=>{S.invT=v},
  maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)),
  boost:()=>S.boost||0,
