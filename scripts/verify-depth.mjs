@@ -78,7 +78,9 @@ try {
   ok('first run shows all onboarding hints', hints.last>=4, `${hints.last} shown · alive=${hints.alive}`)
 
   const second = await page.evaluate(() => { const A=window.__acc; A.begin(); for(let i=0;i<32;i++){A.setMass(3);A.clearObjs();A.step(0.5)} return A.hintIdx() })
-  ok('hints do not repeat after the first run', second===0, `idx=${second}`)
+  // 2026-07-28(오너 요청): 조작 안내는 매판 보여야 한다 → 첫 줄(◆ MOVE)만 반복,
+  // 나머지 온보딩 힌트는 첫 플레이에만. 따라서 재플레이 시 idx는 정확히 1에서 멈춘다.
+  ok('재플레이 시 이동 안내만 반복(나머지는 안 나옴)', second===1, `idx=${second}`)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
