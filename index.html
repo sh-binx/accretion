@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.0.2</div>
+<div class="credit">ACCRETION · prototype 3.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -663,7 +663,7 @@ function gainPop(worldPos,amount){
  gainSlot=popLast;gainEl=popSlot[popLast]?popSlot[popLast].el:null
 }
 function streamPart(x,z,nx,nz,col){ // 강착 흐름 입자 — 천체에서 뜯겨 나와 블랙홀로 흘러든다(기존 파티클 시스템 재사용)
- if(particles.length>140)return   // 프레임 보호
+ if(particles.length>partCap())return   // 프레임 보호(저사양에선 상한이 낮아진다)
  const sp=getP();sp.material.color.setHex(col);sp.material.opacity=0.9
  const tan=rnd(-1,1)*4.5          // 접선 성분 → 곧장 떨어지지 않고 나선을 그린다(각운동량)
  particles.push({s:sp,x,z,vx:nx*rnd(5,9)-nz*tan,vz:nz*rnd(5,9)+nx*tan,life:rnd(.3,.5),max:.5,sz:rnd(.35,.7)})
@@ -823,7 +823,7 @@ function update(dt){
      const st=Math.pow(s,1.5) // 가까울수록 급격히 늘어난다(조석력 ∝ 1/r³)
      o.g.rotation.y=Math.atan2(-dz,dx)            // 늘어나는 축 = 블랙홀 방향
      o.g.scale.set(base*(1+st*1.35),base*(1-st*0.34),base*(1-st*0.34))
-     if(st>0.30&&(o.strT=(o.strT||0)-dt)<=0){o.strT=0.07+Math.random()*0.06
+     if(st>0.30&&!(fxLow&&st<0.62)&&(o.strT=(o.strT||0)-dt)<=0){o.strT=(fxLow?0.2:0.07)+Math.random()*0.06
       // 흐름 입자 — 천체에서 떨어져 나와 블랙홀로 흘러든다
       streamPart(o.g.position.x-(dx/d)*o.r*0.6,o.g.position.z-(dz/d)*o.r*0.6,-(dx/d),-(dz/d),o.type==='rival'?0xffb070:0x9fd8ff)}}
    } else if(!o.eaten&&o.g.scale.x!==base){o.g.rotation.y=0;o.g.scale.setScalar(base)}} // 영향권 밖 → 원래 형태로
@@ -1040,10 +1040,18 @@ function hud(){
 
 /* ===== loop ===== */
 let last=performance.now(),acc=0
+// 적응형 품질 — 실측 FPS가 낮으면 파티클·강착 흐름을 줄인다.
+// 저사양 기기에서 강착 흐름(2.9)이 프레임을 먹을 수 있어 안전망을 둔다.
+let fxT=0,fxN=0,fxLow=false,fxFps=60
+function updateFX(dt){fxT+=dt;fxN++
+ if(fxT>=1.2){fxFps=fxN/fxT;fxN=0;fxT=0
+  if(!fxLow&&fxFps<42)fxLow=true          // 이력(hysteresis) — 경계에서 깜빡이지 않게
+  else if(fxLow&&fxFps>54)fxLow=false}}
+const partCap=()=>fxLow?45:140
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
+ updateFX(dt);update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
@@ -1435,6 +1443,7 @@ if(DEV){window.__acc={
  shockOn:()=>shock.visible,jetsOn:()=>jets.visible,
  bh:()=>({eh,disk,arc:diskArc,photon}),
  novaCount:()=>S.novaCount||0,
+ fx:()=>({low:fxLow,fps:Math.round(fxFps),cap:partCap()}),setFxLow:v=>{fxLow=!!v},
  setInv:v=>{S.invT=v},
  maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)),
  boost:()=>S.boost||0,
