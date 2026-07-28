@@ -212,7 +212,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.8.1</div>
+<div class="credit">ACCRETION · prototype 3.8.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1330,7 +1330,7 @@ function frame(now){requestAnimationFrame(frame)
 requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- updateFX(dt);update(dt);updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
+ updateFX(dt);if(!onbT)update(dt);if(!onbT)updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
@@ -1636,7 +1636,8 @@ function showOnboard(){const el=$('onb')
   r[2].querySelector('b').textContent='SPIN'
   r[3].querySelector('b').textContent='WAVE'
   el.querySelector('.ob-h').textContent='tap to begin'}
- el.classList.add('on');onbT=performance.now()+2600}
+ // 입력 전까지 대기 — 자동 해제(9초)는 안전장치일 뿐이다
+ el.classList.add('on');onbT=performance.now()+9000}
 function hideOnboard(){if(onbT){$('onb').classList.remove('on');onbT=0}}
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
