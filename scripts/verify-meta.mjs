@@ -88,13 +88,20 @@ try {
   ok('weekly mode selected', wb.mode==='weekly')
   ok('weekly board titled', /WEEKLY/.test(wb.title) && /THIS WEEK/.test(wb.sub), `${wb.title} / ${wb.sub}`)
 
-  // a fresh run submitted now must appear on the weekly board
+  // 주간 보드 경로 검증. 2026-07-28부터 DEV 제출은 QA 보드(2000-01-01)로 강제되므로
+  // '내 행이 주간 보드에 뜬다'로는 확인할 수 없다(그렇게 하려면 프로덕션에 써야 한다).
+  // 대신 ① 제출 경로가 살아있고 ② 주간 보드가 실제 데이터를 최신순으로 돌려주는지를 본다.
   await page.evaluate(() => window.__acc.setName('WEEK_QA'))
   const sub = await page.evaluate(() => window.__acc.LB.submit(4321, 9, 'INTERMEDIATE', 44, null, null))
   ok('submit ok', !!(sub && sub.ok), JSON.stringify(sub))
   await sleep(800)
-  const inWeek = await page.evaluate(async () => (await window.__acc.LB.topWeek(100)).some(r=>r.name==='WEEK_QA'))
-  ok('new run shows on the weekly board', inWeek===true)
+  const wkBoard = await page.evaluate(async () => {
+    const rows = await window.__acc.LB.topWeek(100)
+    return { n: rows.length, sorted: rows.every((r,i)=>i===0||rows[i-1].score>=r.score), qaLeak: rows.some(r=>/QA/.test(r.name||'')) }
+  })
+  ok('weekly board returns rows', wkBoard.n>0, `${wkBoard.n} rows`)
+  ok('weekly board is score-sorted', wkBoard.sorted===true)
+  ok('QA 제출이 주간 보드에 새지 않는다', wkBoard.qaLeak===false)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {

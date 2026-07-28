@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.0.1</div>
+<div class="credit">ACCRETION · prototype 3.0.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1097,6 +1097,9 @@ const LB={
  get name(){return (localStorage.getItem('acc_name')||'').replace(/[^\x20-\x7e]/g,'').trim().slice(0,16)},
  set name(v){try{localStorage.setItem('acc_name',String(v).slice(0,16))}catch(e){}},
  async submit(score,mass,tier,dur,day,modifier){
+  // DEV 모드(?dev=1)의 모든 제출은 QA 전용 날짜 보드로 강제한다.
+  // 자동 검증이 매 실행마다 실제 리더보드에 행을 쌓아 왔다(2026-07-28 감사에서 적발).
+  if(DEV)day=day||'2000-01-01'
   try{
    const r=await fetch(this.URL+'/functions/v1/accretion-submit',{method:'POST',headers:{'Content-Type':'application/json','apikey':this.KEY},body:JSON.stringify({name:this.name||'ANON',score,mass,tier,dur,day:day||null,modifier:modifier||null})})
    const j=await r.json().catch(()=>null)
