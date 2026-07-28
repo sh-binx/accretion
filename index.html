@@ -131,7 +131,7 @@
  #start .play{margin-top:clamp(12px,2.4vh,22px);pointer-events:auto;cursor:pointer;border-radius:0;
   display:flex;align-items:center;gap:clamp(8px,1vw,14px);
   background:rgba(255,107,61,.12);border:1px solid #FF6B3D;box-shadow:none;
-  padding:clamp(10px,1.5vh,15px) clamp(30px,4.6vw,58px);color:#FFCDB6;
+  padding:clamp(10px,1.5vh,15px) clamp(30px,4.6vw,58px);min-height:46px;color:#FFCDB6; /* 모바일 탭 영역 확보(가로에서 36px까지 줄던 것) */
   font-family:'Martian Mono',ui-monospace,monospace;font-weight:700;
   font-size:clamp(11px,1.16vw,15px);letter-spacing:.3em}
  #start .play:hover{background:rgba(255,107,61,.22);color:#fff}
@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.0</div>
+<div class="credit">ACCRETION · prototype 3.0.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1456,7 +1456,7 @@ if(DEV){window.__acc={
  boardOpen:()=>!$('board').classList.contains('off'),
  boardRows:()=>$('boardList').querySelectorAll('.brow').length,
  boardHTML:()=>$('boardList').innerHTML,
- submitRun:(s,m,t,d)=>LB.submit(s,m,t,d),
+ submitRun:(s,m,t,d,day)=>LB.submit(s,m,t,d,day), // day 지정 시 그 날짜 보드로만 — QA가 글로벌을 오염시키지 않게
  rowHTML:r=>'<span class="bn">'+esc(r.name)+'</span><span class="bt">'+esc(r.tier||'')+'</span>', // QA: 라이브 보드에 쓰지 않고 이스케이프만 검사
  setName:v=>{LB.name=v;$('pname').value=LB.name;return LB.name},
  rankText:()=>$('rankline').textContent

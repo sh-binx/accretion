@@ -33,7 +33,7 @@ try {
   ok('name persists across reload', persisted==='QA_PILOT', `got "${persisted}"`)
 
   // 2) valid submit → ok + rank
-  const sub = await page.evaluate(() => window.__acc.submitRun(1500, 5.5, 'INTERMEDIATE', 40))  // TODO: QA 전용 보드 분리 검토(현재 1행/실행)
+  const sub = await page.evaluate(() => window.__acc.submitRun(1500, 5.5, 'INTERMEDIATE', 40, '2000-01-01'))  // QA 전용 날짜 보드(2000-01-01)로 보낸다 — 글로벌은 day IS NULL만 집계하므로 오염되지 않는다
   ok('valid submit returns ok+rank', !!(sub && sub.ok && sub.rank>=1), JSON.stringify(sub))
 
   // 3) anti-cheat: instant huge score rejected (server responds ok:false + reason)
@@ -48,7 +48,9 @@ try {
   const html = await page.evaluate(() => window.__acc.boardHTML())
   ok('board overlay opens', bOpen===true)
   ok('board lists >=1 row', rows>=1, `rows=${rows}`)
-  ok('board contains submitted name', /QA_PILOT/.test(html))
+  // QA 제출은 2000-01-01 보드로 격리되므로 글로벌 보드에 뜨지 않는 것이 정상.
+  // 렌더 자체는 위의 'board lists >=1 row'가, 제출 성공은 'valid submit returns ok+rank'가 담당한다.
+  ok('QA 제출이 글로벌 보드를 오염시키지 않는다', !/QA_PILOT/.test(html))
 
   // 5) XSS escape — 렌더 함수를 직접 먹여 검사한다.
   //    예전엔 실제 제출로 확인했는데, (a) 라이브 리더보드에 매 실행마다 행이 쌓였고
