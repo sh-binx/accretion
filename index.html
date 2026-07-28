@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.9</div>
+<div class="credit">ACCRETION · prototype 3.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -411,13 +411,15 @@ for(const sx of [1,-1]){
  jets.add(jm)
 }
 jets.visible=false;hole.add(jets)
-function applyJets(){jets.visible=S.formIdx===2&&S.tierIdx>=3}
+function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
+ if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true;banner('☄ RELATIVISTIC JETS','your poles shred anything they sweep — no size limit')}
+ jets.visible=on}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
- {id:'rock',n:'PROTOSTAR',   max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ OUTFLOWS — FEED OR FADE',   rival:0.06},
- {id:'star',n:'MAIN SEQUENCE',max:20,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10},
- {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17}
+ {id:'rock',n:'PROTOSTAR',   max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ OUTFLOWS — FEED OR FADE',   rival:0.06,acc:1.0},
+ {id:'star',n:'MAIN SEQUENCE',max:20,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10,acc:0.68},
+ {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17,acc:1.0}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
 const accEffOf=m=>1/(1+Math.max(0,m-85)/500) // 에딩턴 한계는 '블랙홀의 성질' — 플레이어만 적용하면 적이 246배 빨리 큰다
@@ -849,7 +851,7 @@ function update(dt){
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
-   const eff=isMerge?mergeEffOf(S.mass):accEff()
+   const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1) // 형태별 강착 효율(항성은 복사압·항성풍으로 비효율)
    const gain=o.mass*(isMerge?0.45:0.62)*eff
    S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
@@ -890,7 +892,8 @@ function update(dt){
     S.grazeMax=Math.max(S.grazeMax||0,S.grazeChain)
     const gm=Math.min(S.grazeChain,6) // 연쇄가 길수록 보상↑ — 위험한 플레이가 곧 강해지는 플레이
     S.energy=Math.min(1,S.energy+0.16+gm*0.04);S.nmCount=(S.nmCount||0)+1;S.score+=bonus*(gm-1)
-    AU.nearMiss();popup(o.g.position,'GRAZE ×'+gm+'  +'+(bonus*gm)+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')}
+    AU.nearMiss();popup(o.g.position,'GRAZE ×'+gm+'  +'+(bonus*gm)+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')
+    if(!S.grazeSeen){S.grazeSeen=true;banner('◈ GRAZE','skim a bigger hole — closer pass, more energy')}}
   }
  }
 
@@ -1322,7 +1325,7 @@ function begin(){AU.unlock()
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
  S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
  for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
- S.boost=0
+ S.boost=0;S.grazeSeen=false;S.jetSeen=false
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
  S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
