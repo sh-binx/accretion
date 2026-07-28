@@ -90,6 +90,9 @@
   color:#7c88ad;background:rgba(16,22,44,.75);border:1px solid rgba(130,160,225,.22);border-radius:7px;padding:5px 11px}
  #surge.ready .act{color:#ffcf4a;border-color:rgba(255,207,74,.5)}
  #surge .act:hover{color:#eaf1ff;border-color:rgba(143,208,255,.55)}
+ /* 터치 기기 = 엄지 탭 영역 확보(23px → 44px 권장치). JS로 body.touch를 붙인다 */
+ body.touch #surge .act{min-height:44px;min-width:78px;padding:0 14px;font-size:11px;display:flex;align-items:center;justify-content:center}
+ body.touch #surge .acts{gap:12px}
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
  @keyframes sp{0%,100%{opacity:.55}50%{opacity:1}}
@@ -199,9 +202,9 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ DRAG</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.6</div>
+<div class="credit">ACCRETION · prototype 3.6.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1210,6 +1213,7 @@ function setZoneInstant(zi){const z=ZONES[Math.max(0,zi)];scene.fog.color.copy(z
 function applyZone(dt){const z=ZONES[zoneIdx()],k=Math.min(1,dt*0.7)
  scene.fog.color.lerp(z.fog,k);hemiLight.color.lerp(z.hemi,k);zoneLens+=(z.lens-zoneLens)*k}
 const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
+if(COARSE)document.body.classList.add('touch') // 터치 기기 = 엄지 탭 영역 확보(미디어 쿼리는 에뮬레이션에서 안 잡혀 JS 판정으로)
 // 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
 function doSurge(){
  if(!S.alive||S.surgeT>0||S.energy<1)return
@@ -1490,8 +1494,10 @@ function onboardTick(){ // 첫 런에만 단계별 힌트
 }
 function showOnboard(){const el=$('onb')
  if(COARSE){$('obMove').textContent='DRAG';$('obMove2').textContent='anywhere on screen'
-  el.querySelectorAll('.ob-r')[1].querySelector('b').textContent='DASH'
-  el.querySelectorAll('.ob-r')[2].querySelector('b').textContent='PULSE'
+  const r=el.querySelectorAll('.ob-r')                 // 화면 버튼명과 정확히 일치시킨다
+  r[1].querySelector('b').textContent='DASH'
+  r[2].querySelector('b').textContent='SPIN'
+  r[3].querySelector('b').textContent='WAVE'
   el.querySelector('.ob-h').textContent='tap to begin'}
  el.classList.add('on');onbT=performance.now()+2600}
 function hideOnboard(){if(onbT){$('onb').classList.remove('on');onbT=0}}
