@@ -91,8 +91,16 @@
  #surge.ready .act{color:#ffcf4a;border-color:rgba(255,207,74,.5)}
  #surge .act:hover{color:#eaf1ff;border-color:rgba(143,208,255,.55)}
  /* 터치 기기 = 엄지 탭 영역 확보(23px → 44px 권장치). JS로 body.touch를 붙인다 */
- body.touch #surge .act{min-height:44px;min-width:78px;padding:0 14px;font-size:11px;display:flex;align-items:center;justify-content:center}
- body.touch #surge .acts{gap:12px}
+ body.touch #surge .act{min-height:46px;min-width:84px;padding:0 12px;font-size:11px;display:flex;align-items:center;justify-content:center}
+ /* 모바일 = 오른손 엄지 사정권. 이동(조이스틱)은 왼쪽이므로 능력은 오른쪽에 세로로 모은다.
+    예전엔 하단 중앙이라 엄지가 닿기 멀고, 코덱스 문구와도 겹쳤다(실기 확인). */
+ body.touch #surge{left:auto;right:14px;bottom:14px;transform:none;align-items:flex-end;gap:8px}
+ body.touch #surge .acts{flex-direction:column;gap:8px;align-items:flex-end}
+ body.touch #surge .track{width:104px}
+ body.touch #surge .lab{display:none} /* 세로 바+버튼이 상태를 말한다. 우하단은 음소거 버튼 자리 */
+ /* 코덱스 문구는 오른쪽 클러스터를 피해 왼쪽으로 */
+ body.touch #codex{left:14px;right:auto;transform:none;max-width:min(60vw,420px);bottom:14px;text-align:left}
+ body.touch #feedwrap{left:14px;right:auto;transform:none}
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
  @keyframes sp{0%,100%{opacity:.55}50%{opacity:1}}
@@ -204,7 +212,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.8</div>
+<div class="credit">ACCRETION · prototype 3.8.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 

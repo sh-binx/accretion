@@ -14,17 +14,29 @@ for (const vp of [{width:1280,height:720},{width:1440,height:810},{width:844,hei
   await new Promise(r=>setTimeout(r,1600))
   const res = await p.evaluate(()=>{clearInterval(window.__t)
     // 화면에 실제로 '글자를 그리는' 요소만 리프 단위로 수집
+    const FORCE=['#mute','#surge .lab','#surge .track','#ribbon']  // 감사에서 빠지기 쉬운 요소는 명시적으로 포함
     const leaves=[...document.querySelectorAll('body *')].filter(e=>{
       const st=getComputedStyle(e)
       if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)<0.06)return false
-      if(!e.textContent||!e.textContent.trim())return false
-      if([...e.children].some(c=>c.textContent&&c.textContent.trim()))return false  // 텍스트를 직접 그리는 리프만
+      // 2026-07-29: 글자 없는 요소(서지 바·트랙)가 코덱스 문구를 덮은 걸 놓쳤다(실기에서 발견).
+      // 텍스트 리프 + '보이는 판'(배경/테두리를 가진 블록)을 함께 본다.
+      const st2=getComputedStyle(e)
+      const hasText=!!(e.textContent&&e.textContent.trim())
+      const isPanel=(st2.backgroundColor&&st2.backgroundColor!=='rgba(0, 0, 0, 0)')||st2.borderTopWidth!=='0px'
+      if(!hasText&&!isPanel)return false
+      if(e.textContent&&e.textContent.trim()&&[...e.children].some(c=>c.textContent&&c.textContent.trim()))return false
       const r=e.getBoundingClientRect()
       if(r.width<4||r.height<4)return false
+      // 전체 화면 오버레이(플래시·비네트·존 조명)는 '덮는 것이 목적'이므로 제외
+      if(r.width>=innerWidth*0.9&&r.height>=innerHeight*0.9)return false
       // 조상 중 숨겨진 것 제외
       for(let a=e.parentElement;a;a=a.parentElement){const s2=getComputedStyle(a)
         if(s2.display==='none'||s2.visibility==='hidden'||parseFloat(s2.opacity)<0.06)return false}
       return true})
+    for(const sel of FORCE){const e=document.querySelector(sel)
+      if(e&&!leaves.includes(e)){const st=getComputedStyle(e)
+        if(st.display!=='none'&&st.visibility!=='hidden'&&+st.opacity>=0.06){
+          const r=e.getBoundingClientRect(); if(r.width>2&&r.height>2)leaves.push(e)}}}
     const info=leaves.map(e=>({k:(e.id||e.className||e.tagName).toString().split(' ')[0],
       t:e.textContent.trim().slice(0,12),r:e.getBoundingClientRect()}))
     const ov=[]
