@@ -176,12 +176,23 @@
 #feedbar{height:4px;border-radius:3px;background:rgba(143,208,255,.16);overflow:hidden}
 #feedfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#4aa8e8,#9fe870);box-shadow:0 0 10px #6fd0ff;transition:width .06s linear}
 body:not(.playing) #feedwrap{opacity:0!important}
+#onb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
+ opacity:0;transition:opacity .28s;text-align:center;
+ background:rgba(6,8,14,.82);border:1px solid rgba(255,255,255,.14);padding:26px 40px;backdrop-filter:blur(3px)}
+#onb.on{opacity:1}
+#onb .ob-t{font-family:'Martian Mono',monospace;font-weight:500;font-size:9px;letter-spacing:.34em;color:#7E848C;margin-bottom:18px}
+#onb .ob-r{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:11px}
+#onb .ob-r b{font-family:'Martian Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.16em;color:#F4F7FA;min-width:96px}
+#onb .ob-r span{font-family:'Martian Mono',monospace;font-weight:300;font-size:9.5px;letter-spacing:.18em;color:#6C727A;min-width:112px;text-align:left}
+#onb .ob-r i{font-style:normal;font-family:'Martian Mono',monospace;font-weight:300;font-size:10px;letter-spacing:.24em;color:#FF6B3D;text-transform:uppercase}
+#onb .ob-h{font-family:'Martian Mono',monospace;font-weight:300;font-size:8.5px;letter-spacing:.26em;color:#4C5158;margin-top:16px;text-transform:uppercase}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
 <div id="apex"></div>
 <div id="combo"></div>
+<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>dash</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>pulse</i></div><div class="ob-h">press any key to begin</div></div>
 <div id="codex"></div>
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
@@ -190,7 +201,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.4</div>
+<div class="credit">ACCRETION · prototype 3.5</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -706,7 +717,8 @@ const typing=e=>/^(INPUT|TEXTAREA|SELECT)$/.test(e.target&&e.target.tagName)
 addEventListener('keydown',e=>{if(typing(e))return;keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
 addEventListener('keyup',e=>{keys[e.code]=0})
 function setMouse(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);mouseActive=true}}
-addEventListener('mousemove',e=>setMouse(e.clientX,e.clientY))
+// 마우스 조종은 제거했다(2026-07-28) — 시작 즉시 커서 위치로 끌려가 의도치 않게 움직였다.
+// 조작은 키보드(WASD·방향키)와 모바일 조이스틱뿐. setMouse는 DEV/자동화용으로만 남는다.
 const joyEl=$('joy'),joyThumb=$('joyThumb'),JOYR=52
 let joyOn=false,joyOx=0,joyOy=0,joyX=0,joyZ=0,joyMag=0
 function joyStart(t){joyOx=t.clientX;joyOy=t.clientY;joyEl.style.left=t.clientX+'px';joyEl.style.top=t.clientY+'px';joyEl.classList.remove('off');joyThumb.style.transform='translate(-50%,-50%)';joyOn=true}
@@ -754,7 +766,7 @@ function streamPart(x,z,nx,nz,col){ // 강착 흐름 입자 — 천체에서 뜯
  const tan=rnd(-1,1)*4.5          // 접선 성분 → 곧장 떨어지지 않고 나선을 그린다(각운동량)
  particles.push({s:sp,x,z,vx:nx*rnd(5,9)-nz*tan,vz:nz*rnd(5,9)+nx*tan,life:rnd(.3,.5),max:.5,sz:rnd(.35,.7)})
 }
-function popup(worldPos,txt,color){
+function popup(worldPos,txt,color){if(onbT)return // 인트로 중엔 팝업도 멈춘다
  const v=worldPos.clone().project(cam)
  let idx=popSlot.findIndex(x=>!x)
  if(idx<0){let oldest=0;for(let k=1;k<popSlot.length;k++)if(popSlot[k].seq<popSlot[oldest].seq)oldest=k
@@ -774,8 +786,10 @@ function popup(worldPos,txt,color){
   if(op<=0){clearInterval(iv);el.remove();if(popSlot[idx]&&popSlot[idx].el===el)popSlot[idx]=null}},16)
  popSlot[idx]={el,iv,seq:popSeq++};popLast=idx
 }
+let onbT=0
 let banT=0
-function banner(main,sub){$('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
+function banner(main,sub){if(onbT)return // 인트로 카드가 떠 있는 동안은 문구를 겹치지 않는다
+ $('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
 const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar']
@@ -818,7 +832,8 @@ function skinUnlocked(id){return CODEX.count()>=(SKINS[id]?SKINS[id].need:1e9)}
 function curSkin(){let id=null;try{id=localStorage.getItem('acc_skin')}catch(e){}return (id&&SKINS[id]&&skinUnlocked(id))?id:'void'}
 function applySkin(id){const s=SKINS[id]||SKINS.void;paintDisk(s.cA,s.cR);photon.material.color.set(s.ph)}
 let codexT=0
-function codexToast(type){if(!CODEX.discover(type))return // 새 발견만(영구 수집 — 이미 모은 건 조용히)
+function codexToast(type){if(!CODEX.discover(type))return // 발견은 항상 기록한다
+ if(onbT)return // 표시만 인트로 뒤로 미룬다(겹침 방지) // 새 발견만(영구 수집 — 이미 모은 건 조용히)
  const el=$('codex'),nu=CODEX.count(),tot=CODEX.total()
  if(el){el.innerHTML='<b>◆ CODEX '+nu+'/'+tot+' · '+(NAMES[type]||type)+'</b><span>'+(FACTS[type]||'')+'</span>';el.classList.add('on');codexT=performance.now()+3800}
  AU.ui()
@@ -877,6 +892,14 @@ function update(dt){
  hole.userData.disk.material.uniforms.uT.value+=dt;hole.userData.diskArc.material.uniforms.uT.value+=dt
  const mouth=hr*F.mouth*(surging?1.6:1) // 포식 반경(형태별) · 서지 중 확대
  // 객체 처리
+ // 중력 경쟁 — 같은 먹이를 두고 누가 이기는가는 그 지점에서의 중력 세기(M/r²)로 갈린다.
+ // 조석 지배(tidal dominance)와 같은 개념. 프레임마다 '가장 센 라이벌'을 미리 구해 둔다.
+ for(const o of objects){o.domR=0;o.domA=null
+  if(o.eaten||o.type==='rival')continue
+  for(const a2 of objects){if(a2===o||a2.eaten||a2.type!=='rival')continue
+   const ex=o.g.position.x-a2.g.position.x,ez=o.g.position.z-a2.g.position.z
+   const e2=Math.max(1,ex*ex+ez*ez), g2=a2.mass/e2
+   if(g2>o.domR){o.domR=g2;o.domA=a2}}}
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
   if(o.eaten){ // 먹은 주체 쪽으로 빨려든다 — 라이벌이 먹은 것까지 플레이어에게 날아오던 버그 수리
    const dst=(o.eatBy&&!o.eatBy.eaten&&objects.indexOf(o.eatBy)>=0)?o.eatBy.g.position:hole.position
@@ -904,6 +927,16 @@ function update(dt){
     // 흡수 중인 천체는 updateFeed가 위치·형태를 소유한다 — 여기서 끌어당기면 중심으로 빨려들어 플레이어를 덮는다
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
     const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp
+    // 조석 박리 — 로슈 한계 안쪽에서는 접촉 전에도 바깥층이 벗겨져 나온다. 세기는 조석력(∝1/r³).
+    // 단, 더 센 중력이 근처에 있으면 그쪽이 가져간다(중력 경쟁).
+    const myG=S.mass/Math.max(1,d*d)
+    if(myG>=o.domR&&o.mass>0.02){
+     const strip=Math.min(o.mass*0.5, o.mass*Math.pow(s,2.6)*1.15*dt)
+     if(strip>1e-6){
+      o.mass-=strip; o.r=rad(o.mass)
+      S.mass+=strip*0.62*accEff()*(FORMS[S.formIdx].acc||1)
+      if(!o.stripT||(o.stripT-=dt)<=0){o.stripT=0.09
+       streamPart(o.g.position.x-(dx/d)*o.r*0.5,o.g.position.z-(dz/d)*o.r*0.5,-(dx/d),-(dz/d),0xbfe0ff)}}}
     // ── 조석 늘어남(spaghettification) — 영향권에 들면 즉시 사라지지 않고 '늘어나며' 빨려든다.
     //    실제 조석파괴사건에서 천체는 가느다란 강착 흐름으로 찢겨 나선을 그리며 떨어진다.
     if(!o.eaten&&!(S.feed&&S.feed.o===o)){ // 흡수 중인 천체는 updateFeed가 형태를 소유한다
@@ -998,6 +1031,9 @@ function update(dt){
    const dd=Math.hypot(ddx,ddz)
    if(dd<reach+bq.r*0.6){
     const cap=S.mass*2.6 // 라이벌도 같은 에딩턴 한계. 상한은 '더 자라지 않음'이지 '줄어듦'이 아니다(Math.min이 깎던 버그)
+    const pdx=bq.g.position.x-hole.position.x,pdz=bq.g.position.z-hole.position.z
+    const myG2=S.mass/Math.max(1,pdx*pdx+pdz*pdz), itsG=a.mass/Math.max(1,dd*dd)
+    if(myG2>itsG)continue // 내 중력이 더 세면 라이벌은 못 가져간다(중력 경쟁)
     if(a.mass<cap&&!(a.jetStun>0))a.mass=Math.min(a.mass+bq.mass*0.4*accEffOf(a.mass),cap) // 원반이 날아갔으면 못 먹는다
     a.r=rad(a.mass);a.g.scale.setScalar(a.r*1.15)
     bq.eaten=true;bq.eatT=0.28;bq.eatBy=a // 이 라이벌에게 빨려들게
@@ -1125,6 +1161,7 @@ function hud(){
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='scale('+(1+Math.min(S.combo,24)*0.02)+')'}
+ if(onbT&&performance.now()>onbT)hideOnboard()
  if(performance.now()>banT)$('banner').style.opacity=0
  if(performance.now()>codexT)$('codex').classList.remove('on')
  const su=$('surge');su.classList.toggle('on',S.alive)
@@ -1428,7 +1465,15 @@ function onboardTick(){ // 첫 런에만 단계별 힌트
  if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
   if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
 }
-function begin(){AU.unlock();PORTAL.gameplayStart()
+function showOnboard(){const el=$('onb')
+ if(COARSE){$('obMove').textContent='DRAG';$('obMove2').textContent='anywhere on screen'
+  el.querySelectorAll('.ob-r')[1].querySelector('b').textContent='DASH'
+  el.querySelectorAll('.ob-r')[2].querySelector('b').textContent='PULSE'
+  el.querySelector('.ob-h').textContent='tap to begin'}
+ el.classList.add('on');onbT=performance.now()+2600}
+function hideOnboard(){if(onbT){$('onb').classList.remove('on');onbT=0}}
+addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
+function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false // 진화 아크 리셋 — 미행성으로 시작
@@ -1553,6 +1598,9 @@ if(DEV){window.__acc={
  setInv:v=>{S.invT=v},
  maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)),
  boost:()=>S.boost||0,
+ dominance:()=>objects.filter(o=>!o.eaten&&o.type!=='rival').map(o=>({m:+o.mass.toFixed(2),
+  mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
+ onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
  feedObj:()=>{if(!S.feed)return null;const o=S.feed.o
   return {sx:+o.g.scale.x.toFixed(2),sy:+o.g.scale.y.toFixed(2),base:+(o.r*1.15).toFixed(2),
