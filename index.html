@@ -190,7 +190,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 2.8.1</div>
+<div class="credit">ACCRETION · prototype 2.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -660,6 +660,12 @@ function gainPop(worldPos,amount){
  popup(worldPos,'+'+fmtBig(amount)+(S.combo>1?'  ×'+S.combo:''),S.combo>4?'#ffcf4a':'#9fe870')
  gainSlot=popLast;gainEl=popSlot[popLast]?popSlot[popLast].el:null
 }
+function streamPart(x,z,nx,nz,col){ // 강착 흐름 입자 — 천체에서 뜯겨 나와 블랙홀로 흘러든다(기존 파티클 시스템 재사용)
+ if(particles.length>140)return   // 프레임 보호
+ const sp=getP();sp.material.color.setHex(col);sp.material.opacity=0.9
+ const tan=rnd(-1,1)*4.5          // 접선 성분 → 곧장 떨어지지 않고 나선을 그린다(각운동량)
+ particles.push({s:sp,x,z,vx:nx*rnd(5,9)-nz*tan,vz:nz*rnd(5,9)+nx*tan,life:rnd(.3,.5),max:.5,sz:rnd(.35,.7)})
+}
 function popup(worldPos,txt,color){
  const v=worldPos.clone().project(cam)
  let idx=popSlot.findIndex(x=>!x)
@@ -805,9 +811,20 @@ function update(dt){
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
+   const base=o.r*1.15
    if(d>0.01&&d<pull){const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김 → near-miss도 포획(가장자리도 유효)
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
-    const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp}} // 중력권 들면 표류 속도 감쇠 → 스쳐도 빠져나가지 못하고 빨려듦
+    const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp
+    // ── 조석 늘어남(spaghettification) — 영향권에 들면 즉시 사라지지 않고 '늘어나며' 빨려든다.
+    //    실제 조석파괴사건에서 천체는 가느다란 강착 흐름으로 찢겨 나선을 그리며 떨어진다.
+    if(!o.eaten){
+     const st=Math.pow(s,1.5) // 가까울수록 급격히 늘어난다(조석력 ∝ 1/r³)
+     o.g.rotation.y=Math.atan2(-dz,dx)            // 늘어나는 축 = 블랙홀 방향
+     o.g.scale.set(base*(1+st*1.35),base*(1-st*0.34),base*(1-st*0.34))
+     if(st>0.30&&(o.strT=(o.strT||0)-dt)<=0){o.strT=0.07+Math.random()*0.06
+      // 흐름 입자 — 천체에서 떨어져 나와 블랙홀로 흘러든다
+      streamPart(o.g.position.x-(dx/d)*o.r*0.6,o.g.position.z-(dz/d)*o.r*0.6,-(dx/d),-(dz/d),o.type==='rival'?0xffb070:0x9fd8ff)}}
+   } else if(!o.eaten&&o.g.scale.x!==base){o.g.rotation.y=0;o.g.scale.setScalar(base)}} // 영향권 밖 → 원래 형태로
   else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24}
   else if(crush){h.material.color.setHex(0xffa83c);h.material.opacity=0.5+Math.sin(S.t*7)*0.2} // 충돌 위험(부서짐)
   else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
