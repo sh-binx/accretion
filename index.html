@@ -192,16 +192,16 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
 <div id="apex"></div>
 <div id="combo"></div>
-<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>dash</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>pulse</i></div><div class="ob-h">press any key to begin</div></div>
+<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-h">press any key to begin</div></div>
 <div id="codex"></div>
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULSE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ DRAG</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.5</div>
+<div class="credit">ACCRETION · prototype 3.6</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -792,9 +792,9 @@ function banner(main,sub){if(onbT)return // 인트로 카드가 떠 있는 동�
  $('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -817,7 +817,9 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  collision:'Planetesimals shatter when they strike something bigger — that rubble became the asteroid belt.',
  ultramassive:'TON 618 holds roughly 66 billion Suns — its shadow would swallow our solar system many times over.',
  tde:'Swallowing a star is slow — a tidal disruption event feeds a black hole for months, even years.',
- protostar:'A star is never gathered from rock. A cloud of gas collapses, and the core glows from its own contraction long before fusion begins.'}
+ protostar:'A star is never gathered from rock. A cloud of gas collapses, and the core glows from its own contraction long before fusion begins.',
+ gwave:'Merging black holes radiate energy as ripples in spacetime itself — LIGO first caught one in 2015, from a merger 1.3 billion light years away.',
+ framedrag:'A spinning black hole drags spacetime around with it. Nearby matter cannot stay still — it is forced to orbit.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -1215,20 +1217,41 @@ function doSurge(){
  const st=steer();let dx=st.x,dz=st.z
  if(st.mag<0.05){const vl=Math.hypot(S.vx,S.vz);if(vl>0.2){dx=S.vx/vl;dz=S.vz/vl}else dz=-1} // 입력 없으면 진행방향(정지면 화면 위)
  const l=Math.hypot(dx,dz)||1;S.vx+=dx/l*26;S.vz+=dz/l*26 // 임펄스
- S.shake=Math.min(S.shake+0.6,1.3);AU.surge();banner('⚡ SLINGSHOT','gravity assist — lunge')
+ S.shake=Math.min(S.shake+0.6,1.3);AU.surge();banner('⚡ RECOIL KICK','anisotropic gravitational waves kick you')
  eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
 }
 
+function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
+ // 그 파동은 주변 물질의 궤도를 흐트러뜨린다. 위협을 밀어내고 라이벌의 강착을 끊는 용도.
+ if(!S.alive||S.surgeT>0||S.energy<1)return
+ S.energy=0;S.waveCount=(S.waveCount||0)+1;S.invT=Math.max(S.invT,0.5)
+ const hr=rad(S.mass),R=hr*9.5
+ for(const o of objects){if(o.eaten)continue
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
+  if(d>R)continue
+  const f=(1-d/R)
+  o.vx+=dx/d*f*46;o.vz+=dz/d*f*46                 // 궤도 속도를 흐트러뜨리고
+  const push=d*f*0.55                              // 파면이 지나간 자리만큼 실제로 밀려난다
+  o.g.position.x+=dx/d*push;o.g.position.z+=dz/d*push
+  o.nmCd=Math.max(o.nmCd||0,0.35)                  // 밀린 직후엔 다시 빨려들지 않게 잠깐
+  if(o.type==='rival')o.jetStun=Math.max(o.jetStun||0,1.6) // 라이벌의 강착 원반이 흔들려 잠시 못 먹는다
+ }
+ shock.position.copy(hole.position);shock.visible=true;shockT=0   // 팽창하는 파면
+ S.shake=Math.min(S.shake+0.9,1.5);AU.boom();AU.surge()
+ eatBurst(hole.position.x,hole.position.z,0xb0a0ff,22)
+ banner('◎ GRAVITATIONAL WAVE','spacetime rings — orbits scatter');codexToast('gwave')
+}
 function doPulse(){ // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
  if(!S.alive||S.surgeT>0||S.energy<1)return
- S.energy=0;S.invT=Math.max(S.invT,0.6);S.pulseCount=(S.pulseCount||0)+1
+ S.energy=0;S.invT=Math.max(S.invT,0.4);S.pulseCount=(S.pulseCount||0)+1
  const hr=rad(S.mass),R=hr*7.5,isBH=S.formIdx===2
  for(const o of objects){ if(o.eaten)continue
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
   if(d>R)continue
   const eat=o.type!=='rival'?(isBH||o.mass<S.mass):(isBH&&o.mass<S.mass)
-  if(eat){o.g.position.x-=dx/d*d*0.8;o.g.position.z-=dz/d*d*0.8;o.vx*=0.15;o.vz*=0.15} // 먹이를 입 앞으로
-  else{o.vx+=dx/d*30;o.vz+=dz/d*30}                                                     // 위협은 밀어냄
+  // 프레임 드래깅은 '끌어들이는' 현상이다 — 밀어내지 않는다(밀어내는 건 중력파 쪽으로 분리했다)
+  if(eat){o.g.position.x-=dx/d*d*0.8;o.g.position.z-=dz/d*d*0.8;o.vx*=0.15;o.vz*=0.15
+   const tx=-dz/d,tz=dx/d;o.vx+=tx*9;o.vz+=tz*9}                                         // 접선 성분 = 함께 공전시킨다
  }
  S.shake=Math.min(S.shake+0.75,1.3);AU.surge();AU.boom()
  eatBurst(hole.position.x,hole.position.z,0x9fd0ff,24)
@@ -1480,7 +1503,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
- S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
+ S.waveCount=0;S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
  for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
  S.boost=0;S.grazeSeen=false;S.jetSeen=false
  S.jetStunSeen=false
@@ -1530,10 +1553,10 @@ function refreshDailyBtn(){const m=todayMod(),el=$('ribbonTxt');if(el)el.innerHT
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
-$('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()} // 모바일/클릭
+$('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse()})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave()})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -1600,6 +1623,7 @@ if(DEV){window.__acc={
  boost:()=>S.boost||0,
  dominance:()=>objects.filter(o=>!o.eaten&&o.type!=='rival').map(o=>({m:+o.mass.toFixed(2),
   mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
+ doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
  feedObj:()=>{if(!S.feed)return null;const o=S.feed.o
