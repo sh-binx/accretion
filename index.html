@@ -204,7 +204,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.6.1</div>
+<div class="credit">ACCRETION · prototype 3.7</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -406,6 +406,10 @@ hole.add(pStar)
 // 탑다운 게임이라 축을 '플레이 평면(±X)'에 눕힌다 — 보이는 빔과 판정 영역을 정확히 일치시키기 위함.
 const JET_LEN=9, JET_TIP=0.62, JET_BASE=0.14
 let jetFlash=0
+// 먹은 방향의 누적 평균 — 이것이 자전축의 목표가 된다(강착 원반 각운동량)
+function noteFeedDir(dx,dz){const l=Math.hypot(dx,dz)||1
+ S.spinX=(S.spinX||0)*0.88+(dx/l)*0.12; S.spinZ=(S.spinZ||0)*0.88+(dz/l)*0.12
+ if(Math.hypot(S.spinX,S.spinZ)>0.12)S.spinTarget=Math.atan2(-S.spinZ,S.spinX)}
 const jets=new THREE.Group()
 for(const sx of [1,-1]){
  const jg=new THREE.CylinderGeometry(JET_TIP,JET_BASE,JET_LEN,18,1,true) // 끝으로 갈수록 벌어지는 collimated 빔
@@ -453,6 +457,57 @@ for(let i=0;i<DUSTN;i++){dustPos[i*3]=rnd(-DUSTR,DUSTR);dustPos[i*3+1]=rnd(-26,2
 const dustGeo=new THREE.BufferGeometry();dustGeo.setAttribute('position',new THREE.BufferAttribute(dustPos,3))
 const dust=new THREE.Points(dustGeo,new THREE.PointsMaterial({color:0xa8c0e8,size:0.72,transparent:true,opacity:0.55,sizeAttenuation:true,map:STAR_TEX,alphaTest:0.04,depthWrite:false}))
 scene.add(dust)
+// ── 우주 자(cosmic ruler) — 월드 좌표에 고정된 격자.
+// 성장 체감이 없던 근본 원인: 크기를 판단할 기준이 '같이 커지는 먹이'뿐이었다(실측 먹이/나 비율 0.40→0.54).
+// 절대 스케일이 고정된 배경을 두면 카메라가 물러날수록 칸이 촘촘해져 성장이 눈으로 읽힌다.
+const GRID_CELL=26                                   // 한 칸 = 26 월드 단위(초반 화면 반높이가 ~13이라 한 칸이 화면을 넘는다)
+const gridTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d')
+ x.clearRect(0,0,128,128)
+ x.strokeStyle='rgba(150,180,235,0.85)';x.lineWidth=2.2
+ x.beginPath();x.moveTo(0.5,0);x.lineTo(0.5,128);x.moveTo(0,0.5);x.lineTo(128,0.5);x.stroke()
+ x.fillStyle='rgba(180,210,255,0.8)';x.fillRect(62,62,4,4)   // 교차점 표식
+ const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4000,4000)
+ t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter // 밉맵이 켜지면 멀어질수록 선이 사라져 기준자 구실을 못한다
+ return t})()
+const gridMesh=new THREE.Mesh(new THREE.PlaneGeometry(GRID_CELL*4000,GRID_CELL*4000),
+ new THREE.MeshBasicMaterial({map:gridTex,transparent:true,opacity:0.34,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}))
+gridMesh.rotation.x=-Math.PI/2;gridMesh.position.y=-1.2;gridMesh.renderOrder=-1
+scene.add(gridMesh)
+// ── 은하 중심 — 크기가 고정된 유일한 천체. 초반에는 화면을 넘고, 성장하면 작아 보이며, 끝에 삼킨다.
+// 절대 기준자이자 후반 목표. 실제 Sgr A*는 태양 430만 배로, 게임 마일스톤과 같은 값을 쓴다.
+const CORE_MASS=4.3e6
+const galCore=new THREE.Group()
+{const cr=rad(CORE_MASS)*0.62
+ galCore.add(new THREE.Mesh(new THREE.SphereGeometry(cr,28,20),new THREE.MeshBasicMaterial({color:0x000000,fog:false})))
+ const gd=new THREE.Mesh(new THREE.RingGeometry(cr*1.35,cr*3.1,180,1),diskMat(0.9,false))
+ gd.rotation.x=Math.PI*0.5-0.26;galCore.add(gd);galCore.userData.disk=gd
+ const gp=new THREE.Mesh(new THREE.RingGeometry(cr*1.05,cr*1.14,140),
+   new THREE.MeshBasicMaterial({color:0xffeed0,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,side:THREE.DoubleSide,fog:false}))
+ gp.renderOrder=6;galCore.add(gp);galCore.userData.photon=gp
+ galCore.add(glow(0xffc890,cr*7,0.5))
+}
+galCore.visible=false;scene.add(galCore)
+let coreEaten=false
+function placeCore(){ // 플레이어에서 충분히 떨어진 고정 좌표 — 성장해야 닿는다
+ galCore.position.set(0,0,-rad(CORE_MASS)*9)
+ galCore.visible=true;coreEaten=false}
+function updateCore(dt){
+ if(!galCore.visible||coreEaten)return
+ galCore.userData.disk.material.uniforms.uT.value+=dt*0.35
+ galCore.userData.photon.quaternion.copy(cam.quaternion)
+ const dx=galCore.position.x-hole.position.x,dz=galCore.position.z-hole.position.z
+ const d=Math.hypot(dx,dz)||1, cr=rad(CORE_MASS)*0.62, hr2=rad(S.mass)
+ if(d<cr+hr2*1.9){
+  if(S.mass>=CORE_MASS*0.55){ // 충분히 커졌으면 삼킨다 — 게임의 종착점
+   coreEaten=true;galCore.visible=false
+   S.mass+=CORE_MASS*0.45*mergeEffOf(S.mass);S.score+=Math.round(CORE_MASS*0.02)
+   supernova();banner('★ GALACTIC CORE','you swallowed the heart of a galaxy');AU.tierUp()
+   eatBurst(hole.position.x,hole.position.z,0xffd9a0,40);codexToast('supermassive')
+  } else if(S.invT<=0){ codexToast('devoured');gameOver('eaten',CORE_MASS) }
+ }
+}
+
+
 
 /* ===== object pool ===== */
 const ROCK=new THREE.IcosahedronGeometry(1,0)
@@ -522,6 +577,7 @@ function updateFeed(dt){
    eatBurst(hole.position.x,hole.position.z,0xffd9a0,26)
    popup(hole.position,'DEVOURED','#ffcf4a')}
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
+  {const fdx=o.g.position.x-hole.position.x,fdz=o.g.position.z-hole.position.z;noteFeedDir(fdx,fdz)}
   gainPop(hole.position,total);codexToast(o.type)
   S.feed=null
  }
@@ -697,6 +753,25 @@ const PORTAL={
  }
 }
 PORTAL.init()
+
+/* ===== 질량 비교 마일스톤 — 숫자만으로는 규모가 안 와닿는다. 실제 천체와 대조한다. ===== */
+const MASS_MARKS=[
+ {m:1,      n:'THE SUN',        d:'you now weigh as much as our star'},
+ {m:21,     n:'CYGNUS X-1',     d:'the first black hole humanity ever identified'},
+ {m:200,    n:'R136a1',         d:'heavier than the heaviest star known'},
+ {m:1500,   n:'INTERMEDIATE',   d:'the rare missing link — few are confirmed'},
+ {m:20000,  n:'CLUSTER CORE',   d:'heavier than a globular cluster\'s heart'},
+ {m:150000, n:'DWARF GALAXY',   d:'the scale of a dwarf galaxy\'s central hole'},
+ {m:4.3e6,  n:'SAGITTARIUS A*', d:'our own galaxy\'s black hole — 4.3 million Suns'},
+ {m:6.5e9,  n:'M87*',           d:'the first black hole ever photographed'},
+ {m:6.6e10, n:'TON 618',        d:'the largest known — 66 billion Suns'}
+]
+function checkMassMarks(){
+ while(S.markIdx<MASS_MARKS.length&&S.mass>=MASS_MARKS[S.markIdx].m){
+  const k=MASS_MARKS[S.markIdx++]
+  banner('▲ '+k.n,k.d);AU.tierUp();S.score+=Math.round(S.mass*0.4)
+ }
+}
 
 /* ===== state ===== */
 const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0}
@@ -886,6 +961,7 @@ function update(dt){
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1)*F.shrink
  if(!S.feed)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
+ checkMassMarks()
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
@@ -989,6 +1065,7 @@ function update(dt){
    S.shake=Math.min(S.shake+Math.min(0.5,o.mass*0.12)+Math.min(S.combo,20)*0.01,1.1);AU.eat(S.combo)
    eatBurst(o.g.position.x,o.g.position.z,o.type==='star'?0xfff0c0:(o.type==='rival'?0xff9a5a:0x9fe870),6+Math.min(8,Math.round(o.mass)))
    S.boost=Math.min(0.6,(S.boost||0)+0.17) // 포식 가속 — 물질이 들어오면 빨라진다
+   noteFeedDir(dx,dz) // 먹은 방향이 자전축을 끌어당긴다(바딘–패터슨)
    gainPop(o.g.position,gain) // 연속 포식은 하나로 합산
    codexToast(o.type) // 처음 먹은 천체 → 과학 팩트
    continue}
@@ -1048,7 +1125,15 @@ function update(dt){
  }
  // 제트: 회전하며 축선상의 먹이를 삼킨다(QUASAR+)
  if(jets.visible){
-  jets.rotation.y+=dt*0.16 // 세차운동(Lense-Thirring) — 축이 천천히 흔들린다. 등대처럼 도는 건 펄서지 퀘이사가 아니다
+  // 제트 축은 멈춰 있다(오너 지적 — 실제로 자전축은 안정적이다).
+  // 조준은 '먹는 방향'으로 한다: 바딘–패터슨 효과 — 강착 원반의 토크가 블랙홀 자전축을
+  // 원반 각운동량 쪽으로 서서히 정렬시킨다. 즉 오른쪽에서 계속 먹으면 축이 그쪽으로 선다.
+  if(S.spinTarget!=null){
+   let dth=S.spinTarget-jets.rotation.y
+   while(dth>Math.PI)dth-=Math.PI*2; while(dth<-Math.PI)dth+=Math.PI*2
+   const step=Math.sign(dth)*Math.min(Math.abs(dth),dt*0.55)   // 정렬은 느리다 — 즉시 조준이 아니라 '누적된 식사 방향'
+   jets.rotation.y+=step
+  }
   if(jetFlash>0)jetFlash-=dt
   for(const jm of jets.children)jm.material.opacity=jetFlash>0?0.92:0.5
   const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
@@ -1193,7 +1278,7 @@ function frame(now){requestAnimationFrame(frame)
 requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- updateFX(dt);update(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
+ updateFX(dt);update(dt);updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
@@ -1512,7 +1597,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  S.waveCount=0;S.nmCount=0;S.wormCount=0;S.surgeCount=0;S.remCount=0;S.crashCount=0;S.nebCount=0;S.pulseCount=0 // 업적용 런 카운터
  for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
  S.boost=0;S.grazeSeen=false;S.jetSeen=false
- S.jetStunSeen=false
+ placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
  S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
@@ -1630,6 +1715,10 @@ if(DEV){window.__acc={
  dominance:()=>objects.filter(o=>!o.eaten&&o.type!=='rival').map(o=>({m:+o.mass.toFixed(2),
   mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
+ coreState:()=>({visible:galCore.visible,eaten:coreEaten,dist:+galCore.position.distanceTo(hole.position).toFixed(1),mass:CORE_MASS}),
+ spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
+ massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
+ gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
  feedObj:()=>{if(!S.feed)return null;const o=S.feed.o
