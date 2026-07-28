@@ -204,7 +204,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.7</div>
+<div class="credit">ACCRETION · prototype 3.8</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -524,11 +524,48 @@ function mkVisual(type,mass){
  else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
  else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
   for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
+ // ── 티어별 주민 — 실루엣을 갈라야 색이 비슷해도 구분된다(오너: "천체가 뻔하다") ──
+ else if(type==='comet'){ // 혜성 — 핵은 작고 꼬리가 길다. 태양풍에 밀려 항상 바깥을 향한다.
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.45,12,9),new THREE.MeshStandardMaterial({color:0xdff0ff,roughness:.6,emissive:0x8fd0ff,emissiveIntensity:.5})))
+  const tg=new THREE.ConeGeometry(0.5,4.2,10,1,true);tg.translate(0,2.3,0);tg.rotateZ(Math.PI)
+  const tm=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.34,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}))
+  tm.rotation.z=rnd(-0.5,0.5);g.add(tm);g.userData.tail=tm}
+ else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
+  const col=new THREE.Color().setHSL(rnd(0.06,0.13),0.55,0.62)
+  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.8,emissive:col,emissiveIntensity:.35})))
+  const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,48),new THREE.MeshBasicMaterial({color:0xe8dcc0,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}))
+  rg.rotation.x=Math.PI*0.5-rnd(0.15,0.5);g.add(rg)}
+ else if(type==='redgiant'){ // 적색거성 — 크고 어둡고 부풀어 있다
+  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:0xff6a3a})));g.add(glow(0xff5a2a,5.6,0.55))}
+ else if(type==='whitedwarf'){ // 백색왜성 — 지구만 한 크기에 태양급 질량. 작고 지독하게 밝다.
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.38,14,10),new THREE.MeshBasicMaterial({color:0xffffff})));g.add(glow(0xdfeaff,3.2,1))}
+ else if(type==='binary'){ // 쌍성계 — 둘이 서로 돈다. 실루엣이 가장 확실하게 다르다.
+  const c1=0xffd27a,c2=0x9fc0ff
+  const a1=new THREE.Mesh(new THREE.SphereGeometry(0.62,14,10),new THREE.MeshBasicMaterial({color:c1}))
+  const a2=new THREE.Mesh(new THREE.SphereGeometry(0.46,14,10),new THREE.MeshBasicMaterial({color:c2}))
+  a1.position.x=-0.62;a2.position.x=0.78;g.add(a1,a2)
+  g.add(glow(c1,3.2,0.5));g.userData.pair=[a1,a2]}
+ else if(type==='cluster'){ // 성단 — 하나가 아니라 무리다
+  for(let i=0;i<14;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(rnd(0.14,0.3),8,6),
+    new THREE.MeshBasicMaterial({color:[0xfff0d0,0xffd27a,0xbfd8ff][i%3]}))
+   sm.position.set(rnd(-1,1),rnd(-0.3,0.3),rnd(-1,1));g.add(sm)}
+  g.add(glow(0xffe8c0,4.4,0.42))}
  else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
   const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
   const rgl=glow(0xff5a2a,4,0.55);g.add(rgl);g.userData.rdisk=d;g.userData.rglow=rgl} // 원반·글로우를 런타임에 위협/먹이 색으로 칠한다
  const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
  return g}
+// 질량 규모마다 우주의 주민이 다르다. 같은 상대 크기라도 정체가 바뀌면 '진급'이 체감된다.
+function foodTable(){
+ const f=S.formIdx,t=S.tierIdx
+ if(f===0)return ['rock','rock','comet']                                  // 원시별 — 먼지·미행성·혜성
+ if(f===1)return ['rock','planet','giant','star','comet']                        // 주계열성 — 암석·가스 거인
+ if(t<=0) return ['planet','giant','star','whitedwarf','redgiant']               // 항성질량 — 별의 시체들
+ if(t===1)return ['whitedwarf','redgiant','binary','giant']               // 중간질량 — 쌍성계 등장
+ if(t===2)return ['binary','cluster','redgiant']                          // 초대질량 — 성단을 먹는다
+ return ['cluster','binary','cluster']                                    // 퀘이사·극대질량 — 성단이 주식
+}
+function pickFood(){const t=foodTable();return t[Math.floor(Math.random()*t.length)]}
 function spawnObj(type,mass,x,z){
  const g=mkVisual(type,mass);const r=rad(mass)
  g.scale.setScalar(r*((type==='neutron'||type==='pulsar')?0.72:1.15)) // 중성자별·펄서는 초고밀도라 작게(먹기 판정은 질량 기준 동일)
@@ -542,7 +579,8 @@ function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)obje
 /* ===== 점진 흡수(TDE) — 큰 먹이는 시간이 걸린다. 그동안 느려지고 무방비가 된다 ===== */
 function startFeed(o,rel){
  const bh=S.formIdx===2
- S.feed={o,dur:bh?0.4+1.3*Math.min(1.8,rel):0.2+0.5*Math.min(1.2,rel),t:0,total:o.mass,given:0}
+ // 지속 25% 단축(오너 판단: 시간이 걸리는 건 유지하되 대기가 길면 답답하다)
+ S.feed={o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0}
  popup(o.g.position,'DEVOURING…','#8fd0ff');codexToast('tde')
 }
 function cancelFeed(){S.feed=null}
@@ -870,9 +908,9 @@ function banner(main,sub){if(onbT)return // 인트로 카드가 떠 있는 동�
  $('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -897,7 +935,13 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  tde:'Swallowing a star is slow — a tidal disruption event feeds a black hole for months, even years.',
  protostar:'A star is never gathered from rock. A cloud of gas collapses, and the core glows from its own contraction long before fusion begins.',
  gwave:'Merging black holes radiate energy as ripples in spacetime itself — LIGO first caught one in 2015, from a merger 1.3 billion light years away.',
- framedrag:'A spinning black hole drags spacetime around with it. Nearby matter cannot stay still — it is forced to orbit.'}
+ framedrag:'A spinning black hole drags spacetime around with it. Nearby matter cannot stay still — it is forced to orbit.',
+ comet:'The tail always points away from the star, not backwards along its path — solar wind blows it outward.',
+ giant:'Jupiter is 318 Earths, yet still 1000 times lighter than the Sun. Gas giants never grew heavy enough to ignite.',
+ redgiant:'When a star exhausts its hydrogen it swells enormously. The Sun will one day swell past the orbit of Earth.',
+ whitedwarf:'An Earth-sized ember with the mass of a star — one teaspoon would weigh about a tonne.',
+ binary:'Most stars are not alone. Over half the points of light you see are two or more stars orbiting each other.',
+ cluster:'A globular cluster packs hundreds of thousands of stars into a ball a few dozen light years across.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -934,10 +978,9 @@ function topUp(){const cap=S.formIdx===2?Math.max(30,46-Math.log10(Math.max(10,S
   let mass,type
   if(roll<rivalP){mass=S.mass*rnd(0.55,1.5+tt*0.18);type='rival'}                                      // 라이벌 — 범위 압축(먹을 수 있는 비율↑·화면을 덮는 거대함↓)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
-  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?2.8:2.4);mass=S.mass*rel                                     // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
-   type=rel<1.5?'planet':'star'}
-  else{const rel=rnd(0.12,0.82);mass=S.mass*rel                                                         // 식량 — 타입은 **상대 크기**로 결정
-   type=rel<0.30?'rock':(rel<0.62?'planet':'star')}                                                     // (절대질량 기준이면 커질수록 전부 star가 돼 화면이 창백해짐)
+  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?2.8:2.4);mass=S.mass*rel;type=pickFood()}  // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
+  else{mass=S.mass*rnd(0.12,0.82);type=pickFood()}                                                      // 식량 — 종류는 '티어별 주민 표'에서 뽑는다
+                                                                                                        // (예전엔 상대 크기로 rock/planet/star만 골라, 6만 배를 자라도 얼굴이 안 바뀌었다)
   spawnObj(type,Math.max(0.2,mass))}}
 
 /* ===== core update ===== */
@@ -1039,6 +1082,7 @@ function update(dt){
    if(rd){rd.material.color.setHex(0xff8a44);rd.material.opacity=threat?0.98:0.8}
    if(rg)rg.material.color.setHex(threat?0xff3020:0x66e84a)} // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
 
+  if(o.g.userData.pair)o.g.rotation.y+=dt*1.5 // 쌍성계는 서로 공전한다
   if(o.nmCd>0)o.nmCd-=dt
   if(o.jetStun>0){o.jetStun-=dt
    const rd0=o.g.userData.rdisk;if(rd0)rd0.material.opacity=0.16+Math.sin(S.t*14)*0.06 // 원반이 흩어진 상태

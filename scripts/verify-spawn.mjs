@@ -20,7 +20,9 @@ async function survey(mass) {
     // 필드를 비우고 이 질량 기준으로 3회 리필해 합산 — 라이벌 비중이 낮아 단발 표본은 흔들림
     let info = []
     for (let r=0;r<3;r++){ A.clearObjs(); A.setMass(m); A.step(0.1); info = info.concat(A.objInfo()) }
-    const planets = info.filter(o => o.t==='planet')
+    // 2026-07-29: 티어별 주민 표 도입으로 초반에는 행성이 아니라 먼지·암석·혜성이 나온다.
+    // 단정의 의도는 "초반에 먹을 게 충분한가"이므로 특정 종류가 아니라 '먹을 수 있는 먹이'로 본다.
+    const planets = info.filter(o => o.t!=='rival')
     const nonRival = info.filter(o => o.t!=='rival')
     return {
       n: info.length,
@@ -39,8 +41,8 @@ try {
 
   const early = await survey(1.2)
   const mid   = await survey(5)
-  ok('early game spawns planets', early.planets>=3, `planets=${early.planets}/${early.n}`)
-  ok('early planets are edible', early.ediblePlanets>=3, `ediblePlanets=${early.ediblePlanets}`)
+  ok('초반에 먹이가 충분히 나온다', early.planets>=3, `먹이=${early.planets}/${early.n}`)
+  ok('초반 먹이는 먹을 수 있다', early.ediblePlanets>=3, `가식 먹이=${early.ediblePlanets}`)
   ok('mid game spawns planets', mid.planets>=3, `planets=${mid.planets}/${mid.n}`)
   ok('mid planets are edible', mid.ediblePlanets>=3, `ediblePlanets=${mid.ediblePlanets}`)
   ok('non-rivals are mostly food, some are bigger hazards', early.nonRivalEdibleFrac>0.7 && early.nonRivalEdibleFrac<0.95 && mid.nonRivalEdibleFrac>0.7, `early=${early.nonRivalEdibleFrac.toFixed(2)} mid=${mid.nonRivalEdibleFrac.toFixed(2)}`)

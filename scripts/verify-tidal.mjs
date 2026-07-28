@@ -135,7 +135,7 @@ try {
     return { seen:A.codex().seen, total:A.codex().total }
   })
   ok('B6: TDE 코덱스가 열린다', cdx.seen.includes('tde'), cdx.seen.join(','))
-  ok('B6: 코덱스 25항목', cdx.total===25, `${cdx.total}`)
+  ok('B6: 코덱스 31항목', cdx.total===31, `${cdx.total}`)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
