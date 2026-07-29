@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0.5</div>
+<div class="credit">ACCRETION · prototype 4.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -440,6 +440,19 @@ const spiralPts=[]
 const spiralMesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0x8ec8ff,
  transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
 spiralMesh.visible=false;scene.add(spiralMesh)
+// E안(오너 선택) — 가는 테이퍼 코어가 흐름의 '길'을 그리고 그 위를 잔해 입자가 흘러간다.
+// 관 하나만 두면 굵기가 일정한 막대로 읽혀 뻣뻣하다(오너 지적).
+const STREAMN=220
+const streamGeo=new THREE.BufferGeometry()
+streamGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
+streamGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
+const streamPts=new THREE.Points(streamGeo,new THREE.PointsMaterial({
+ size:5.2*Math.min(devicePixelRatio,2),sizeAttenuation:false,   // 화면 픽셀 고정 — 질량이 6만 배 커져도 잔해는 '입자'로 보인다
+ map:GT,                                                       // 기본 점은 사각형으로 그려진다 — 부드러운 원형 텍스처를 씌운다
+ vertexColors:true,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}))
+streamPts.visible=false;scene.add(streamPts)
+const STREAM_SEED=new Float32Array(STREAMN).map(()=>Math.random())
+const STREAM_OFF=new Float32Array(STREAMN).map(()=>Math.random())
 let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운동량 때문에 곧장 떨어지지 못한다
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
@@ -584,11 +597,25 @@ function mkVisual(type,mass){
   const a2=new THREE.Mesh(new THREE.SphereGeometry(0.46,14,10),new THREE.MeshBasicMaterial({color:c2}))
   a1.position.x=-0.62;a2.position.x=0.78;g.add(a1,a2)
   g.add(glow(c1,3.2,0.5));g.userData.pair=[a1,a2]}
- else if(type==='cluster'){ // 성단 — 하나가 아니라 무리다
-  for(let i=0;i<14;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(rnd(0.14,0.3),8,6),
-    new THREE.MeshBasicMaterial({color:[0xfff0d0,0xffd27a,0xbfd8ff][i%3]}))
-   sm.position.set(rnd(-1,1),rnd(-0.3,0.3),rnd(-1,1));g.add(sm)}
-  g.add(glow(0xffe8c0,4.4,0.42))}
+ else if(type==='cluster'){ // 구상성단 — 별 수십만 개가 뭉친 공이다.
+  // 예전엔 8×6 세그먼트 구 14개라 실루엣이 팔각형·위아래가 평평해 '짧은 원기둥'처럼 읽혔다(오너 지적).
+  const N=320,cp=new Float32Array(N*3),cc=new Float32Array(N*3)
+  const PAL=[[1,.96,.86],[1,.84,.52],[.76,.86,1]]   // 늙은 별이 많아 노랑·주황이 섞인다
+  for(let i=0;i<N;i++){
+   const rr2=Math.pow(Math.random(),2.1)*1.35       // 중심 집중 — 실제 성단은 중심 밀도가 압도적이다
+   const th=Math.acos(2*Math.random()-1),ph=Math.random()*6.283
+   cp[i*3]=rr2*Math.sin(th)*Math.cos(ph)
+   cp[i*3+1]=rr2*Math.sin(th)*Math.sin(ph)*0.78
+   cp[i*3+2]=rr2*Math.cos(th)
+   const c=PAL[i%3];cc[i*3]=c[0];cc[i*3+1]=c[1];cc[i*3+2]=c[2]}
+  const cg=new THREE.BufferGeometry()
+  cg.setAttribute('position',new THREE.Float32BufferAttribute(cp,3))
+  cg.setAttribute('color',new THREE.Float32BufferAttribute(cc,3))
+  g.add(new THREE.Points(cg,new THREE.PointsMaterial({
+   size:5.0*Math.min(devicePixelRatio,2),sizeAttenuation:false, // 픽셀 고정 — 어느 배율에서도 '별'로 보인다
+   map:GT,                                                     // 기본 점은 사각형 — 원형 텍스처로 별처럼
+   vertexColors:true,transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})))
+  g.add(glow(0xffe8c0,3.6,0.5))}
  else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
   const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
   const rgl=glow(0xff5a2a,4,0.55);g.add(rgl);g.userData.rdisk=d;g.userData.rglow=rgl} // 원반·글로우를 런타임에 위협/먹이 색으로 칠한다
@@ -626,7 +653,7 @@ function cancelFeed(){S.feed=null}
 function updateFeed(dt){
  const f=S.feed;if(!f)return
  const o=f.o
- if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;spiralMesh.visible=false;return} // 남이 먹었거나 사라짐
+ if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;spiralMesh.visible=false;streamPts.visible=false;return} // 남이 먹었거나 사라짐
  f.t+=dt
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
@@ -668,17 +695,41 @@ function updateFeed(dt){
    const bend=len*0.42*(0.5+pr*0.5)
    spiralPts.length=0
    for(let k=0;k<=16;k++){const u=k/16
-    const px=ex+(sx-ex)*u + tx*Math.sin(u*Math.PI)*bend
-    const pz=ez+(sz-ez)*u + tz*Math.sin(u*Math.PI)*bend
-    spiralPts.push(new THREE.Vector3(px,0.15,pz))}
+    // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
+    const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
+    spiralPts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
+   const curve=new THREE.CatmullRomCurve3(spiralPts)
    if(spiralMesh.geometry)spiralMesh.geometry.dispose()
-   spiralMesh.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPts),26,rem*(0.11+pr*0.15),9,false) // 로슈 한계까지 띄우며 줄기가 길어졌다 — 굵기를 낮춰 '흐름'으로 읽히게
-   spiralMesh.material.opacity=0.55+pr*0.42
+   spiralMesh.geometry=new THREE.TubeGeometry(curve,26,rem*(0.05+pr*0.03),7,false)  // 코어는 가늘게 — 길만 그린다
+   spiralMesh.material.opacity=0.32+pr*0.30
    spiralMesh.visible=true;feedStream.visible=false
-  } else spiralMesh.visible=false
+   // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
+   {const pa=streamGeo.attributes.position.array,ca=streamGeo.attributes.color.array
+    const cap=fxLow?80:STREAMN
+    for(let i=0;i<STREAMN;i++){
+     if(i>=cap){pa[i*3+1]=-1e5;continue}                       // 저사양 모드에선 일부만
+     // 곡선 매개변수는 0=원반 · 1=본체. 시간이 흐르면 본체(1) → 원반(0)으로 간다.
+     // sPar=(1-f)^0.65 로 두면 원반에 가까울수록 빨라지고, 그래서 '성글어진다'
+     // (예전엔 제곱을 써서 방향도 반대였고 원반 쪽에 뭉쳐 다시 막대처럼 보였다).
+     const f=(S.t*0.46+STREAM_OFF[i])%1
+     const sPar=Math.pow(1-f,0.65)
+     const q=curve.getPoint(sPar)
+     const spread=rem*0.30*Math.sin(sPar*Math.PI)+rem*0.02     // 옆으로 흩어져야 '줄'이 아니라 '흐름'이 된다
+     const a=STREAM_SEED[i]*6.283, rr=Math.sqrt(STREAM_SEED[i])*spread
+     pa[i*3]=q.x+Math.cos(a+S.t*3.4)*rr
+     pa[i*3+1]=q.y+Math.sin(a*2.3)*rr*0.5
+     pa[i*3+2]=q.z+Math.sin(a+S.t*3.4)*rr
+     // 원반 언저리에서는 잔해가 원반에 합류한다 — 딱 끊기지 않게 스며들어 사라진다
+     const fade=Math.min(1,sPar/0.16)
+     const hot=1-sPar                                          // 원반에 가까울수록 뜨겁다
+     const v=fade*(0.55+STREAM_SEED[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
+     ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
+    streamGeo.attributes.position.needsUpdate=true;streamGeo.attributes.color.needsUpdate=true
+    streamPts.material.opacity=0.55+pr*0.40;streamPts.visible=true}
+  } else {spiralMesh.visible=false;streamPts.visible=false}
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
     new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
-  if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.045
+  if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.11
    streamPart(sx,sz,(hx-sx)/len,(hz-sz)/len,0xcfe6ff)}
  }
  if(pr>=1){
@@ -695,7 +746,7 @@ function updateFeed(dt){
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
   {const fdx=o.g.position.x-hole.position.x,fdz=o.g.position.z-hole.position.z;noteFeedDir(fdx,fdz)}
   gainPop(hole.position,total);codexToast(o.type)
-  S.feed=null;feedStream.visible=false;spiralMesh.visible=false
+  S.feed=null;feedStream.visible=false;spiralMesh.visible=false;streamPts.visible=false
  }
 }
 /* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
