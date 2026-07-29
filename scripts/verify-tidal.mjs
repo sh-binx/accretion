@@ -135,7 +135,7 @@ try {
     return { seen:A.codex().seen, total:A.codex().total }
   })
   ok('B6: TDE 코덱스가 열린다', cdx.seen.includes('tde'), cdx.seen.join(','))
-  ok('B6: 코덱스 31항목', cdx.total===31, `${cdx.total}`)
+  ok('B6: 코덱스 33항목', cdx.total===33, `${cdx.total}`)
 
   // ── (C) 흡수 중인 천체가 내 블랙홀과 겹치지 않는가 ──
   // 오너 리포트: "빨려오면 한번에 빨려야 하는데 내 블랙홀과 겹쳐 뱅글뱅글 도는 현상".

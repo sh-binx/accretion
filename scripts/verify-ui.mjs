@@ -16,7 +16,7 @@ for(const [w,h,touch] of VPS){
     const A=window.__acc
     A.begin();A.setMass(3000);A.hideOnboard&&A.hideOnboard()
     const c=document.getElementById('codex')
-    c.innerHTML='<div class="ct">◆ CODEX 20/31 · COMET</div><div class="cf">The tail always points away from the star, not backwards along its path — solar wind blows it outward.</div>'
+    c.innerHTML='<div class="ct">◆ CODEX 20/33 · COMET</div><div class="cf">The tail always points away from the star, not backwards along its path — solar wind blows it outward.</div>'
     A.forceUI()
     return new Promise(res=>setTimeout(()=>res(measure()),700))
     function measure(){

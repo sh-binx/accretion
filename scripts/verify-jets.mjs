@@ -25,7 +25,7 @@ try{
   // ★ 핵심: 빔 축 위의 천체는 먹히고, 축에서 벗어난 천체는 먹히지 않는다
   const aim = await p.evaluate(()=>{
     const A=window.__acc
-    const probe=(angle, place)=>{           // place: 'onAxis' | 'offAxis'
+    const probe=(angle, place, fire)=>{     // place: 'onAxis' | 'offAxis' · fire: 플레어 발사 여부
       A.begin(); A.setMass(50000); A.step(0.1); A.clearObjs(); A.clearFeats()
       A.setJetAngle(angle)
       const q=A.pos(), r=Math.cbrt(A.state.mass)
@@ -35,22 +35,27 @@ try{
       const pz = place==='onAxis' ? q.z+az*d : q.z+ax*d
       A.spawnTagged(A.state.mass*0.2, px, pz, 'planet')
       const m0=A.tagMass()
+      // 제트는 늘 뿜지만 '쓸어버리는 힘'은 플레어를 쏜 순간뿐이다(블레이자 플레어)
+      if(fire){A.setEnergy(1);A.doFlare()}
       A.step(0.02)                                               // 회전 전에 즉시 판정
       const m1=A.tagMass()
       return m1!==null && m1 < m0*0.9                            // 제트에 맞으면 부서져 질량이 급감한다
     }
-    return { on0:probe(0,'onAxis'), off0:probe(0,'offAxis'),
-             on1:probe(1.1,'onAxis'), off1:probe(1.1,'offAxis') }
+    return { on0:probe(0,'onAxis',true), off0:probe(0,'offAxis',true),
+             on1:probe(1.1,'onAxis',true), off1:probe(1.1,'offAxis',true),
+             idle:probe(0,'onAxis',false) }
   })
   ok('빔 축 위의 천체가 제트에 걸린다 (각 0)', aim.on0===true)
   ok('축에서 벗어난 천체는 안 맞는다 (각 0)', aim.off0===false)
   ok('회전한 각도에서도 동일 (1.1 rad)', aim.on1===true && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
+  ok('플레어를 쏘지 않으면 축 위도 안전하다(상시 살상 폐지)', aim.idle===false, `idle=${aim.idle}`)
 
   // 빔 길이 밖은 먹지 않는다
   const far = await p.evaluate(()=>{
     const A=window.__acc; A.begin(); A.setMass(50000); A.step(0.1); A.clearObjs(); A.clearFeats()
     A.setJetAngle(0); const q=A.pos(), r=Math.cbrt(A.state.mass)
     A.spawnTagged(A.state.mass*0.2, q.x+r*14, q.z, 'planet')   // 빔 길이(9r) 훨씬 밖
+    A.setEnergy(1);A.doFlare()
     const m0=A.tagMass(); A.step(0.02); const m1=A.tagMass()
     return m1!==null && m1 < m0*0.9
   })
@@ -72,6 +77,7 @@ try{
     A.setJetAngle(0); const q=A.pos(), r=Math.cbrt(A.state.mass)
     const m0=A.state.mass, s0=A.state.score
     A.spawn('planet', A.state.mass*0.3, q.x+r*5, q.z)
+    A.setEnergy(1);A.doFlare()   // 살상은 플레어를 쏜 순간뿐
     A.step(0.02)
     return { dm:A.state.mass-m0, ds:A.state.score-s0 }
   })
@@ -86,6 +92,7 @@ try{
     for(let i=0;i<6;i++) A.spawn('rock', A.state.mass*0.05, q.x+rr*2.2+(i-3)*rr*0.35, q.z+rr*0.4)
     let stunned=false, first=null
     for(let i=0;i<80;i++){ A.step(0.05)
+      if(i%12===0){A.setEnergy(1);A.doFlare()}   // AGN 피드백도 플레어를 쏠 때 일어난다
       if(A.jetStun().some(v=>v>0)) stunned=true
       const r=A.objInfo().find(o=>o.t==='rival'); if(r&&first===null) first=r.mass }
     const r2=A.objInfo().find(o=>o.t==='rival')

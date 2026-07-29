@@ -219,9 +219,9 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ FLARE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.1.1</div>
+<div class="credit">ACCRETION · prototype 4.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -437,7 +437,7 @@ const feedStream=(()=>{
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  m.visible=false;scene.add(m);return m})()
 const spiralPts=[]
-const spiralMesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0x8ec8ff,
+const spiralMesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({vertexColors:true,
  transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
 spiralMesh.visible=false;scene.add(spiralMesh)
 // E안(오너 선택) — 가는 테이퍼 코어가 흐름의 '길'을 그리고 그 위를 잔해 입자가 흘러간다.
@@ -447,8 +447,8 @@ const streamGeo=new THREE.BufferGeometry()
 streamGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
 streamGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
 const streamPts=new THREE.Points(streamGeo,new THREE.PointsMaterial({
- size:5.2*Math.min(devicePixelRatio,2),sizeAttenuation:false,   // 화면 픽셀 고정 — 질량이 6만 배 커져도 잔해는 '입자'로 보인다
- map:GT,                                                       // 기본 점은 사각형으로 그려진다 — 부드러운 원형 텍스처를 씌운다
+ size:1,sizeAttenuation:true,   // 매 프레임 본체 크기에 맞춰 갱신 — 화면 픽셀 고정이면 고질량에서 관이 압도해 예전 모습으로 되돌아간다
+ map:GT,                       // 기본 점은 사각형으로 그려진다 — 부드러운 원형 텍스처를 씌운다
  vertexColors:true,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}))
 streamPts.visible=false;scene.add(streamPts)
 const STREAM_SEED=new Float32Array(STREAMN).map(()=>Math.random())
@@ -480,8 +480,10 @@ for(const sx of [1,-1]){
 }
 jets.visible=false;hole.add(jets)
 function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
- if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true;banner('☄ RELATIVISTIC JETS','your poles shred anything they sweep — no size limit')}
- jets.visible=on}
+ if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true
+  banner('☄ RELATIVISTIC JETS',(COARSE?'tap FLARE':'press R')+' — blaze your jets and sweep the axis',3)}
+ jets.visible=on
+ const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
@@ -568,7 +570,7 @@ const objects=[]
 function mkVisual(type,mass){
  const g=new THREE.Group()
  if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true,emissive:0x6a7284,emissiveIntensity:0.18})))}
- else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.6,0.55)
+ else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.82,0.58) // 채도↑ — 우주는 더 다채롭다(오너)
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1,emissive:col,emissiveIntensity:0.42})))} // emissive=고유색 → 존 조명(금색)에도 색 유지
  else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
@@ -593,7 +595,9 @@ function mkVisual(type,mass){
     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
   g.add(tm);g.userData.tail=tm}
  else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
-  const col=new THREE.Color().setHSL(rnd(0.06,0.13),0.55,0.62)
+  // 실제 가스 거인의 색폭 — 목성(황갈)·토성(금)·해왕성(청)·천왕성(청록)
+  const GH=[0.09,0.13,0.60,0.50,0.02,0.75]
+  const col=new THREE.Color().setHSL(GH[Math.floor(Math.random()*GH.length)]+rnd(-0.02,0.02),0.68,0.62)
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.8,emissive:col,emissiveIntensity:.35})))
   const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,48),new THREE.MeshBasicMaterial({color:0xe8dcc0,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}))
   rg.rotation.x=Math.PI*0.5-rnd(0.15,0.5);g.add(rg)}
@@ -607,6 +611,17 @@ function mkVisual(type,mass){
   const a2=new THREE.Mesh(new THREE.SphereGeometry(0.46,14,10),new THREE.MeshBasicMaterial({color:c2}))
   a1.position.x=-0.62;a2.position.x=0.78;g.add(a1,a2)
   g.add(glow(c1,3.2,0.5));g.userData.pair=[a1,a2]}
+ else if(type==='gascloud'){ // 분자운 — 별이 태어나는 차가운 가스 구름. 실제로 블랙홀을 살찌우는 주 연료다.
+  const h=rnd(0,1)
+  for(let i=0;i<9;i++){const c=new THREE.Color().setHSL((h+rnd(-0.09,0.09)+1)%1,0.75,0.62)
+   const sp=glow(c.getHex(),rnd(1.5,2.9),0.17)
+   sp.position.set(rnd(-0.85,0.85),rnd(-0.22,0.22),rnd(-0.85,0.85));g.add(sp)}
+  for(let i=0;i<6;i++){ // 구름 속에서 갓 태어난 별들
+   const sm=new THREE.Mesh(new THREE.SphereGeometry(0.085,8,6),new THREE.MeshBasicMaterial({color:0xffffff}))
+   sm.position.set(rnd(-0.6,0.6),rnd(-0.12,0.12),rnd(-0.6,0.6));g.add(sm)}}
+ else if(type==='hypergiant'){ // 극대거성 — R136a1급. 태양의 200배 질량에 수백만 배 밝기.
+  const SC=[0x9fc0ff,0xcfe4ff,0xfff0d0],col=SC[Math.floor(Math.random()*SC.length)]
+  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,7.2,0.9))}
  else if(type==='cluster'){ // 구상성단 — 별 수십만 개가 뭉친 공이다.
   // 예전엔 8×6 세그먼트 구 14개라 실루엣이 팔각형·위아래가 평평해 '짧은 원기둥'처럼 읽혔다(오너 지적).
   const N=320,cp=new Float32Array(N*3),cc=new Float32Array(N*3)
@@ -637,9 +652,10 @@ function foodTable(){
  if(f===0)return ['rock','rock','comet']                                  // 원시별 — 먼지·미행성·혜성
  if(f===1)return ['rock','planet','giant','star','comet']                        // 주계열성 — 암석·가스 거인
  if(t<=0) return ['planet','giant','star','whitedwarf','redgiant']               // 항성질량 — 별의 시체들
- if(t===1)return ['whitedwarf','redgiant','binary','giant']               // 중간질량 — 쌍성계 등장
- if(t===2)return ['binary','cluster','redgiant']                          // 초대질량 — 성단을 먹는다
- return ['cluster','binary','cluster']                                    // 퀘이사·극대질량 — 성단이 주식
+ if(t===1)return ['whitedwarf','redgiant','binary','giant','pulsar','hypergiant']        // 중간질량 — 쌍성계·극대거성
+ if(t===2)return ['binary','cluster','redgiant','gascloud','giant','hypergiant']        // 초대질량 — 성단·분자운
+ return ['cluster','binary','gascloud','hypergiant','redgiant','cluster']               // 퀘이사·극대질량 — 성단·구름·극대거성
+ // 후반이 성단·쌍성 두 종뿐이라 진부했다(오너 지적) → 구름·극대거성·거인을 섞어 색과 실루엣을 늘린다
 }
 function pickFood(){const t=foodTable();return t[Math.floor(Math.random()*t.length)]}
 function spawnObj(type,mass,x,z){
@@ -704,14 +720,23 @@ function updateFeed(dt){
    const ex=hx+tx*rim, ez=hz+tz*rim                // 접선 방향으로 어긋난 종점
    const bend=len*0.42*(0.5+pr*0.5)
    spiralPts.length=0
-   for(let k=0;k<=16;k++){const u=k/16
+   for(let k=0;k<=22;k++){const u=k/22   // 점을 늘려 곡선이 각지지 않게
     // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
     const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
     spiralPts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
    const curve=new THREE.CatmullRomCurve3(spiralPts)
    if(spiralMesh.geometry)spiralMesh.geometry.dispose()
-   spiralMesh.geometry=new THREE.TubeGeometry(curve,26,rem*(0.05+pr*0.03),7,false)  // 코어는 가늘게 — 길만 그린다
-   spiralMesh.material.opacity=0.32+pr*0.30
+   const TSEG=30,RSEG=8
+   const tube=new THREE.TubeGeometry(curve,TSEG,rem*(0.032+pr*0.022),RSEG,false)  // 코어는 가늘게 — 길만 그린다
+   // TubeGeometry는 끝이 평평하게 잘린다 — 그 단면이 '꺾인 직선'으로 보였다(오너 리포트).
+   // 양 끝을 검게 칠해(가산 혼합에서 검정=보이지 않음) 단면을 지운다.
+   {const cnt=tube.attributes.position.count,col=new Float32Array(cnt*3)
+    for(let i=0;i<cnt;i++){const t=Math.floor(i/(RSEG+1))/TSEG   // 0=원반 쪽 · 1=본체 쪽
+     const k=Math.min(1,t/0.22)*Math.min(1,(1-t)/0.10+0.0)
+     col[i*3]=0.72*k;col[i*3+1]=0.85*k;col[i*3+2]=1.0*k}
+    tube.setAttribute('color',new THREE.BufferAttribute(col,3))}
+   spiralMesh.geometry=tube
+   spiralMesh.material.opacity=0.42+pr*0.34
    spiralMesh.visible=true;feedStream.visible=false
    // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
    {const pa=streamGeo.attributes.position.array,ca=streamGeo.attributes.color.array
@@ -735,6 +760,7 @@ function updateFeed(dt){
      const v=fade*(0.55+STREAM_SEED[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
      ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
     streamGeo.attributes.position.needsUpdate=true;streamGeo.attributes.color.needsUpdate=true
+    streamPts.material.size=Math.max(0.05,rem*0.42)   // 본체와 같은 비율 — 어느 질량에서도 같은 그림
     streamPts.material.opacity=0.55+pr*0.40;streamPts.visible=true}
   } else {spiralMesh.visible=false;streamPts.visible=false}
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
@@ -1047,9 +1073,9 @@ let banT=0
 
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster','gascloud','hypergiant']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER',gascloud:'MOLECULAR CLOUD',hypergiant:'HYPERGIANT'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -1080,7 +1106,9 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  redgiant:'When a star exhausts its hydrogen it swells enormously. The Sun will one day swell past the orbit of Earth.',
  whitedwarf:'An Earth-sized ember with the mass of a star — one teaspoon would weigh about a tonne.',
  binary:'Most stars are not alone. Over half the points of light you see are two or more stars orbiting each other.',
- cluster:'A globular cluster packs hundreds of thousands of stars into a ball a few dozen light years across.'}
+ cluster:'A globular cluster packs hundreds of thousands of stars into a ball a few dozen light years across.',
+ gascloud:'Giant molecular clouds are the coldest, densest gas in a galaxy — stars are born inside them, and they are what actually feeds a growing black hole.',
+ hypergiant:'R136a1 holds about 200 solar masses and shines millions of times brighter than the Sun. Stars this heavy live only a few million years.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -1372,7 +1400,15 @@ function update(dt){
    jets.rotation.y+=step
   }
   if(jetFlash>0)jetFlash-=dt
-  for(const jm of jets.children)jm.material.opacity=jetFlash>0?0.92:0.5
+  // 평상시엔 존재만 보이게 흐리고, 플레어를 쏘는 순간 타오른다(화면을 덮던 상시 밝기 완화)
+  const jetLit=S.jetFire>0||jetFlash>0
+  for(const jm of jets.children)jm.material.opacity=jetLit?0.9:0.17
+  jets.scale.set(1,S.jetFire>0?1.15:0.62,S.jetFire>0?1.15:0.62)
+  // 제트는 늘 뿜고 있다(실제 퀘이사 제트는 상시). 다만 '쓸어버리는 힘'은 상시가 아니라
+  // 강착이 급증할 때 터지는 플레어다 — 실제 블레이자 플레어. 그 순간만 살상 판정을 준다.
+  if(S.jetFire>0)S.jetFire-=dt
+  if(S.jetFire>0){   // ← 블록으로 감싼다. 예전엔 return을 써서 update() 전체가 조기 종료됐고
+                     //    제트가 켜진 뒤로는 스폰·흡수·티어업이 통째로 멈췄다(회귀가 적발).
   const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
   const reach=hr*(JET_LEN+0.1),wide=hr*JET_TIP*1.15 // 보이는 빔과 동일 범위(약간의 여유만)
   for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten||(S.feed&&S.feed.o===o))continue
@@ -1405,6 +1441,7 @@ function update(dt){
    o.nmCd=Math.max(o.nmCd,0.85)
    popup(o.g.position,'BLASTED','#bfe8ff')
    eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,10);jetFlash=0.22;AU.jet()
+  }
   }
  }
  updateFeed(dt)
@@ -1498,7 +1535,7 @@ function hud(){
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
- $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':'SPACE · SHIFT'):'⚡ CHARGING'
+ $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jets.visible?'SPACE · SHIFT · E · R':'SPACE · SHIFT · E')):'⚡ CHARGING'
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
  if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
   ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?' — CONSUME IT':'')}
@@ -1551,6 +1588,15 @@ function doSurge(){
  eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
 }
 
+function doFlare(){ // 네 번째 능력 — 제트 플레어(퀘이사 티어 전용)
+ // 실제 블레이자 플레어: 제트는 늘 있지만, 강착이 급증하면 몇 시간~며칠 만에 밝기가 수십 배로 치솟는다.
+ // 게임에서는 '먹어서 모은 에너지를 제트에 쏟아붓는' 행동으로 옮겼다.
+ if(!S.alive||!jets.visible||S.energy<1)return
+ S.energy=0;S.jetFire=0.75;jetFlash=0.75;S.flareCount=(S.flareCount||0)+1
+ S.shake=Math.min(S.shake+0.5,1.4);AU.jet()
+ if(!S.flareSeen){S.flareSeen=true;codexToast('quasar')}
+ banner('☄ JET FLARE','accretion surge — your jets blaze and sweep the axis',3)
+}
 function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
  // 그 파동은 주변 물질의 궤도를 흐트러뜨린다. 위협을 밀어내고 라이벌의 강착을 끊는 용도.
  if(!S.alive||S.surgeT>0||S.energy<1)return
@@ -1842,8 +1888,9 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
  S.boost=0;S.grazeSeen=false;S.jetSeen=false
  placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
+ NO_SPAWN=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
- S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -1889,10 +1936,10 @@ function refreshDailyBtn(){const m=todayMod(),el=$('ribbonTxt');if(el)el.innerHT
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
-$('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()} // 모바일/클릭
+$('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave()})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyR')doFlare()})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -1982,6 +2029,7 @@ if(DEV){window.__acc={
  dominance:()=>objects.filter(o=>!o.eaten&&o.type!=='rival').map(o=>({m:+o.mass.toFixed(2),
   mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
+ doFlare:()=>doFlare(),flareCount:()=>S.flareCount||0,jetFire:()=>+(S.jetFire||0).toFixed(2),
  coreState:()=>({visible:galCore.visible,eaten:coreEaten,dist:+galCore.position.distanceTo(hole.position).toFixed(1),mass:CORE_MASS}),
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
