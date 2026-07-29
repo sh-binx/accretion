@@ -1,0 +1,404 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACCRETION · 4.2 → 4.3 변경점</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#03040a;color:#c8d2e8;font:14px/1.62 ui-monospace,SFMono-Regular,Menlo,monospace;padding:30px 20px 90px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:15px;letter-spacing:5px;font-weight:800;color:#fff;margin-bottom:6px}
+.sub{color:#6b7692;font-size:12px;letter-spacing:1px;margin-bottom:36px}
+h2{font-size:13px;letter-spacing:3px;color:#8fd0ff;font-weight:800;margin:44px 0 6px;padding-top:26px;border-top:1px solid #161c2e}
+h2:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.note{color:#7e8aa8;font-size:12.5px;margin-bottom:18px;max-width:80ch}
+.note b{color:#9fd0ff;font-weight:700}
+.pair{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));margin-bottom:8px}
+.card{background:#080b16;border:1px solid #161c2e;border-radius:10px;overflow:hidden}
+.card.now{border-color:#243456}
+.hd{display:flex;align-items:center;gap:8px;padding:10px 13px 9px;border-bottom:1px solid #121829}
+.badge{font-size:10px;letter-spacing:1.5px;font-weight:800;padding:2px 7px;border-radius:3px}
+.was{background:#1b2033;color:#7e8aa8}
+.is{background:#8fd0ff;color:#08111e}
+.hd .t{font-size:12px;color:#e6ecf8;font-weight:700}
+.cv{display:block;width:100%;height:250px;background:#04050d}
+.cap{padding:10px 13px 13px;font-size:11.5px;color:#7e8aa8}
+.cap b{color:#cfe0ff;font-weight:700}
+.grid4{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.mini{background:#080b16;border:1px solid #161c2e;border-radius:10px;overflow:hidden}
+.mini .cv{height:150px}
+.mini .cap{padding:9px 11px 12px;font-size:11px}
+.new{display:inline-block;font-size:9.5px;letter-spacing:1px;background:#ffb14a;color:#12100a;border-radius:3px;padding:1px 5px;font-weight:800;margin-left:6px}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:10px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #141a2b;vertical-align:top}
+th{color:#6b7692;font-weight:700;font-size:11px;letter-spacing:1px}
+td.k{color:#e6ecf8;width:30%}
+td.v{color:#8b97b5}
+td.v b{color:#9fd0ff}
+.foot{margin-top:50px;padding-top:20px;border-top:1px solid #161c2e;color:#5c667f;font-size:12px}
+</style></head><body><div class="wrap">
+
+<h1>ACCRETION · 4.2 → 4.3 변경점</h1>
+<div class="sub">왼쪽이 이전, 오른쪽이 지금 · 전부 실시간 렌더(게임과 같은 생성 코드)</div>
+
+<h2>1 · 천체 — 절차적 무늬</h2>
+<div class="note">
+이전에는 전부 <b>단색 구</b>였습니다. 지금은 캔버스로 무늬를 그려 입히는데, 무늬는 실제 특징에서 가져왔습니다 —
+가스 거인의 <b>위도별 제트기류 띠와 대적점</b>, 지구형의 <b>대륙·극관·구름</b>, 얼음 행성의 <b>유로파식 균열</b>,
+용암 행성의 <b>갈라진 지각 사이로 새는 마그마</b>. 이미지 파일이 아니라 코드라 <b>용량은 0</b>이고 매번 다르게 나옵니다.
+</div>
+<div class="pair">
+  <div class="card"><div class="hd"><span class="badge was">이전</span><span class="t">단색 구</span></div>
+    <canvas class="cv" id="oldBodies"></canvas>
+    <div class="cap">행성은 색만 다르고 표면이 없었습니다. 가스 거인도 고리만 있고 <b>띠가 없었죠</b>.</div></div>
+  <div class="card now"><div class="hd"><span class="badge is">지금</span><span class="t">절차적 무늬</span></div>
+    <canvas class="cv" id="newBodies"></canvas>
+    <div class="cap">같은 천체 종류인데 <b>하나하나 다릅니다</b>. 돌려보면 대륙·폭풍·균열이 지나갑니다.</div></div>
+</div>
+
+<h2>2 · 새로 추가된 천체 2종</h2>
+<div class="note">
+후반 먹이가 성단·쌍성 두세 종뿐이라 진부했던 걸 넓혔습니다. 둘 다 코덱스에 등재됩니다(31 → 33항목).
+</div>
+<div class="grid4">
+  <div class="mini"><canvas class="cv" id="mGas"></canvas>
+    <div class="cap"><b>분자운</b><span class="new">NEW</span><br>별이 태어나는 차가운 가스 구름. 실제로 블랙홀을 살찌우는 주 연료입니다.</div></div>
+  <div class="mini"><canvas class="cv" id="mHyper"></canvas>
+    <div class="cap"><b>극대거성</b><span class="new">NEW</span><br>R136a1급 — 태양의 200배 질량에 수백만 배 밝기.</div></div>
+  <div class="mini"><canvas class="cv" id="mCluster"></canvas>
+    <div class="cap"><b>성단</b><br>지난번에 각진 덩어리 14개에서 점광 무리로 바꾼 것.</div></div>
+  <div class="mini"><canvas class="cv" id="mRock"></canvas>
+    <div class="cap"><b>암석</b><br>회색 단색이던 것에 광물 얼룩과 크레이터가 생겼습니다.</div></div>
+</div>
+
+<h2>3 · 제트 — 공격에서 위기 탈출로</h2>
+<div class="note">
+제가 의도를 잘못 읽어 <b>공격용 충격파</b>로 만들었던 걸 <b>위기 탈출</b>로 되돌렸습니다.
+아래는 같은 상황(더 큰 블랙홀이 붙은 순간)에서의 차이입니다.
+</div>
+<div class="pair">
+  <div class="card"><div class="hd"><span class="badge was">이전</span><span class="t">축에 걸린 것을 부순다</span></div>
+    <canvas class="cv" id="jetOld"></canvas>
+    <div class="cap">축 위 천체를 <b>부수고 밀어냈습니다</b>. 정작 추격자는 그대로라 위기에서 못 벗어났고요.</div></div>
+  <div class="card now"><div class="hd"><span class="badge is">지금</span><span class="t">한쪽 로브 → 나를 튕겨낸다</span></div>
+    <canvas class="cv" id="jetNew"></canvas>
+    <div class="cap">위협 쪽으로 <b>한쪽만</b> 터뜨리고 나는 반대로 날아갑니다. 원반 가스가 날아간 추격자는 <b>가스를 찾아 흩어져</b> 추격을 멈춥니다.</div></div>
+</div>
+<table>
+<tr><th>항목</th><th>이전 → 지금</th></tr>
+<tr><td class="k">키</td><td class="v">없음(상시 자동) → <b>F</b> · 모바일 <b>☄ JET</b> 버튼</td></tr>
+<tr><td class="k">적에게</td><td class="v">부수고 밀어냄 → <b>아무것도 밀지 않음.</b> 원반 가스만 날려 추격을 끊음</td></tr>
+<tr><td class="k">나에게</td><td class="v">없음 → 반동 <b>대시의 3배</b> + 부스트 + <b>무적 1.2초</b> + 조석 손아귀 해제</td></tr>
+<tr><td class="k">평상시 빔</td><td class="v">불투명도 0.5로 화면을 덮음 → <b>0.17</b>, 굵기 0.62배</td></tr>
+<tr><td class="k">실측</td><td class="v">더 큰 블랙홀 앞에서 탈출 없이 <b>0/6 생존</b> → 제트 사용 시 <b>6/6 생존</b></td></tr>
+</table>
+
+<h2>4 · 강착 흐름 — 고질량에서 시안대로 돌아옴</h2>
+<div class="note">
+고르신 E안(코어+입자)이 <b>고질량에서만</b> 예전 단색 관처럼 보였습니다. 코어 관은 월드 크기로 커지는데
+입자만 화면 픽셀에 고정해 둬서, 커질수록 관이 입자를 덮어버린 겁니다. 그리고 '꺾임'은
+관의 <b>끝이 평평하게 잘린 단면</b>이었습니다.
+</div>
+<div class="pair">
+  <div class="card"><div class="hd"><span class="badge was">이전</span><span class="t">고질량에서 단색 관 + 잘린 끝</span></div>
+    <canvas class="cv" id="strOld"></canvas>
+    <div class="cap">입자가 관에 묻혀 안 보이고, 끝이 <b>직선으로 잘려</b> 꺾인 것처럼 보였습니다.</div></div>
+  <div class="card now"><div class="hd"><span class="badge is">지금</span><span class="t">어느 질량에서도 코어+입자</span></div>
+    <canvas class="cv" id="strNew"></canvas>
+    <div class="cap">입자를 본체 크기에 비례하게 바꾸고, 관 양 끝을 <b>검게 칠해 단면을 지웠습니다</b>.</div></div>
+</div>
+
+<div class="foot">
+고칠 부분이 보이면 알려주세요 — 무늬 세기, 색폭, 제트 반동 크기, 입자 밀도 전부 조정할 수 있습니다.
+</div>
+</div>
+
+<script src="../three.min.js"></script>
+<script>
+const rnd=(a,b)=>a+Math.random()*(b-a)
+const T0=performance.now(), CLOCK=()=>(performance.now()-T0)/1000
+const VIEWS=[]
+function fitAll(){for(const v of VIEWS){const w=v.cv.clientWidth||300,h=v.cv.clientHeight||210
+  v.rn.setSize(w,h,false);v.cam.aspect=w/h;v.cam.updateProjectionMatrix()}}
+addEventListener('resize',fitAll)
+
+function view(id,build,camPos,camLook){
+ const cv=document.getElementById(id)
+ const rn=new THREE.WebGLRenderer({canvas:cv,antialias:true})
+ rn.setPixelRatio(Math.min(2,devicePixelRatio));rn.setClearColor(0x04050d,1)
+ const sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(42,1,0.1,500)
+ cam.position.set(camPos[0],camPos[1],camPos[2]);cam.lookAt(camLook[0],camLook[1],camLook[2])
+ sc.add(new THREE.HemisphereLight(0xcfe0ff,0x101828,1.05))
+ const dl=new THREE.DirectionalLight(0xffffff,0.9);dl.position.set(-6,12,8);sc.add(dl)
+ VIEWS.push({cv,rn,cam})
+ const tick=build(sc,cam)
+ ;(function loop(){requestAnimationFrame(loop);tick(CLOCK());rn.render(sc,cam)})()
+}
+function glowSprite(color,size,op){
+ const c=document.createElement('canvas');c.width=c.height=64
+ const x=c.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32)
+ g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.35,'rgba(255,255,255,0.5)');g.addColorStop(1,'rgba(255,255,255,0)')
+ x.fillStyle=g;x.fillRect(0,0,64,64)
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),color,transparent:true,
+   opacity:op,blending:THREE.AdditiveBlending,depthWrite:false}))
+ s.scale.setScalar(size);return s
+}
+
+/* ── 게임과 같은 텍스처 생성 코드 ── */
+const hsl=(h,sa,l)=>'hsl('+Math.round((((h%1)+1)%1)*360)+','+Math.round(sa*100)+'%,'+Math.round(l*100)+'%)'
+function makeTex(kind){
+ const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d')
+ const h=Math.random()
+ if(kind==='gas'){
+  x.fillStyle=hsl(h,0.6,0.55);x.fillRect(0,0,256,128)
+  let y=0
+  while(y<128){const hg=rnd(3,14)
+   x.fillStyle=hsl(h+rnd(-0.06,0.06),rnd(0.4,0.8),rnd(0.34,0.78));x.globalAlpha=0.9
+   x.fillRect(0,y,256,hg);y+=hg}
+  x.globalAlpha=1
+  if(Math.random()<0.75){const sx=rnd(30,226),sy=rnd(40,92)
+   x.save();x.translate(sx,sy);x.scale(1.7,1)
+   const g=x.createRadialGradient(0,0,0,0,0,17)
+   g.addColorStop(0,hsl(h+0.45,0.75,0.6));g.addColorStop(0.6,hsl(h+0.45,0.6,0.5));g.addColorStop(1,'rgba(0,0,0,0)')
+   x.fillStyle=g;x.beginPath();x.arc(0,0,17,0,6.283);x.fill();x.restore()}
+ } else if(kind==='terra'){
+  x.fillStyle=hsl(h*0.15+0.55,0.65,0.42);x.fillRect(0,0,256,128)
+  x.fillStyle=hsl(h*0.25+0.06,0.5,0.44)
+  for(let i=0;i<14;i++){x.beginPath();x.ellipse(rnd(0,256),rnd(14,114),rnd(10,34),rnd(4,26),rnd(0,3),0,6.283);x.fill()}
+  x.fillStyle='rgba(255,255,255,0.85)';x.fillRect(0,0,256,rnd(5,12));x.fillRect(0,128-rnd(5,12),256,14)
+  x.fillStyle='rgba(255,255,255,0.28)'
+  for(let i=0;i<18;i++){x.beginPath();x.ellipse(rnd(0,256),rnd(8,120),rnd(8,26),rnd(2,6),0,0,6.283);x.fill()}
+ } else if(kind==='ice'){
+  x.fillStyle=hsl(0.52+rnd(-0.05,0.06),0.45,0.72);x.fillRect(0,0,256,128)
+  for(let i=0;i<9;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.08,0.22).toFixed(2)+')';x.fillRect(0,rnd(0,120),256,rnd(3,10))}
+  x.strokeStyle='rgba(120,180,220,0.5)';x.lineWidth=1
+  for(let i=0;i<12;i++){x.beginPath();x.moveTo(rnd(0,256),rnd(0,128));x.lineTo(rnd(0,256),rnd(0,128));x.stroke()}
+  x.fillStyle='rgba(255,255,255,0.9)';x.fillRect(0,0,256,rnd(8,16));x.fillRect(0,128-rnd(8,16),256,18)
+ } else if(kind==='lava'){
+  x.fillStyle='#2a1a1c';x.fillRect(0,0,256,128)
+  for(let i=0;i<40;i++){const cx=rnd(0,256),cy=rnd(0,128)
+   const g=x.createRadialGradient(cx,cy,0,cx,cy,rnd(4,16))
+   g.addColorStop(0,'rgba(255,190,90,0.95)');g.addColorStop(0.4,'rgba(255,90,30,0.55)');g.addColorStop(1,'rgba(0,0,0,0)')
+   x.fillStyle=g;x.beginPath();x.arc(cx,cy,16,0,6.283);x.fill()}
+ } else {
+  x.fillStyle=hsl(0.07+rnd(-0.03,0.05),rnd(0.1,0.3),rnd(0.34,0.5));x.fillRect(0,0,256,128)
+  for(let i=0;i<26;i++){x.fillStyle='rgba(0,0,0,'+rnd(0.05,0.2).toFixed(2)+')'
+   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(3,15),0,6.283);x.fill()}
+  for(let i=0;i<14;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.04,0.14).toFixed(2)+')'
+   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(2,8),0,6.283);x.fill()}
+ }
+ return new THREE.CanvasTexture(c)
+}
+const SPH=new THREE.SphereGeometry(1,26,18)
+const ROCKG=new THREE.IcosahedronGeometry(1,0)
+
+/* ── 1. 천체 before / after ── */
+function bodyRow(textured){
+ return (sc,cam)=>{
+  const g=new THREE.Group();sc.add(g)
+  const spots=[-3.9,-1.3,1.3,3.9]
+  const mk=(i)=>{
+   const o=new THREE.Group()
+   if(i===0){ // 지구형
+    o.add(new THREE.Mesh(SPH, textured
+      ? (()=>{const t=makeTex('terra');return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,roughness:.72,emissive:0xffffff,emissiveIntensity:.34})})()
+      : new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.55,0.6,0.55),roughness:.75,emissive:0x224466,emissiveIntensity:.4})))
+   } else if(i===1){ // 얼음
+    o.add(new THREE.Mesh(SPH, textured
+      ? (()=>{const t=makeTex('ice');return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,roughness:.72,emissive:0xffffff,emissiveIntensity:.34})})()
+      : new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.5,0.5,0.7),roughness:.75,emissive:0x335566,emissiveIntensity:.4})))
+   } else if(i===2){ // 가스 거인 + 고리
+    o.add(new THREE.Mesh(SPH, textured
+      ? (()=>{const t=makeTex('gas');return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,roughness:.8,emissive:0xffffff,emissiveIntensity:.32})})()
+      : new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.09,0.55,0.62),roughness:.8,emissive:0x554422,emissiveIntensity:.35})))
+    const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,52),
+      new THREE.MeshBasicMaterial({color:0xe8dcc0,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}))
+    rg.rotation.x=Math.PI*0.5-0.32;o.add(rg)
+   } else { // 용암 / 단색 암적색
+    o.add(new THREE.Mesh(SPH, textured
+      ? (()=>{const t=makeTex('lava');return new THREE.MeshStandardMaterial({map:t,emissiveMap:t,roughness:.7,emissive:0xffffff,emissiveIntensity:.55})})()
+      : new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(0.03,0.6,0.5),roughness:.75,emissive:0x552211,emissiveIntensity:.4})))
+   }
+   return o}
+  const objs=spots.map((x,i)=>{const o=mk(i);o.position.x=x;o.scale.setScalar(1.15);g.add(o);return o})
+  return t=>{objs.forEach((o,i)=>{o.rotation.y=t*(0.42+i*0.05)})}
+ }
+}
+view('oldBodies',bodyRow(false),[0,2.4,9.2],[0,0,0])
+view('newBodies',bodyRow(true),[0,2.4,9.2],[0,0,0])
+
+/* ── 2. 신규 2종 + 성단 + 암석 ── */
+view('mGas',(sc,cam)=>{const g=new THREE.Group();sc.add(g)
+ const h=Math.random()
+ for(let i=0;i<9;i++){const c=new THREE.Color().setHSL((h+rnd(-0.09,0.09)+1)%1,0.75,0.62)
+  const sp=glowSprite(c.getHex(),rnd(1.5,2.9),0.17)
+  sp.position.set(rnd(-0.85,0.85),rnd(-0.22,0.22),rnd(-0.85,0.85));g.add(sp)}
+ for(let i=0;i<6;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(0.085,8,6),new THREE.MeshBasicMaterial({color:0xffffff}))
+  sm.position.set(rnd(-0.6,0.6),rnd(-0.12,0.12),rnd(-0.6,0.6));g.add(sm)}
+ g.scale.setScalar(1.5)
+ return t=>{g.rotation.y=t*0.3}},[0,1.6,5.4],[0,0,0])
+
+view('mHyper',(sc,cam)=>{const g=new THREE.Group();sc.add(g)
+ const col=0x9fc0ff
+ g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})))
+ g.add(glowSprite(col,7.2,0.9))
+ return t=>{g.rotation.y=t*0.3}},[0,1.4,5.2],[0,0,0])
+
+view('mCluster',(sc,cam)=>{const g=new THREE.Group();sc.add(g)
+ const N=320,pos=new Float32Array(N*3),col=new Float32Array(N*3)
+ const PAL=[[1,.96,.86],[1,.84,.52],[.76,.86,1]]
+ for(let i=0;i<N;i++){const r=Math.pow(Math.random(),2.1)*1.35
+  const th=Math.acos(2*Math.random()-1),ph=Math.random()*6.283
+  pos[i*3]=r*Math.sin(th)*Math.cos(ph);pos[i*3+1]=r*Math.sin(th)*Math.sin(ph)*0.78;pos[i*3+2]=r*Math.cos(th)
+  const c=PAL[i%3];col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2]}
+ const geo=new THREE.BufferGeometry()
+ geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3))
+ geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3))
+ g.add(new THREE.Points(geo,new THREE.PointsMaterial({size:0.055,vertexColors:true,transparent:true,
+   opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending})))
+ g.add(glowSprite(0xffe8c0,3.6,0.5));g.scale.setScalar(1.4)
+ return t=>{g.rotation.y=t*0.28}},[0,1.5,5.2],[0,0,0])
+
+view('mRock',(sc,cam)=>{const g=new THREE.Group();sc.add(g)
+ const t1=makeTex('rock')
+ g.add(new THREE.Mesh(ROCKG,new THREE.MeshStandardMaterial({map:t1,roughness:.9,flatShading:true,
+   emissive:0x555c6e,emissiveIntensity:.22})))
+ g.scale.setScalar(1.35)
+ return t=>{g.rotation.y=t*0.42;g.rotation.x=Math.sin(t*0.3)*0.2}},[0,1.4,5.0],[0,0,0])
+
+/* ── 3. 제트 before / after (위에서 본 도식) ── */
+function jetScene(mode){   // mode: 'old' | 'new'
+ return (sc,cam)=>{
+  const hole=new THREE.Mesh(new THREE.SphereGeometry(0.5,22,16),new THREE.MeshBasicMaterial({color:0x000000}))
+  sc.add(hole)
+  const disk=new THREE.Mesh(new THREE.RingGeometry(0.62,1.15,80,1),
+    new THREE.MeshBasicMaterial({color:0xffcf9a,transparent:true,opacity:0.85,side:THREE.DoubleSide,
+      blending:THREE.AdditiveBlending,depthWrite:false}))
+  disk.rotation.x=Math.PI*0.5-0.26;sc.add(disk)
+  // 추격자(더 큰 블랙홀)
+  const foe=new THREE.Group()
+  foe.add(new THREE.Mesh(new THREE.SphereGeometry(0.8,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
+  const fd=new THREE.Mesh(new THREE.TorusGeometry(1.25,0.2,8,40),
+    new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}))
+  fd.rotation.x=Math.PI*0.5-0.3;foe.add(fd);foe.add(glowSprite(0xff5a2a,3.4,0.5))
+  sc.add(foe)
+  // 먹이 몇 개
+  const foods=[]
+  for(let i=0;i<4;i++){const m=new THREE.Mesh(new THREE.SphereGeometry(0.22,14,10),
+    new THREE.MeshStandardMaterial({color:0xc9b6e8,roughness:.7,emissive:0x6a5a90,emissiveIntensity:.4}))
+   sc.add(m);foods.push(m)}
+  // 제트 빔 2개(양극)
+  const beams=[1,-1].map(sx=>{
+   const bg=new THREE.CylinderGeometry(0.30,0.07,4.6,14,1,true);bg.translate(0,2.4,0);bg.rotateZ(sx*Math.PI/2)
+   const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0xdfeaff,transparent:true,opacity:0.17,
+     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}))
+   sc.add(bm);return bm})
+  const CY=6.2   // 눈으로 따라갈 수 있게 느리게
+  return t=>{
+   const u=(t%CY)/CY            // 0~1 사이클
+   const fire=u>0.35&&u<0.62    // 발사 구간
+   const k=fire?(u-0.35)/0.27:0
+   // 추격자는 계속 다가온다 — 단, 새 방식에선 발사 후 멈춘다
+   const stopped=(mode==='new')&&u>0.42
+   const foeD=stopped?3.2:(5.4-u*2.6)
+   foe.position.set(foeD,0,0)
+   // 플레이어: 새 방식은 발사 순간 반대로 튕겨 나간다
+   const kick=(mode==='new'&&u>0.4)?Math.min(1,(u-0.4)*3.4)*2.5:0
+   hole.position.set(-kick,0,0);disk.position.copy(hole.position)
+   beams.forEach((b,i)=>{b.position.copy(hole.position)
+    const lit=fire&&(mode==='old'||i===0)      // 새 방식은 한쪽 로브만
+    b.material.opacity=lit?0.9:0.17
+    b.scale.set(1,lit?1.15:0.62,lit?1.15:0.62)})
+   // 먹이 — 예전 방식은 축 위에서 부서져 날아갔다
+   foods.forEach((m,i)=>{
+    const base=1.5+i*0.6
+    if(mode==='old'&&fire){m.position.set(base+k*3.4,0,(i%2?1:-1)*0.42*(1+k*2));m.scale.setScalar(Math.max(0.05,1-k))}
+    else{m.position.set(base,0,(i%2?1:-1)*0.42);m.scale.setScalar(1)}
+    m.visible=!(mode==='old'&&k>0.95)})
+   // 추격자 원반 — 새 방식은 발사 후 흩어진다
+   fd.material.opacity=(mode==='new'&&u>0.45)?0.18+Math.sin(t*12)*0.05:0.95
+  }
+ }
+}
+view('jetOld',jetScene('old'),[1.9,7.8,3.3],[1.9,0,0])   // 위에서 내려다봐야 두 블랙홀이 안 겹친다
+view('jetNew',jetScene('new'),[1.9,7.8,3.3],[1.9,0,0])
+
+/* ── 4. 강착 흐름 before / after ── */
+const HR=1.0, DISK=HR*2.16, CYC=4.6
+function spiralPath(pr){
+ const rem=1.15*(1-pr*0.9)+0.05
+ const want=DISK*1.06+rem
+ const sx=want-rem*0.55, ex=0, ez=DISK
+ const len=Math.hypot(sx-ex,0-ez)
+ const bend=len*0.42*(0.5+pr*0.5)
+ const pts=[]
+ for(let k=0;k<=22;k++){const u=k/22
+  pts.push(new THREE.Vector3(ex+(sx-ex)*u,0.12,ez+(0-ez)*u+Math.sin(u*Math.PI)*bend))}
+ return {curve:new THREE.CatmullRomCurve3(pts),rem,bx:want}
+}
+function streamScene(modern){
+ return (sc,cam)=>{
+  sc.add(new THREE.Mesh(new THREE.SphereGeometry(HR*0.62,24,18),new THREE.MeshBasicMaterial({color:0x000000})))
+  const dk=new THREE.Mesh(new THREE.RingGeometry(HR*0.84,DISK,120,1),
+    new THREE.MeshBasicMaterial({color:0xffcf9a,transparent:true,opacity:0.85,side:THREE.DoubleSide,
+      blending:THREE.AdditiveBlending,depthWrite:false}))
+  dk.rotation.x=Math.PI*0.5-0.26;sc.add(dk)
+  const body=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),
+    new THREE.MeshStandardMaterial({color:0xc9b6e8,roughness:.75,emissive:0x6a5a90,emissiveIntensity:.35}))
+  sc.add(body)
+  let mesh=null
+  const mat=modern
+    ? new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0.6,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide})
+    : new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.9,depthWrite:false,side:THREE.DoubleSide})
+  const N=200
+  const geo=new THREE.BufferGeometry()
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3)
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3))
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3))
+  const gc=document.createElement('canvas');gc.width=gc.height=64
+  {const x=gc.getContext('2d'),g=x.createRadialGradient(32,32,0,32,32,32)
+   g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(0.35,'rgba(255,255,255,0.5)');g.addColorStop(1,'rgba(255,255,255,0)')
+   x.fillStyle=g;x.fillRect(0,0,64,64)}
+  const pm=new THREE.PointsMaterial({map:new THREE.CanvasTexture(gc),size:modern?0.5:0.06,
+    sizeAttenuation:true,vertexColors:true,transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending})
+  sc.add(new THREE.Points(geo,pm))
+  const seed=new Float32Array(N).map(()=>Math.random())
+  const off=new Float32Array(N).map(()=>Math.random())
+  return t=>{
+   const pr=(t%CYC)/CYC
+   const {curve,rem,bx}=spiralPath(pr)
+   body.position.set(bx,0,0);body.scale.setScalar(rem)
+   if(mesh){sc.remove(mesh);mesh.geometry.dispose()}
+   if(modern){
+    const TS=30,RS=8
+    const tube=new THREE.TubeGeometry(curve,TS,rem*(0.032+pr*0.022),RS,false)
+    const cnt=tube.attributes.position.count,cc=new Float32Array(cnt*3)
+    for(let i=0;i<cnt;i++){const u=Math.floor(i/(RS+1))/TS
+     const k=Math.min(1,u/0.22)*Math.min(1,(1-u)/0.10)
+     cc[i*3]=0.72*k;cc[i*3+1]=0.85*k;cc[i*3+2]=1.0*k}
+    tube.setAttribute('color',new THREE.BufferAttribute(cc,3))
+    mesh=new THREE.Mesh(tube,mat)
+   } else {
+    mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,26,rem*(0.11+pr*0.15),9,false),mat)
+    mat.opacity=0.55+pr*0.42
+   }
+   sc.add(mesh)
+   pm.size=modern?Math.max(0.05,rem*0.42):0.06     // 예전엔 화면 픽셀 고정이라 커질수록 묻혔다
+   for(let i=0;i<N;i++){
+    const f=(t*0.46+off[i])%1, sPar=Math.pow(1-f,0.65)
+    const q=curve.getPoint(sPar)
+    const spread=rem*0.30*Math.sin(sPar*Math.PI)+rem*0.02
+    const a=seed[i]*6.283, rr=Math.sqrt(seed[i])*spread
+    pos[i*3]=q.x+Math.cos(a+t*3.4)*rr
+    pos[i*3+1]=q.y+Math.sin(a*2.3)*rr*0.5
+    pos[i*3+2]=q.z+Math.sin(a+t*3.4)*rr
+    const fade=Math.min(1,sPar/0.16), hot=1-sPar, v=fade*(0.55+seed[i]*0.45)
+    col[i*3]=(0.78+hot*0.22)*v;col[i*3+1]=(0.86+hot*0.11)*v;col[i*3+2]=v}
+   geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true
+   pm.opacity=0.55+pr*0.4
+  }
+ }
+}
+view('strOld',streamScene(false),[1.3,6.2,5.9],[1.3,0,0.5])
+view('strNew',streamScene(true),[1.3,6.2,5.9],[1.3,0,0.5])
+
+fitAll();requestAnimationFrame(fitAll)
+</script></body></html>
