@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0.2</div>
+<div class="credit">ACCRETION · prototype 4.0.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1779,6 +1779,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();PORTAL.gameplayStop()
+ MSGQ.length=0;msgUntil=0;msgPri=0;hideMsgs() // 런이 끝났다 — 남은 배너·코덱스가 결과 패널과 겹친다(실측: 마일스톤이 EVAPORATED 제목 위로)
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
  if(S.score>STATS.best){STATS.best=S.score} // 개인 최고점(메인 스트립)

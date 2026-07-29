@@ -76,6 +76,31 @@ for(const [w,h,touch] of VPS){
   console.log(`메시지 큐  표본 ${q.samples} · 배너+코덱스 동시 ${q.both}회  ${ok?'✓':'✗ 큐 미작동'}`)
 }
 
+// ── 결과 화면: 런이 끝났는데 남은 배너·코덱스가 결과 패널과 겹치면 안 된다 ──
+// 실측으로 적발: 마일스톤 배너(CYGNUS X-1)가 EVAPORATED 제목 위에 남아 있었다.
+for(const vp of [{width:1440,height:900},{width:393,height:852}]){
+  const p=await b.newPage({viewport:vp})
+  await p.goto('http://localhost:3040/?dev=1',{waitUntil:'networkidle'}); await p.waitForTimeout(2200)
+  await p.evaluate(()=>{const A=window.__acc;A.begin();A.hideOnboard();A.setMass(60)})
+  await p.waitForTimeout(700)
+  await p.evaluate(()=>window.__acc.gameOver())
+  await p.waitForTimeout(900)
+  const r=await p.evaluate(()=>{const vis=[]
+    for(const sel of ['#banner','#codex','#combo','#milestone','#feedwrap','.pop']){
+      const e=document.querySelector(sel);if(!e)continue
+      const st=getComputedStyle(e)
+      if(st.display!=='none'&&parseFloat(st.opacity)>=0.06)vis.push(sel)}
+    const over=document.getElementById('over').getBoundingClientRect()
+    const clash=vis.filter(s=>{const r2=document.querySelector(s).getBoundingClientRect()
+      return Math.min(over.right,r2.right)-Math.max(over.left,r2.left)>3 &&
+             Math.min(over.bottom,r2.bottom)-Math.max(over.top,r2.top)>3})
+    return {vis,clash}})
+  await p.close()
+  const ok=r.clash.length===0
+  results.push(ok)
+  console.log(`결과화면 ${vp.width}x${vp.height}  남은 메시지 [${r.vis.join(' ')}] · 패널 겹침 ${r.clash.length}  ${ok?'✓':'✗'}`)
+}
+
 const passed=results.filter(Boolean).length
 console.log(`\n${passed}/${results.length} passed  (총 겹침 ${total})`)
 if(passed!==results.length)process.exitCode=1
