@@ -45,10 +45,12 @@ try{
              on1:probe(1.1,'onAxis',true), off1:probe(1.1,'offAxis',true),
              idle:probe(0,'onAxis',false) }
   })
-  ok('빔 축 위의 천체가 제트에 걸린다 (각 0)', aim.on0===true)
-  ok('축에서 벗어난 천체는 안 맞는다 (각 0)', aim.off0===false)
-  ok('회전한 각도에서도 동일 (1.1 rad)', aim.on1===true && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
-  ok('플레어를 쏘지 않으면 축 위도 안전하다(상시 살상 폐지)', aim.idle===false, `idle=${aim.idle}`)
+  // 설계 변경(오너): 제트는 '적을 밀어내는' 것이 아니라 '내가 빠져나가는' 수단이다.
+  // 빔에 걸린 천체를 부수지 않는다 — 어느 각도에서도, 쏘든 안 쏘든.
+  ok('제트는 축 위 천체를 부수지 않는다 (각 0)', aim.on0===false)
+  ok('축 밖 천체도 당연히 무사 (각 0)', aim.off0===false)
+  ok('회전한 각도에서도 동일 (1.1 rad)', aim.on1===false && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
+  ok('안 쏠 때도 안전하다', aim.idle===false, `idle=${aim.idle}`)
 
   // 빔 길이 밖은 먹지 않는다
   const far = await p.evaluate(()=>{
@@ -81,7 +83,26 @@ try{
     A.step(0.02)
     return { dm:A.state.mass-m0, ds:A.state.score-s0 }
   })
-  ok('jet consumption really adds score', real.ds>0, `+${real.ds.toLocaleString()}`)
+  // 조석 박리로 미세하게 들어오는 건 정상(제트와 무관) — 삼켰다면 수천 단위로 뛴다
+  ok('제트가 천체를 삼키지 않는다(질량 안 늘어남)', real.dm<1, `Δm=${real.dm.toFixed(2)} (먹었다면 수천)`)
+
+  // 제트 탈출 — 위협 반대쪽으로 나를 튕겨내고, 원반이 날아간 라이벌은 추격을 멈춘다
+  const esc = await p.evaluate(()=>{
+    const A=window.__acc
+    const trial=(useJet)=>{
+      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(30000)
+      const c=A.pos()
+      A.spawn('rival',A.state.mass*2.5,c.x+Math.cbrt(30000)*2.4,c.z)
+      A.step(0.05)
+      if(useJet){A.setEnergy(1);A.doFlare()}
+      for(let i=0;i<40;i++){A.step(0.05);if(!A.state.alive)return false}
+      return A.state.alive}
+    let no=0,jet=0
+    for(let k=0;k<6;k++){if(trial(false))no++;if(trial(true))jet++}
+    A.setSpawn(true)
+    return {no,jet}})
+  ok('제트 없이는 큰 라이벌에게 죽는다(대조군)', esc.no===0, `${esc.no}/6 생존`)
+  ok('제트 탈출로 위기를 벗어난다', esc.jet>=5, `${esc.jet}/6 생존`)
 
   // 2026-07-28: 제트는 사건지평선을 어쩌지 못하므로 큰 라이벌을 '밀어낼' 수 없다.
   // 실제로 일어나는 일은 AGN 피드백 — 제트가 주변 가스를 쓸어내 강착이 멈춘다.

@@ -219,9 +219,9 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ FLARE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.2</div>
+<div class="credit">ACCRETION · prototype 4.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -481,7 +481,7 @@ for(const sx of [1,-1]){
 jets.visible=false;hole.add(jets)
 function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
  if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true
-  banner('☄ RELATIVISTIC JETS',(COARSE?'tap FLARE':'press R')+' — blaze your jets and sweep the axis',3)}
+  banner('☄ RELATIVISTIC JETS',(COARSE?'tap JET':'press F')+' — fire one lobe and kick yourself clear',3)}
  jets.visible=on
  const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'}
 scene.add(hole)
@@ -564,14 +564,75 @@ function updateCore(dt){
 
 
 /* ===== object pool ===== */
+// ── 절차적 천체 텍스처 ──
+// 단일 HTML로 배포하므로 이미지 파일을 못 쓴다. 대신 캔버스로 그려 쓰면 용량 0에 변형이 무한하다.
+// 무늬는 실제 특징에서 가져온다 — 가스 거인의 위도별 제트기류 띠와 대적점, 얼음 행성의 극관, 용암 행성의 갈라진 지각.
+const TEXP={gas:[],terra:[],ice:[],lava:[],rock:[]}
+const hsl=(h,sa,l)=>'hsl('+Math.round((((h%1)+1)%1)*360)+','+Math.round(sa*100)+'%,'+Math.round(l*100)+'%)'
+function makeTex(kind){
+ const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d')
+ const h=Math.random()
+ if(kind==='gas'){
+  x.fillStyle=hsl(h,0.6,0.55);x.fillRect(0,0,256,128)
+  let y=0
+  while(y<128){const hg=rnd(3,14)                       // 위도별 제트기류 — 폭이 제각각인 띠
+   x.fillStyle=hsl(h+rnd(-0.06,0.06),rnd(0.4,0.8),rnd(0.34,0.78));x.globalAlpha=0.9
+   x.fillRect(0,y,256,hg);y+=hg}
+  x.globalAlpha=1
+  if(Math.random()<0.75){                               // 대적점 — 수백 년을 도는 거대 폭풍
+   const sx=rnd(30,226),sy=rnd(40,92)
+   x.save();x.translate(sx,sy);x.scale(1.7,1)
+   const g=x.createRadialGradient(0,0,0,0,0,17)
+   g.addColorStop(0,hsl(h+0.45,0.75,0.6));g.addColorStop(0.6,hsl(h+0.45,0.6,0.5));g.addColorStop(1,'rgba(0,0,0,0)')
+   x.fillStyle=g;x.beginPath();x.arc(0,0,17,0,6.283);x.fill();x.restore()}
+ } else if(kind==='terra'){
+  x.fillStyle=hsl(h*0.15+0.55,0.65,0.42);x.fillRect(0,0,256,128)   // 바다
+  x.fillStyle=hsl(h*0.25+0.06,0.5,0.44)                            // 대륙
+  for(let i=0;i<14;i++){const cx=rnd(0,256),cy=rnd(14,114),r=rnd(10,34)
+   x.beginPath();x.ellipse(cx,cy,r,r*rnd(0.4,0.9),rnd(0,3),0,6.283);x.fill()}
+  x.fillStyle='rgba(255,255,255,0.85)'                             // 극관
+  x.fillRect(0,0,256,rnd(5,12));x.fillRect(0,128-rnd(5,12),256,14)
+  x.fillStyle='rgba(255,255,255,0.28)'                             // 구름
+  for(let i=0;i<18;i++){const cx=rnd(0,256),cy=rnd(8,120)
+   x.beginPath();x.ellipse(cx,cy,rnd(8,26),rnd(2,6),0,0,6.283);x.fill()}
+ } else if(kind==='ice'){
+  x.fillStyle=hsl(0.52+rnd(-0.05,0.06),0.45,0.72);x.fillRect(0,0,256,128)
+  for(let i=0;i<9;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.08,0.22).toFixed(2)+')'
+   x.fillRect(0,rnd(0,120),256,rnd(3,10))}
+  x.strokeStyle='rgba(120,180,220,0.5)';x.lineWidth=1                // 유로파식 균열
+  for(let i=0;i<12;i++){x.beginPath();x.moveTo(rnd(0,256),rnd(0,128))
+   x.lineTo(rnd(0,256),rnd(0,128));x.stroke()}
+  x.fillStyle='rgba(255,255,255,0.9)';x.fillRect(0,0,256,rnd(8,16));x.fillRect(0,128-rnd(8,16),256,18)
+ } else if(kind==='lava'){
+  x.fillStyle='#2a1a1c';x.fillRect(0,0,256,128)                      // 굳은 지각
+  for(let i=0;i<40;i++){                                             // 갈라진 틈에서 새는 마그마
+   const cx=rnd(0,256),cy=rnd(0,128)
+   const g=x.createRadialGradient(cx,cy,0,cx,cy,rnd(4,16))
+   g.addColorStop(0,'rgba(255,190,90,0.95)');g.addColorStop(0.4,'rgba(255,90,30,0.55)');g.addColorStop(1,'rgba(0,0,0,0)')
+   x.fillStyle=g;x.beginPath();x.arc(cx,cy,16,0,6.283);x.fill()}
+ } else {                                                            // rock — 광물 얼룩과 크레이터
+  x.fillStyle=hsl(0.07+rnd(-0.03,0.05),rnd(0.1,0.3),rnd(0.34,0.5));x.fillRect(0,0,256,128)
+  for(let i=0;i<26;i++){x.fillStyle='rgba(0,0,0,'+rnd(0.05,0.2).toFixed(2)+')'
+   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(3,15),0,6.283);x.fill()}
+  for(let i=0;i<14;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.04,0.14).toFixed(2)+')'
+   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(2,8),0,6.283);x.fill()}
+ }
+ const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;return t
+}
+function texOf(kind){const a=TEXP[kind]
+ if(a.length<7)a.push(makeTex(kind))          // 종류마다 7장까지 만들어 돌려 쓴다(매번 만들면 낭비)
+ return a[Math.floor(Math.random()*a.length)]}
 const ROCK=new THREE.IcosahedronGeometry(1,0)
 const SPH=new THREE.SphereGeometry(1,18,14)
 const objects=[]
 function mkVisual(type,mass){
  const g=new THREE.Group()
- if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({color:0x7d8598,roughness:.9,flatShading:true,emissive:0x6a7284,emissiveIntensity:0.18})))}
- else if(type==='planet'){const h=rnd(0,1);const col=new THREE.Color().setHSL(h,0.82,0.58) // 채도↑ — 우주는 더 다채롭다(오너)
-  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.75,metalness:.1,emissive:col,emissiveIntensity:0.42})))} // emissive=고유색 → 존 조명(금색)에도 색 유지
+ if(type==='rock'){g.add(new THREE.Mesh(ROCK,new THREE.MeshStandardMaterial({map:texOf('rock'),roughness:.9,flatShading:true,emissive:0x555c6e,emissiveIntensity:0.22})))}
+ else if(type==='planet'){ // 지구형·얼음·용암 — 무늬가 있어야 보는 맛이 산다(오너)
+  const kind=['terra','terra','ice','lava'][Math.floor(Math.random()*4)]
+  const tx=texOf(kind)
+  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,
+    roughness:.72,metalness:.05,emissive:0xffffff,emissiveIntensity:kind==='lava'?0.55:0.34})))}
  else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
@@ -595,10 +656,10 @@ function mkVisual(type,mass){
     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
   g.add(tm);g.userData.tail=tm}
  else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
-  // 실제 가스 거인의 색폭 — 목성(황갈)·토성(금)·해왕성(청)·천왕성(청록)
-  const GH=[0.09,0.13,0.60,0.50,0.02,0.75]
-  const col=new THREE.Color().setHSL(GH[Math.floor(Math.random()*GH.length)]+rnd(-0.02,0.02),0.68,0.62)
-  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.8,emissive:col,emissiveIntensity:.35})))
+  // 위도별 제트기류 띠 + 대적점 — 실제 가스 거인의 얼굴
+  const tx=texOf('gas')
+  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,
+    roughness:.8,emissive:0xffffff,emissiveIntensity:.32})))
   const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,48),new THREE.MeshBasicMaterial({color:0xe8dcc0,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}))
   rg.rotation.x=Math.PI*0.5-rnd(0.15,0.5);g.add(rg)}
  else if(type==='redgiant'){ // 적색거성 — 크고 어둡고 부풀어 있다
@@ -1231,7 +1292,10 @@ function update(dt){
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
   if(o.nemesis){o.mass+=(S.mass*1.35-o.mass)*Math.min(1,dt*0.35);o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)} // 네메시스=내 1.35× 지연추종(급성장 시 잠깐 추월→되먹을 창)
-  if(o.type==='rival'&&d>0.6){const hunts=o.mass>=S.mass||S.formIdx<2,dir=hunts?-1:1,rs=1+rad(S.mass)*0.6
+  // 원반 가스가 날아간 라이벌은 나를 쫓지 않는다 — 굶은 블랙홀은 가스를 찾아 흩어진다(AGN 피드백의 결과).
+  // 적을 '밀어내는' 게 아니라 '추격을 끊는' 것이라, 제트가 위기 탈출 수단이 된다(오너 의도).
+  if(o.type==='rival'&&o.jetStun>0){o.vx*=Math.max(0,1-dt*1.6);o.vz*=Math.max(0,1-dt*1.6)}
+  else if(o.type==='rival'&&d>0.6){const hunts=o.mass>=S.mass||S.formIdx<2,dir=hunts?-1:1,rs=1+rad(S.mass)*0.6
    let spd=(hunts?4.6:5.6)*rs;if(o.nemesis)spd*=hunts?1.35:0.75 // 네메시스: 추격은 집요(1.35×)·도망은 느려(0.75×) 따라잡기 쉽게
    o.vx+=((dx/d)*spd*dir-o.vx)*Math.min(1,dt*1.6);o.vz+=((dz/d)*spd*dir-o.vz)*Math.min(1,dt*1.6)}
   const omouth=rad(o.mass)*1.55
@@ -1423,24 +1487,11 @@ function update(dt){
     // 게임에서는 '큰 라이벌의 성장을 일시 정지시키는 견제'가 된다.
     if(!o.jetStun){eatBurst(o.g.position.x,o.g.position.z,0x9fd8ff,6)
      if(!S.jetStunSeen){S.jetStunSeen=true;banner('☄ DISK STRIPPED','your jet blew its gas away — it cannot feed')}}
-    o.jetStun=2.4
+    o.jetStun=3.0
     continue}
-   // 제트는 '뿜는' 것이다 — 삼키지 않는다. 빔에 걸린 천체는 광속에 가까운 플라스마에
-   // 찢겨 바깥으로 날아간다. 질량은 들어오지 않고, 대신 그때 풀려난 에너지가 점수·서지가 된다.
-   // (실제로도 제트를 밝히는 에너지원은 강착이지, 제트 자체가 블랙홀을 살찌우지 않는다)
-   if(o.nmCd>0)continue // 폭파는 쿨다운(스턴 갱신 뒤에 둬야 라이벌 견제가 끊기지 않는다)
-   const rel2=Math.max(0.001,Math.hypot(dx,dz))
-   const nx2=dx/rel2, nz2=dz/rel2
-   // 점수는 '먹었다면 얻었을 것'의 일부로 묶는다 — 질량을 못 얻는데 포식보다 후하면 앞뒤가 안 맞는다
-   S.score+=Math.round(o.mass*0.62*accEff()*13*0.35*(S.modFrenzy?1.3:1))
-   S.energy=Math.min(1,S.energy+0.07)                  // 서지 충전(강착 원반이 그만큼 격렬하다)
-   S.shake=Math.min(S.shake+0.16,1.0)
-   o.blown=true                                        // 파편으로 흩어진다
-   o.vx+=nx2*(46+hr*2.2);o.vz+=nz2*(46+hr*2.2)
-   o.mass*=0.42;o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)
-   o.nmCd=Math.max(o.nmCd,0.85)
-   popup(o.g.position,'BLASTED','#bfe8ff')
-   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,10);jetFlash=0.22;AU.jet()
+   // 오너: 제트가 적을 밀어내는 건 불필요하다 — 살상·밀어내기는 뺐다.
+   // 남긴 것은 실제 AGN 피드백(위 라이벌 원반 박탈)뿐이고, 제트의 쓸모는 '내가 빠져나가는 것'이다.
+   continue
   }
   }
  }
@@ -1535,7 +1586,7 @@ function hud(){
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
- $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jets.visible?'SPACE · SHIFT · E · R':'SPACE · SHIFT · E')):'⚡ CHARGING'
+ $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jets.visible?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING'
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
  if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
   ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?' — CONSUME IT':'')}
@@ -1588,14 +1639,31 @@ function doSurge(){
  eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
 }
 
-function doFlare(){ // 네 번째 능력 — 제트 플레어(퀘이사 티어 전용)
- // 실제 블레이자 플레어: 제트는 늘 있지만, 강착이 급증하면 몇 시간~며칠 만에 밝기가 수십 배로 치솟는다.
- // 게임에서는 '먹어서 모은 에너지를 제트에 쏟아붓는' 행동으로 옮겼다.
+function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
+ // 물리: 대칭 쌍제트는 알짜 추력이 0이지만, 실제 제트는 한쪽이 더 세게 뿜는 비대칭이 흔하고
+ // 그 비대칭이 블랙홀에 운동량을 준다(jet-driven kick). 그래서 한쪽 로브를 위협 쪽으로 강하게
+ // 터뜨리고, 나는 반대로 튕겨 나간다. 적을 밀어내는 게 아니라 '내가 빠져나가는' 능력이다.
  if(!S.alive||!jets.visible||S.energy<1)return
- S.energy=0;S.jetFire=0.75;jetFlash=0.75;S.flareCount=(S.flareCount||0)+1
- S.shake=Math.min(S.shake+0.5,1.4);AU.jet()
+ // 도망칠 방향 = 가장 위험한 상대의 반대쪽. 없으면 진행 방향 유지.
+ let tx=0,tz=0,best=-1
+ for(const o of objects){if(o.eaten||o.type!=='rival')continue
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z
+  const d=Math.hypot(dx,dz)||1
+  const risk=(o.mass/Math.max(1e-6,S.mass))/d          // 크고 가까울수록 위험
+  if(risk>best){best=risk;tx=dx/d;tz=dz/d}}
+ if(best<0){const vl=Math.hypot(S.vx,S.vz)
+  if(vl>0.2){tx=-S.vx/vl;tz=-S.vz/vl}else{tx=0;tz=1}}  // 위협이 없으면 진행 방향으로 가속
+ S.energy=0;S.jetFire=0.7;jetFlash=0.7;S.flareCount=(S.flareCount||0)+1
+ jets.rotation.y=Math.atan2(-tz,tx)                    // 쏘는 로브를 위협 쪽으로 겨눈다
+ S.spinTarget=jets.rotation.y                          // 정렬이 되돌아가지 않게
+ S.vx-=tx*78;S.vz-=tz*78                               // 반동 — 대시(26)의 3배. 위기에서 확실히 끊고 나가야 한다
+ S.boost=Math.min(0.9,(S.boost||0)+0.55)               // 튕겨 나간 뒤에도 잠시 빠르게 — 임펄스만으론 곧 감속한다
+ S.invT=Math.max(S.invT,1.2)                           // 탈출 유예 — 이 능력의 핵심 가치다.
+ S.tidalT=0                                            // 조석 영역에 붙잡혀 있었다면 그 손아귀를 끊는다
+ S.shake=Math.min(S.shake+0.7,1.5);AU.jet()
+ eatBurst(hole.position.x,hole.position.z,0xbfe8ff,18)
+ banner('☄ JET ESCAPE','an asymmetric jet outburst kicks you clear',3)
  if(!S.flareSeen){S.flareSeen=true;codexToast('quasar')}
- banner('☄ JET FLARE','accretion surge — your jets blaze and sweep the axis',3)
 }
 function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
  // 그 파동은 주변 물질의 궤도를 흐트러뜨린다. 위협을 밀어내고 라이벌의 강착을 끊는 용도.
@@ -1939,7 +2007,7 @@ refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오�
 $('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyR')doFlare()})
+addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
