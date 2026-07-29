@@ -20,15 +20,21 @@ await p.screenshot({path:D+'/../nova-surge/.git/../../accretion-shot-title.png'}
 
 console.log('\n━ 2. 시작 → 성장(먹기) ━')
 await ev(()=>window.__acc.begin());await p.waitForTimeout(200)
+await ev(()=>window.__acc.hideOnboard()) // 인트로 카드가 떠 있으면 게임이 멈춘다 — 타이머 만료에 기대면 불안정
 chk('begin → alive', await ev(()=>window.__acc.state.alive))
 const m0=await ev(()=>window.__acc.state.mass)
 // 근처 식량으로 유도 + 스텝 반복해 먹여 성장
-let ate=0
-for(let i=0;i<40;i++){await ev(()=>window.__acc.eatNearest());const r=await ev(()=>window.__acc.step(0.25,16));if(!r.alive)break}
-const m1=await ev(()=>window.__acc.state.mass)
-chk('먹어서 성장(mass '+m0+'→'+m1+')', m1>m0*1.3, {m0,m1})
+// 스폰은 난수라 한 판만 보면 결과가 요동친다(같은 이유로 다른 스위트도 중앙값을 쓴다) → 5판 중앙값
+const grow=await ev(()=>{const A=window.__acc,out=[]
+ for(let k=0;k<5;k++){A.begin();A.hideOnboard()
+  for(let i=0;i<160;i++){A.eatNearest();A.step(0.25,16);if(!A.state.alive)break}
+  out.push(A.state.mass)}
+ return out.sort((a,b)=>a-b)})
+const m1=grow[2]
+chk('먹어서 성장(중앙값 '+m0+'→'+m1+' · 5판)', m1>m0*1.3, {m0,grow})
 
 console.log('\n━ 3. 호킹 축소(안 먹으면 감소) ━')
+await ev(()=>{window.__acc.begin();window.__acc.hideOnboard()}) // 앞 절에서 죽었으면 step이 한 프레임도 안 돈다 — 살아있는 판에서 잰다
 await ev(()=>window.__acc.setMass(6))
 const before=await ev(()=>window.__acc.state.mass)
 // 타겟을 멀리 둬 안 먹게 하고 스텝

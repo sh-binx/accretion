@@ -89,6 +89,23 @@ try {
   ok('mobile landscape: menu fits viewport', fits===true)
   await mob.close()
 
+  // 우주 자(격자)는 게임플레이 전용이다. 히어로 구도는 카메라가 격자 평면 높이에 놓여
+  // 지평선(가로선)·시선축 격자선(세로선)이 '십자 아티팩트'로 보였다(오너 리포트).
+  {
+    const g = await browser.newPage()
+    await g.goto(URL, { waitUntil:'networkidle' })
+    await g.waitForFunction(() => window.__acc && window.__acc.gridState, { timeout:15000 })
+    await g.waitForTimeout(1200)
+    const menu = await g.evaluate(() => window.__acc.gridState())
+    ok('메뉴: 격자 비가시(십자 아티팩트 없음)', menu.vis===false && menu.op<0.01, JSON.stringify(menu))
+    await g.evaluate(() => { window.__acc.begin(); window.__acc.hideOnboard() })
+    // SwiftShader는 게임시간이 0.3배로 흘러 페이드가 늦다 — 벽시계 대기 대신 수렴을 기다린다
+    await g.waitForFunction(() => window.__acc.gridState().op > 0.3, { timeout:20000 }).catch(()=>{})
+    const play = await g.evaluate(() => window.__acc.gridState())
+    ok('플레이: 격자 복귀(성장 기준자 유지)', play.vis===true && play.op>0.3, JSON.stringify(play))
+    await g.close()
+  }
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])

@@ -137,6 +137,49 @@ try {
   ok('B6: TDE 코덱스가 열린다', cdx.seen.includes('tde'), cdx.seen.join(','))
   ok('B6: 코덱스 31항목', cdx.total===31, `${cdx.total}`)
 
+  // ── (C) 흡수 중인 천체가 내 블랙홀과 겹치지 않는가 ──
+  // 오너 리포트: "빨려오면 한번에 빨려야 하는데 내 블랙홀과 겹쳐 뱅글뱅글 도는 현상".
+  // 원인은 '입에 닿아야' 흡수가 시작돼 시작 순간 본체가 원반·지평선 안에 있었던 것.
+  // 이제 로슈 한계(원반 바깥)에서 붙잡으므로, 흡수 내내 본체 안쪽 끝이 원반 밖이어야 한다.
+  {
+    const tgt = await page.evaluate(()=>{const A=window.__acc
+      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(40)
+      const c=A.pos(),hr=Math.cbrt(A.state.mass)
+      return A.spawnTagged(A.state.mass*0.9,c.x+hr*6,c.z,'planet')})
+    let samples=0, worstGap=null, intruded=null
+    for(let i=0;i<70;i++){
+      const r = await page.evaluate((t)=>{const A=window.__acc
+        A.setTarget(t.x,t.z)
+        const f=A.feedObj()
+        return f?{dist:f.dist,rem:f.sx,hr:f.hr,dists:A.objDists()}:null},tgt)
+      if(r){samples++
+        const disk=r.hr*2.16, gap=r.dist-r.rem-disk
+        if(worstGap===null||gap<worstGap)worstGap=+gap.toFixed(2)
+        for(const d of r.dists)if(d<disk*0.98&&(intruded===null||d<intruded))intruded=+d.toFixed(2)}
+      await page.waitForTimeout(90)
+    }
+    await page.evaluate(()=>window.__acc.setSpawn(true))
+    ok('흡수 표본 확보(≥5)', samples>=5, 'samples='+samples)
+    ok('흡수 중 본체가 원반과 겹치지 않음', worstGap!==null&&worstGap>=0, '최소 여유 '+worstGap)
+    ok('원반 안으로 파고든 천체 없음', intruded===null, intruded===null?'':'d='+intruded)
+
+    // 오너: "빨려오면 한번에 빨려들어가야" — 흡수가 끝난 잔해는 지평선까지 완주해야 한다.
+    // 로슈 한계에서 시작하므로 예전 속도로는 83%만 가고 사라졌다.
+    const sw = await page.evaluate(()=>{const A=window.__acc
+      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(40)
+      const c=A.pos(),hr=Math.cbrt(A.state.mass)
+      const t=A.spawnTagged(A.state.mass*0.9,c.x+hr*6,c.z,'planet')
+      let seen=[],gt=0,fedEnded=false
+      for(let i=0;i<500;i++){A.setTarget(t.x,t.z);A.step(0.02,20);gt+=0.02
+        if(!A.feedObj()&&gt>1)fedEnded=true
+        if(fedEnded){const g=A.eatenGeo()
+          if(g.length)seen.push(g[0])
+          else if(seen.length)return {n:seen.length,from:seen[0].d,to:seen[seen.length-1].d}}}
+      return {n:seen.length,from:seen[0]&&seen[0].d,to:seen[seen.length-1]&&seen[seen.length-1].d}})
+    await page.evaluate(()=>window.__acc.setSpawn(true))
+    ok('흡수 완료 후 잔해가 지평선까지 완주', sw.n>0 && sw.to<=sw.from*0.12, JSON.stringify(sw))
+  }
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])

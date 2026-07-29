@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0.1</div>
+<div class="credit">ACCRETION · prototype 4.0.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -503,11 +503,13 @@ const gridTex=(()=>{const c=document.createElement('canvas');c.width=c.height=12
  x.beginPath();x.moveTo(0.5,0);x.lineTo(0.5,128);x.moveTo(0,0.5);x.lineTo(128,0.5);x.stroke()
  x.fillStyle='rgba(180,210,255,0.8)';x.fillRect(62,62,4,4)   // 교차점 표식
  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4000,4000)
+ t.offset.set(0.5,0.5) // 플레이어 시작점(원점)이 교차점에 정확히 놓여 화면 정중앙 십자로 읽혔다 — 반 칸 어긋나게 둔다
  t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter // 밉맵이 켜지면 멀어질수록 선이 사라져 기준자 구실을 못한다
  return t})()
 const gridMesh=new THREE.Mesh(new THREE.PlaneGeometry(GRID_CELL*4000,GRID_CELL*4000),
  new THREE.MeshBasicMaterial({map:gridTex,transparent:true,opacity:0.34,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}))
 gridMesh.rotation.x=-Math.PI/2;gridMesh.position.y=-1.2;gridMesh.renderOrder=-1
+gridMesh.material.opacity=0;gridMesh.visible=false // 첫 화면은 메뉴 — 격자는 꺼진 채로 시작한다
 scene.add(gridMesh)
 // ── 은하 중심 — 크기가 고정된 유일한 천체. 초반에는 화면을 넘고, 성장하면 작아 보이며, 끝에 삼킨다.
 // 절대 기준자이자 후반 목표. 실제 Sgr A*는 태양 430만 배로, 게임 마일스톤과 같은 값을 쓴다.
@@ -634,10 +636,15 @@ function updateFeed(dt){
  const base2=o.r*1.15, rem=Math.max(0.05,base2*(1-pr*0.9))
  const fdx=o.g.position.x-hole.position.x, fdz=o.g.position.z-hole.position.z
  const fd=Math.hypot(fdx,fdz)||1, fnx=fdx/fd, fnz=fdz/fd
- // 조석 박리는 로슈 한계에서 일어난다 — 지평선 바로 옆이 아니라 여러 반경 밖이다.
- // 띄워야 흐름 줄기가 휠 거리가 생기고, 무엇을 먹는 중인지도 보인다.
- const want=rad(S.mass)*1.75+rem*0.6
- const nd=fd+(want-fd)*Math.min(1,dt*3.2)
+ // 조석 파괴는 로슈 한계에서 일어난다 — 실제로는 강착원반보다 한참 바깥이다.
+ // 예전엔 '본체 중심'을 1.75hr에 뒀는데 본체 반경이 그보다 커서 안쪽 끝이 지평선 안까지 들어왔다
+ // (실측: pr 0.19에서 안쪽 끝 2.65 < 지평선 3.54). 그 상태로 플레이어가 움직이니
+ // 천체가 블랙홀과 겹친 채 도는 것처럼 보였다(오너 리포트).
+ // 이제 '본체의 안쪽 끝'이 원반 바깥에 서도록 잡는다 — 겹치지 않고, 줄기가 감길 거리도 생긴다.
+ const want=rad(S.mass)*2.16*1.06+rem
+ // 바깥에서 다가올 땐 부드럽게 당기되, 안쪽으로는 절대 못 들어온다(하드 하한).
+ // 이징만 두면 빠르게 접근할 때 한 프레임에 파고들어 잠깐 겹쳐 보였다(실측 -0.76).
+ const nd=Math.max(want,fd+(want-fd)*Math.min(1,dt*3.2))
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
  o.g.rotation.y=Math.atan2(-fdz,fdx)
  // 본체는 형태를 유지한 채 줄어들고(조석 팽대는 살짝만), 뜯겨 나온 물질이 '줄기'로 흘러든다.
@@ -655,7 +662,7 @@ function updateFeed(dt){
    // 실제 강착 흐름은 블랙홀을 향해 곧장 가지 않고 '원반 가장자리를 감고' 들어간다.
    // 끝점을 중심이 아니라 접선 방향으로 어긋난 원반 언저리에 두면 그 감김이 읽힌다.
    const tx=-fnz,tz=fnx
-   const rim=rad(S.mass)*1.9                       // 원반 언저리 = 흐름이 합류하는 곳
+   const rim=rad(S.mass)*2.16                      // 원반 '바깥 테두리' = 흐름이 합류하는 곳(1.9면 허공에서 끊겨 보였다)
    const ex=hx+tx*rim, ez=hz+tz*rim                // 접선 방향으로 어긋난 종점
    const bend=len*0.42*(0.5+pr*0.5)
    spiralPts.length=0
@@ -664,7 +671,7 @@ function updateFeed(dt){
     const pz=ez+(sz-ez)*u + tz*Math.sin(u*Math.PI)*bend
     spiralPts.push(new THREE.Vector3(px,0.15,pz))}
    if(spiralMesh.geometry)spiralMesh.geometry.dispose()
-   spiralMesh.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPts),26,rem*(0.16+pr*0.2),9,false)
+   spiralMesh.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPts),26,rem*(0.11+pr*0.15),9,false) // 로슈 한계까지 띄우며 줄기가 길어졌다 — 굵기를 낮춰 '흐름'으로 읽히게
    spiralMesh.material.opacity=0.55+pr*0.42
    spiralMesh.visible=true;feedStream.visible=false
   } else spiralMesh.visible=false
@@ -674,7 +681,7 @@ function updateFeed(dt){
    streamPart(sx,sz,(hx-sx)/len,(hz-sz)/len,0xcfe6ff)}
  }
  if(pr>=1){
-  o.eaten=true;o.eatT=0.2;o.eatBy=null
+  o.eaten=true;o.eatT=0.28;o.eatBy=null;o.eatFast=true // 로슈 한계에서 시작해 더 멀다 — 확실히 '한 입에' 삼켜지도록 빠르게
   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
   S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
   const rel2=f.total/Math.max(1e-6,S.mass-f.given+f.total) // 삼킨 것이 나에 비해 얼마나 컸나
@@ -1129,7 +1136,7 @@ function update(dt){
  for(let i=objects.length-1;i>=0;i--){const o=objects[i]
   if(o.eaten){ // 먹은 주체 쪽으로 빨려든다 — 라이벌이 먹은 것까지 플레이어에게 날아오던 버그 수리
    const dst=(o.eatBy&&!o.eatBy.eaten&&objects.indexOf(o.eatBy)>=0)?o.eatBy.g.position:hole.position
-   o.g.position.lerp(dst,Math.min(1,dt*9));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
+   o.g.position.lerp(dst,Math.min(1,dt*(o.eatFast?16:9)));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
   o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=(o.type==='pulsar'?o.spin*4:o.spin)*dt // 펄서는 빠르게 회전(빔 스윕)
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
@@ -1190,6 +1197,19 @@ function update(dt){
    const rd0=o.g.userData.rdisk;if(rd0)rd0.material.opacity=0.16+Math.sin(S.t*14)*0.06 // 원반이 흩어진 상태
    if(o.jetStun<=0&&rd0)rd0.material.opacity=0.98}
   // 상호작용
+  // ── 큰 천체는 '입'이 아니라 로슈 한계에서 붙잡힌다 ──
+  // 조석 파괴는 강착원반 바깥에서 시작된다. 예전엔 입에 닿아야 흡수가 시작돼, 시작 순간 이미
+  // 본체가 원반·지평선과 겹쳐 있었다(실측: 안쪽 끝 2.65 < 지평선 3.54). 그 상태로 움직이면
+  // 천체가 블랙홀과 겹친 채 도는 것처럼 보였다(오너 리포트).
+  const relNow=o.mass/Math.max(1e-6,S.mass)
+  const bigFood=edible&&o.type!=='rival'&&relNow>=(isBH?0.6:0.5)
+  const rocheR=rad(S.mass)*2.16*1.06+o.r*1.15   // 본체의 '안쪽 끝'이 원반 바깥에 서는 거리
+  if(bigFood&&d<rocheR){
+   if(!S.feed){startFeed(o,relNow);continue}
+   if(S.feed.o!==o){ // 차례를 기다리는 큰 천체 — 들여보내면 나를 덮은 채 맴돈다. 원반 언저리에 세워 둔다.
+    const cx=o.g.position.x-hole.position.x,cz=o.g.position.z-hole.position.z,cd=Math.hypot(cx,cz)||1
+    o.g.position.x=hole.position.x+(cx/cd)*rocheR;o.g.position.z=hole.position.z+(cz/cd)*rocheR}
+   continue}
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
    // 큰 먹이는 한 입에 사라지지 않는다 — 실제 조석파괴사건(TDE)도 별 하나를 먹는 데 오래 걸린다.
@@ -1197,7 +1217,7 @@ function update(dt){
    const rel=o.mass/Math.max(1e-6,S.mass)
    // 블랙홀끼리의 병합은 실제로도 밀리초 만에 끝난다(중력파 링다운) → 즉시.
    // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
-   if(o.type!=='rival'&&rel>=(isBH?0.6:0.5)){ if(!S.feed)startFeed(o,rel); continue }
+   if(bigFood)continue // 큰 천체는 위에서 로슈 한계에 붙잡혔다 — 여기까지 오지 않는다
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
@@ -1348,6 +1368,11 @@ function updateCamera(dt){
  const asp=innerWidth/innerHeight
  const wantShift=hero?camDist*0.34:0 // 홀을 화면 위쪽으로 — 아래에 워드마크·CTA 공간
  menuShift+=(wantShift-menuShift)*Math.min(1,dt*3)
+ // 격자는 게임플레이 전용 기준자다. 히어로 구도는 카메라가 격자 평면 높이에 놓여
+ // 평면의 지평선(가로선)과 시선축 격자선(세로선)이 '십자 아티팩트'로 보인다 — 구도 전환과 같은 속도로 페이드.
+ const gWant=hero?0:0.34
+ gridMesh.material.opacity+=(gWant-gridMesh.material.opacity)*Math.min(1,(dt||0.016)*3)
+ gridMesh.visible=gridMesh.material.opacity>0.004
  const tx=hole.position.x,tz=hole.position.z+menuShift // z+ = 화면상 홀이 위로
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
  cam.position.x+=(tx+sx-cam.position.x)*Math.min(1,dt*(dt?6:1))
@@ -1813,6 +1838,17 @@ if(DEV){window.__acc={
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
  setSpawn:v=>{NO_SPAWN=!v},
+ eatenGeo:()=>objects.filter(o=>o.eaten).map(o=>({d:+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(2),s:+o.g.scale.x.toFixed(2)})),
+ objDists:()=>objects.filter(o=>!o.eaten).map(o=>+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(1)),
+ gridState:()=>({vis:gridMesh.visible,op:+gridMesh.material.opacity.toFixed(3)}),
+ _probe:()=>{const out=[];scene.traverse(o=>{if(!o.visible||o.type==="Scene")return
+  const box=o.geometry?(o.geometry.boundingSphere||(o.geometry.computeBoundingSphere(),o.geometry.boundingSphere)):null
+  out.push({t:o.type,n:o.name||"",g:o.geometry?o.geometry.type:"",r:box?+box.radius.toFixed(1):null,
+   s:[o.scale.x,o.scale.y,o.scale.z].map(v=>+v.toFixed(2)).join(","),
+   p:[o.position.x,o.position.y,o.position.z].map(v=>+v.toFixed(1)).join(",")})})
+  return out},
+ _hide:(g,r)=>{let n=0;scene.traverse(o=>{if(o.geometry&&o.geometry.type===g){const b=o.geometry.boundingSphere;
+  if(r==null||(b&&Math.abs(b.radius-r)<1)){o.visible=false;n++}}});return n},
  clearField:()=>{for(const o of objects)if(o.g&&o.g.parent)o.g.parent.remove(o.g)
   objects.length=0;S.feed=null;return 0},   // 검증용 — 먹이 유입을 끊고 질량 손실만 격리해 측정한다
  spawnTagged:(mass,x,z,type)=>{spawnObj(type||'planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
