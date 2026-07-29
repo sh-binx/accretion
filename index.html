@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0.4</div>
+<div class="credit">ACCRETION · prototype 4.0.5</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1854,7 +1854,10 @@ if(DEV){window.__acc={
  _hide:(g,r)=>{let n=0;scene.traverse(o=>{if(o.geometry&&o.geometry.type===g){const b=o.geometry.boundingSphere;
   if(r==null||(b&&Math.abs(b.radius-r)<1)){o.visible=false;n++}}});return n},
  clearField:()=>{for(const o of objects)if(o.g&&o.g.parent)o.g.parent.remove(o.g)
-  objects.length=0;S.feed=null;return 0},   // 검증용 — 먹이 유입을 끊고 질량 손실만 격리해 측정한다
+  objects.length=0;S.feed=null
+  for(const f of feats)if(f.g&&f.g.parent)f.g.parent.remove(f.g)
+  feats.length=0   // 성운은 안에 있으면 질량이 차오른다 — 지형까지 치워야 순수 손실이 보인다
+  return 0},   // 검증용 — 먹이·지형 유입을 끊고 질량 손실만 격리해 측정한다
  spawnTagged:(mass,x,z,type)=>{spawnObj(type||'planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  tagMass:()=>{const o=window.__accTag;return o?Math.round(o.mass*10)/10:null},
@@ -1884,7 +1887,7 @@ if(DEV){window.__acc={
  submitDaily:(s,m,t,d)=>LB.submit(s,m,t,d,dayKey(),todayMod().id),topDaily:l=>LB.topDaily(dayKey(),l),
  codexShown:()=>document.getElementById('codex').classList.contains('on'),
  eatNearest:()=>{let best=null,bd=1e9;for(const o of objects){if(o.eaten||o.mass>=S.mass)continue;const d=o.g.position.distanceTo(hole.position);if(d<bd){bd=d;best=o}}if(best){target.copy(best.g.position);mouseActive=true;return best.mass}return null},
- lens:()=>({strength:lensMat.uniforms.uStrength.value,center:lensMat.uniforms.uCenter.value.toArray()}),
+ lens:()=>({strength:lensMat.uniforms.uStrength.value,zone:zoneLens,center:lensMat.uniforms.uCenter.value.toArray()}),
  holeScreen:()=>{const v=hole.position.clone().project(cam);return {x:v.x*.5+.5,y:-v.y*.5+.5}}, // 홀의 화면 좌표(0~1) — 메뉴 히어로 배치 검증
  menuShift:()=>Math.round(menuShift*10)/10,
  bestScore:()=>STATS.best,

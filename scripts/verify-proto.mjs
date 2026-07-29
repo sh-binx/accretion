@@ -24,14 +24,18 @@ await ev(()=>window.__acc.hideOnboard()) // 인트로 카드가 떠 있으면 �
 chk('begin → alive', await ev(()=>window.__acc.state.alive))
 const m0=await ev(()=>window.__acc.state.mass)
 // 근처 식량으로 유도 + 스텝 반복해 먹여 성장
-// 스폰은 난수라 한 판만 보면 결과가 요동친다(같은 이유로 다른 스위트도 중앙값을 쓴다) → 5판 중앙값
-const grow=await ev(()=>{const A=window.__acc,out=[]
- for(let k=0;k<5;k++){A.begin();A.hideOnboard()
-  for(let i=0;i<160;i++){A.eatNearest();A.step(0.25,16);if(!A.state.alive)break}
-  out.push(A.state.mass)}
- return out.sort((a,b)=>a-b)})
-const m1=grow[2]
-chk('먹어서 성장(중앙값 '+m0+'→'+m1+' · 5판)', m1>m0*1.3, {m0,grow})
+// 봇이 난수 필드에서 얼마나 잘 먹느냐(1.0~7.6배로 요동)가 아니라 '먹으면 커지는가'를 잰다.
+// 먹이를 정해진 자리에 놓고 통제된 세계에서 측정 — 봇 실력이 판정에 끼지 않는다.
+const grow=await ev(()=>{const A=window.__acc
+ A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(2)
+ const before=A.state.mass,c=A.pos(),hr=Math.cbrt(A.state.mass)
+ for(let i=0;i<8;i++){const a=i*0.785
+  A.spawn('rock',A.state.mass*0.35,c.x+Math.cos(a)*hr*1.6,c.z+Math.sin(a)*hr*1.6)}
+ for(let i=0;i<120;i++)A.step(0.05,20)
+ A.setSpawn(true)
+ return {before,after:A.state.mass}})
+const m1=grow.after
+chk('먹어서 성장(통제 필드 '+grow.before+'→'+m1+')', m1>grow.before*1.3, grow)
 
 console.log('\n━ 3. 호킹 축소(안 먹으면 감소) ━')
 await ev(()=>{window.__acc.begin();window.__acc.hideOnboard()}) // 앞 절에서 죽었으면 step이 한 프레임도 안 돈다 — 살아있는 판에서 잰다
@@ -45,12 +49,16 @@ chk('호킹 축소로 질량 감소('+before+'→'+after.mass+')', after.mass<be
 
 console.log('\n━ 4. 티어 · 렌징 강도(질량 따라) ━')
 await ev(()=>window.__acc.begin());await p.waitForTimeout(120) // fresh alive
-await ev(()=>{window.__acc.setTarget(0,0);window.__acc.setMass(2)});await p.waitForTimeout(120)
-const s4a=await ev(()=>({m:window.__acc.state.mass,alive:window.__acc.state.alive,lens:window.__acc.lens().strength}))
+await ev(()=>{window.__acc.setTarget(0,0);window.__acc.setMass(2)})
+await ev(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))) // 벽시계 대기는 부하가 걸리면 프레임을 못 받아 '이전 질량의 렌징'을 읽는다
+await ev(()=>{window.__acc.setSpawn(false);window.__acc.clearField()}) // 라이벌·지형이 없어야 질량 외 변수가 안 낀다
+// 존 배율(zoneLens)은 위치·질량에 따라 바뀌어 질량 의존을 가린다 — 나눠서 순수 비교
+const s4a=await ev(()=>{const l=window.__acc.lens();return {m:window.__acc.state.mass,alive:window.__acc.state.alive,lens:l.strength/l.zone}})
 await ev(()=>window.__acc.setMass(60));await ev(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))) // 렌징 유니폼은 렌더에서 갱신 — 프레임을 기다려야 읽힌다
-const s4b=await ev(()=>({m:window.__acc.state.mass,alive:window.__acc.state.alive,tier:window.__acc.state.tier,lens:window.__acc.lens().strength}))
+const s4b=await ev(()=>{const l=window.__acc.lens();return {m:window.__acc.state.mass,alive:window.__acc.state.alive,tier:window.__acc.state.tier,lens:l.strength/l.zone}})
 console.log('    lo:',JSON.stringify(s4a),' hi:',JSON.stringify(s4b))
 chk('렌징 강도 질량 따라 증가('+s4a.lens.toFixed(4)+'→'+s4b.lens.toFixed(4)+')', s4b.lens>s4a.lens*1.3, {s4a,s4b})
+await ev(()=>window.__acc.setSpawn(true))
 chk('질량 60 → STELLAR-MASS(현행 티어표: SUPERMASSIVE는 1200+)', s4b.m>40&&s4b.tier==='STELLAR-MASS', s4b)
 
 console.log('\n━ 5. 증발 게임오버 ━')
