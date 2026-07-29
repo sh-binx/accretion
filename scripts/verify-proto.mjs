@@ -32,19 +32,20 @@ console.log('\n━ 3. 호킹 축소(안 먹으면 감소) ━')
 await ev(()=>window.__acc.setMass(6))
 const before=await ev(()=>window.__acc.state.mass)
 // 타겟을 멀리 둬 안 먹게 하고 스텝
-await ev(()=>window.__acc.setTarget(9999,9999))
+await ev(()=>{window.__acc.setTarget(9999,9999);window.__acc.setSpawn(false);window.__acc.clearField()}) // 먹이를 치워야 순수 손실이 보인다(끌려온 천체를 먹어 결과가 뒤집혔었음)
 const after=await ev(()=>window.__acc.step(3.0,16))
+await ev(()=>window.__acc.setSpawn(true))
 chk('호킹 축소로 질량 감소('+before+'→'+after.mass+')', after.mass<before, {before,after:after.mass})
 
 console.log('\n━ 4. 티어 · 렌징 강도(질량 따라) ━')
 await ev(()=>window.__acc.begin());await p.waitForTimeout(120) // fresh alive
 await ev(()=>{window.__acc.setTarget(0,0);window.__acc.setMass(2)});await p.waitForTimeout(120)
 const s4a=await ev(()=>({m:window.__acc.state.mass,alive:window.__acc.state.alive,lens:window.__acc.lens().strength}))
-await ev(()=>window.__acc.setMass(60));await p.waitForTimeout(150)
+await ev(()=>window.__acc.setMass(60));await ev(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))) // 렌징 유니폼은 렌더에서 갱신 — 프레임을 기다려야 읽힌다
 const s4b=await ev(()=>({m:window.__acc.state.mass,alive:window.__acc.state.alive,tier:window.__acc.state.tier,lens:window.__acc.lens().strength}))
 console.log('    lo:',JSON.stringify(s4a),' hi:',JSON.stringify(s4b))
 chk('렌징 강도 질량 따라 증가('+s4a.lens.toFixed(4)+'→'+s4b.lens.toFixed(4)+')', s4b.lens>s4a.lens*1.3, {s4a,s4b})
-chk('질량 60 유지 → SUPERMASSIVE', s4b.m>40&&s4b.tier==='SUPERMASSIVE', s4b)
+chk('질량 60 → STELLAR-MASS(현행 티어표: SUPERMASSIVE는 1200+)', s4b.m>40&&s4b.tier==='STELLAR-MASS', s4b)
 
 console.log('\n━ 5. 증발 게임오버 ━')
 await ev(()=>window.__acc.setMass(0.5));await ev(()=>window.__acc.setTarget(9999,9999))

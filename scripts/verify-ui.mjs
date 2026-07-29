@@ -55,6 +55,27 @@ for(const [w,h,touch] of VPS){
   if(res.outside.length)console.log('     화면 밖:',res.outside.join(','))
   await p.close()
 }
+// ── 메시지 큐: 실제 플레이 중 배너·코덱스가 동시에 뜨지 않는가(forceUI 우회 없이) ──
+{
+  const p=await b.newPage({viewport:{width:393,height:852},isMobile:true,hasTouch:true})
+  await p.goto('http://localhost:3040/?dev=1',{waitUntil:'networkidle'}); await p.waitForTimeout(2200)
+  const q=await p.evaluate(async()=>{const A=window.__acc;A.begin();A.hideOnboard();A.resetCodex&&A.resetCodex()
+    let both=0,samples=0
+    for(let i=0;i<60;i++){
+      A.setMass(1.2*Math.pow(1.15,i))
+      const c=A.pos(),rr=Math.cbrt(A.state.mass)
+      A.spawn(['comet','rock','planet','giant','binary'][i%5],A.state.mass*0.3,c.x+rr*1.4,c.z)
+      await new Promise(r=>setTimeout(r,60))
+      const bn=parseFloat(getComputedStyle(document.getElementById('banner')).opacity)>0.5
+      const cx=document.getElementById('codex').classList.contains('on')
+      samples++; if(bn&&cx)both++}
+    return {samples,both}})
+  await p.close()
+  const ok=q.both===0
+  results.push(ok)
+  console.log(`메시지 큐  표본 ${q.samples} · 배너+코덱스 동시 ${q.both}회  ${ok?'✓':'✗ 큐 미작동'}`)
+}
+
 const passed=results.filter(Boolean).length
 console.log(`\n${passed}/${results.length} passed  (총 겹침 ${total})`)
 if(passed!==results.length)process.exitCode=1

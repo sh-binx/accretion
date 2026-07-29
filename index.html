@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0</div>
+<div class="credit">ACCRETION · prototype 4.0.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -884,6 +884,7 @@ function checkMassMarks(){
 /* ===== state ===== */
 const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0}
 // 블랙홀 도달(질량 12) 이후의 규모 티어 — 진화 아크가 앞단을 담당하므로 임계 상향
+let NO_SPAWN=false   // 검증 전용 스폰 차단(프로덕션 경로는 항상 false)
 const TIERS=[
  {n:'STELLAR-MASS', max:120,   d:'a collapsed star'},
  {n:'INTERMEDIATE', max:1200,  d:'the rare missing link'},
@@ -974,8 +975,7 @@ function popup(worldPos,txt,color){if(onbT)return // 인트로 중엔 팝업도 
 }
 let onbT=0
 let banT=0
-function banner(main,sub){if(onbT)return // 인트로 카드가 떠 있는 동안은 문구를 겹치지 않는다
- $('bmain').textContent=main;$('bsub').textContent=sub||'';$('banner').style.opacity=1;banT=performance.now()+1600}
+
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
 const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster']
@@ -1026,12 +1026,43 @@ function skinUnlocked(id){return CODEX.count()>=(SKINS[id]?SKINS[id].need:1e9)}
 function curSkin(){let id=null;try{id=localStorage.getItem('acc_skin')}catch(e){}return (id&&SKINS[id]&&skinUnlocked(id))?id:'void'}
 function applySkin(id){const s=SKINS[id]||SKINS.void;paintDisk(s.cA,s.cR);photon.material.color.set(s.ph)}
 let codexT=0
-function codexToast(type){if(!CODEX.discover(type))return // 발견은 항상 기록한다
- if(onbT)return // 표시만 인트로 뒤로 미룬다(겹침 방지) // 새 발견만(영구 수집 — 이미 모은 건 조용히)
- const el=$('codex'),nu=CODEX.count(),tot=CODEX.total()
- if(el){el.innerHTML='<b>◆ CODEX '+nu+'/'+tot+' · '+(NAMES[type]||type)+'</b><span>'+(FACTS[type]||'')+'</span>';el.classList.add('on');codexT=performance.now()+3800}
- AU.ui()
- for(const id of SKIN_ORDER)if(SKINS[id].need>0&&nu===SKINS[id].need)banner('◆ SKIN UNLOCKED',SKINS[id].name+' — choose it in CODEX') // 수집 보상
+// ── 메시지 우선순위 큐 ──
+// 배너·코덱스가 각자 독립 발화해 좁은 화면에서 겹쳤다. 이제 한 번에 하나만 띄우고 나머지는 줄 선다.
+// 우선순위: 3=전이/마일스톤 같은 사건, 2=일반 배너, 1=코덱스 발견. 높은 게 오면 낮은 건 밀린다.
+const MSGQ=[]
+let msgUntil=0, msgPri=0
+function pushMsg(m){
+ if(onbT)return                                   // 인트로는 모달 — 그동안은 아무것도 띄우지 않는다
+ if(MSGQ.some(x=>x.key===m.key))return            // 같은 메시지 중복 대기 방지
+ MSGQ.push(m)
+ MSGQ.sort((a,b)=>b.pri-a.pri)                    // 높은 우선순위가 앞으로
+ if(MSGQ.length>4)MSGQ.length=4                   // 백로그가 길어지면 오래된 저순위부터 버린다
+ if(m.pri>msgPri)msgUntil=0                       // 더 중요한 게 왔으면 즉시 교체
+}
+function hideMsgs(){$('banner').style.opacity=0;$('codex').classList.remove('on')}
+function pumpMsg(now){
+ if(onbT){hideMsgs();return}
+ if(now<msgUntil)return
+ const m=MSGQ.shift()
+ if(!m){if(msgUntil){hideMsgs();msgUntil=0;msgPri=0}return}
+ hideMsgs();msgPri=m.pri
+ if(m.kind==='b'){
+  $('bmain').textContent=m.main;$('bsub').textContent=m.sub||'';$('banner').style.opacity=1
+  msgUntil=now+1700; banT=msgUntil
+ }else{
+  const nu=CODEX.count(),tot=CODEX.total()
+  $('codex').innerHTML='<b>◆ CODEX '+nu+'/'+tot+' · '+(NAMES[m.type]||m.type)+'</b><span>'+(FACTS[m.type]||'')+'</span>'
+  $('codex').classList.add('on')
+  msgUntil=now+3200; codexT=msgUntil
+  AU.ui()
+ }
+}
+function banner(main,sub,pri){pushMsg({kind:'b',pri:pri||2,main,sub,key:'b:'+main})}
+function codexToast(type){
+ if(!CODEX.discover(type))return                  // 발견은 항상 기록한다(표시는 큐가 결정)
+ pushMsg({kind:'c',pri:1,type,key:'c:'+type})
+ const nu=CODEX.count()
+ for(const id of SKIN_ORDER)if(SKINS[id].need>0&&nu===SKINS[id].need)banner('◆ SKIN UNLOCKED',SKINS[id].name+' — choose it in CODEX',3)
 }
 
 /* ===== spawn director ===== */
@@ -1042,6 +1073,7 @@ function topUp(){const cap=S.formIdx===2?Math.max(30,46-Math.log10(Math.max(10,S
  // 위협 비중은 질량에 따라 '연속적으로' 증가 — 티어 경계에서 갑자기 두 배가 되던 절벽 제거(오너 피드백)
  const bhProg=S.formIdx===2?Math.min(1,Math.log(Math.max(1,S.mass/12))/Math.log(400/12)):0
  const rivalP=Math.min(0.18,(FORMS[S.formIdx].rival-0.02+bhProg*0.05)*(S.modRivals||1))
+ if(NO_SPAWN)return   // 검증용 — 먹이 유입을 끊는다
  while(objects.length<want){
   const roll=Math.random()
   // 비-라이벌은 전부 '먹이'(크기별) · 위협축=라이벌 블랙홀 — 성장할수록 더 많고 더 커짐
@@ -1366,8 +1398,7 @@ function hud(){
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
  cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='scale('+(1+Math.min(S.combo,24)*0.02)+')'}
  if(onbT&&performance.now()>onbT)hideOnboard()
- if(performance.now()>banT)$('banner').style.opacity=0
- if(performance.now()>codexT)$('codex').classList.remove('on')
+ pumpMsg(performance.now())
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
@@ -1781,6 +1812,9 @@ if(DEV){window.__acc={
  setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
+ setSpawn:v=>{NO_SPAWN=!v},
+ clearField:()=>{for(const o of objects)if(o.g&&o.g.parent)o.g.parent.remove(o.g)
+  objects.length=0;S.feed=null;return 0},   // 검증용 — 먹이 유입을 끊고 질량 손실만 격리해 측정한다
  spawnTagged:(mass,x,z,type)=>{spawnObj(type||'planet',mass,x,z);const o=objects[objects.length-1];o.vx=0;o.vz=0;window.__accTag=o;return {x:Math.round(o.g.position.x*10)/10,z:Math.round(o.g.position.z*10)/10}},
  tagEaten:()=>{const o=window.__accTag;return !o||o.eaten||objects.indexOf(o)<0},
  tagMass:()=>{const o=window.__accTag;return o?Math.round(o.mass*10)/10:null},
@@ -1836,8 +1870,9 @@ if(DEV){window.__acc={
  gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
  setStreamStyle:v=>{STREAM_STYLE=v},streamOn:()=>feedStream.visible||spiralMesh.visible,streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
  hideOnboard:()=>hideOnboard(),
+ msgQueue:()=>({len:MSGQ.length,pri:msgPri,showing:$('banner').style.opacity==='1'?'banner':($('codex').classList.contains('on')?'codex':null)}),
  forceUI:()=>{ // UI 감사용 — 모든 메시지 채널을 동시에 띄운 '최악의 경우'. hud()가 매 프레임 되돌리므로 타이머를 미래로 민다.
-  banT=performance.now()+20000;codexT=performance.now()+20000
+  msgUntil=performance.now()+20000;msgPri=9;banT=msgUntil;codexT=msgUntil
   $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo';$('banner').style.opacity=1
   $('codex').classList.add('on');$('feedwrap').classList.add('on')
   S.combo=42;S.comboAt=performance.now()+20000
