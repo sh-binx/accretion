@@ -1,0 +1,361 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACCRETION · 형태 시안</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#03040a;color:#c8d2e8;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace;padding:28px 20px 80px}
+.wrap{max-width:1280px;margin:0 auto}
+h1{font-size:15px;letter-spacing:5px;font-weight:800;color:#fff;margin-bottom:6px}
+.sub{color:#6b7692;font-size:12px;letter-spacing:1px;margin-bottom:34px}
+h2{font-size:13px;letter-spacing:3px;color:#8fd0ff;font-weight:800;margin:38px 0 4px;padding-top:24px;border-top:1px solid #161c2e}
+h2:first-of-type{border-top:0;padding-top:0}
+.note{color:#6b7692;font-size:12px;margin-bottom:20px;max-width:76ch}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(228px,1fr))}
+.card{background:#080b16;border:1px solid #161c2e;border-radius:10px;overflow:hidden;transition:border-color .18s}
+.card:hover{border-color:#2b3450}
+.card.pick{border-color:#ffb14a;box-shadow:0 0 0 1px #ffb14a inset}
+.cv{display:block;width:100%;height:182px;background:#04050d;cursor:pointer}
+.meta{padding:11px 13px 14px}
+.tag{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.key{font-weight:800;color:#ffb14a;font-size:12px;letter-spacing:2px}
+.nm{font-size:12px;color:#e6ecf8;font-weight:700}
+.why{font-size:11.5px;color:#7e8aa8;line-height:1.55}
+.why b{color:#9fd0ff;font-weight:700}
+.rec{display:inline-block;margin-left:auto;font-size:10px;letter-spacing:1px;color:#0a0d18;background:#8fd0ff;border-radius:3px;padding:1px 6px;font-weight:800}
+.foot{margin-top:46px;padding-top:20px;border-top:1px solid #161c2e;color:#5c667f;font-size:12px}
+.pill{display:inline-block;background:#0e1322;border:1px solid #1e2740;border-radius:99px;padding:3px 11px;margin:3px 5px 3px 0;font-size:11.5px;color:#8fd0ff}
+</style></head><body><div class="wrap">
+
+<h1>ACCRETION · 형태 시안</h1>
+<div class="sub">그림을 클릭하면 선택 표시가 됩니다 · 전부 실시간 렌더(정지 이미지가 아닙니다)</div>
+
+<h2>1 · 강착 흐름(나선 줄기)</h2>
+<div class="note">
+현재(A)는 굵기가 일정한 <b>불투명 흰 관</b>이라 뻣뻣해 보입니다. 실제 조석 파괴 잔해는 단단한 막대가 아니라
+<b>늘어나며 가늘어지는 가스 흐름</b>이고, 밀도가 고르지 않으며, 원반에 가까울수록 케플러 속도로 빨라집니다.
+아래 넷은 그 성질을 각각 다른 방식으로 살린 안입니다.
+</div>
+<div class="grid" id="g1"></div>
+
+<h2>2 · 성단(globular cluster) 실루엣</h2>
+<div class="note">
+말씀하신 "방향을 나타내는 원기둥·삼각기둥"의 정체는 <b>성단(cluster) 구성원</b>입니다.
+그 질량대(SUPERMASSIVE)에 나오는 먹이는 쌍성·성단·적색거성뿐인데, 작은 덩어리 여러 개로 보이는 건 성단뿐입니다.
+현재(A)는 <b>8×6 세그먼트 구 14개</b>라 실루엣이 팔각형이고 위아래가 평평해 <b>짧은 원기둥</b>처럼 읽힙니다.
+혹시 이게 아니라 다른 걸 보신 거라면 알려주세요 — 다시 찾겠습니다.
+실제 구상성단은 별이 <b>수십만 개</b>인 공 모양 집단이라, 개별 덩어리보다 <b>수많은 점광</b>으로 보이는 쪽이
+사실에도 맞고 다른 천체와 실루엣도 확실히 갈립니다.
+</div>
+<div class="grid" id="g2"></div>
+
+<div class="foot">
+선택하실 때 이렇게 알려주시면 됩니다 — <span class="pill">흐름 D</span><span class="pill">성단 C</span>
+같은 식으로요. 조합해도 됩니다.
+</div>
+</div>
+
+<script src="../three.min.js"></script>
+<script>
+const rnd=(a,b)=>a+Math.random()*(b-a)
+const T0=performance.now()
+const CLOCK=()=>(performance.now()-T0)/1000
+const VIEWS=[]
+function fitAll(){for(const v of VIEWS){const w=v.cv.clientWidth||228,h=v.cv.clientHeight||236
+  v.rn.setSize(w,h,false);v.cam.aspect=w/h;v.cam.updateProjectionMatrix()}}
+addEventListener('resize',fitAll)
+
+/* ── 공용: 카드 하나 = 씬 하나 ── */
+function mkCard(host,key,name,why,rec,build){
+ const card=document.createElement('div');card.className='card'
+ const cv=document.createElement('canvas');cv.className='cv';card.appendChild(cv)
+ const meta=document.createElement('div');meta.className='meta'
+ meta.innerHTML='<div class="tag"><span class="key">'+key+'</span><span class="nm">'+name+'</span>'+
+   (rec?'<span class="rec">권장</span>':'')+'</div><div class="why">'+why+'</div>'
+ card.appendChild(meta);host.appendChild(card)
+ card.onclick=()=>{[...host.children].forEach(c=>c.classList.remove('pick'));card.classList.add('pick')}
+
+ const rn=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:false})
+ rn.setPixelRatio(Math.min(2,devicePixelRatio));rn.setClearColor(0x04050d,1)
+ const sc=new THREE.Scene()
+ const cam=new THREE.PerspectiveCamera(42,1,0.1,400)
+ // 카드를 하나씩 붙이는 동안 그리드가 재배치돼, 생성 시점의 clientWidth가 카드마다 달랐다
+ // (그래서 배율이 제각각이었다). 레이아웃이 끝난 뒤 일괄로 맞춘다.
+ VIEWS.push({cv,rn,cam})
+ sc.add(new THREE.HemisphereLight(0xcfe0ff,0x101828,1.0))
+ const dl=new THREE.DirectionalLight(0xffffff,0.85);dl.position.set(-6,12,8);sc.add(dl)
+ const tick=build(sc,cam,rn)
+ // 카드마다 시계가 따로 돌면 진행도가 어긋나 비교가 안 된다 — 공용 시계를 쓴다
+ ;(function loop(){requestAnimationFrame(loop);tick(CLOCK());rn.render(sc,cam)})()
+ return card
+}
+
+/* ── 1. 강착 흐름 ── */
+// 게임과 같은 기하: 지평선 hr, 원반 바깥 2.16hr, 본체는 로슈 한계 밖, 종점은 접선 방향 원반 테두리
+const HR=1.0, DISK=HR*2.16
+function streamScene(sc,cam){
+ cam.position.set(1.2,8.2,7.9);cam.lookAt(1.2,0,0.55) // 홀·본체·줄기 전부가 여유 있게 들어오는 거리 // 홀·본체·줄기가 한 화면에 크게 들어오도록
+ // 블랙홀 + 원반
+ sc.add(new THREE.Mesh(new THREE.SphereGeometry(HR*0.62,24,18),new THREE.MeshBasicMaterial({color:0x000000})))
+ const dk=new THREE.Mesh(new THREE.RingGeometry(HR*0.84,DISK,120,1),
+   new THREE.MeshBasicMaterial({color:0xffcf9a,transparent:true,opacity:0.85,side:THREE.DoubleSide,
+     blending:THREE.AdditiveBlending,depthWrite:false}))
+ dk.rotation.x=Math.PI*0.5-0.26;sc.add(dk)
+ const gl=new THREE.Mesh(new THREE.SphereGeometry(HR*1.5,20,14),
+   new THREE.MeshBasicMaterial({color:0xffb478,transparent:true,opacity:0.16,blending:THREE.AdditiveBlending,depthWrite:false}))
+ sc.add(gl)
+ return dk
+}
+// 본체 위치와 나선 곡선(진행도 pr에 따라 본체가 줄어든다)
+function spiralPath(pr){
+ const rem=1.15*(1-pr*0.9)+0.05
+ const want=DISK*1.06+rem
+ const bx=want, bz=0                       // 본체 중심(+X 방향)
+ const sx=bx-rem*0.55, sz=bz               // 뜯겨 나오는 지점
+ const tx=0, tz=1                          // 접선 방향
+ const ex=tx*DISK, ez=tz*DISK              // 종점 = 원반 테두리
+ const len=Math.hypot(sx-ex,sz-ez)
+ const bend=len*0.42*(0.5+pr*0.5)
+ const pts=[]
+ for(let k=0;k<=24;k++){const u=k/24
+  pts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*Math.sin(u*Math.PI)*bend,0.12,
+                             ez+(sz-ez)*u+tz*Math.sin(u*Math.PI)*bend))}
+ return {curve:new THREE.CatmullRomCurve3(pts),rem,bx,bz}
+}
+function mkBody(sc){
+ const m=new THREE.Mesh(new THREE.SphereGeometry(1,20,14),
+   new THREE.MeshStandardMaterial({color:0xc9b6e8,roughness:.75,emissive:0x6a5a90,emissiveIntensity:.35}))
+ sc.add(m);return m
+}
+const CYC=4.6 // 흡수 한 사이클(초) — 눈으로 따라갈 수 있게 느리게
+
+const G1=document.getElementById('g1')
+
+/* A — 현재: 균일 굵기 불투명 관 */
+mkCard(G1,'A','현재 · 균일 관',
+ '굵기가 처음부터 끝까지 같고 불투명합니다. 단단한 <b>막대</b>로 읽히는 이유입니다.',false,
+ (sc,cam)=>{streamScene(sc,cam)
+  const body=mkBody(sc)
+  let mesh=null
+  const mat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.9,depthWrite:false})
+  return t=>{const pr=(t%CYC)/CYC
+   const {curve,rem,bx,bz}=spiralPath(pr)
+   body.position.set(bx,0,bz);body.scale.setScalar(rem)
+   if(mesh){sc.remove(mesh);mesh.geometry.dispose()}
+   mesh=new THREE.Mesh(new THREE.TubeGeometry(curve,26,rem*(0.11+pr*0.15),9,false),mat)
+   mat.opacity=0.55+pr*0.42;sc.add(mesh)}})
+
+/* B — 테이퍼 리본: 뜯긴 곳은 굵고 원반 쪽으로 갈수록 가늘어진다 */
+mkCard(G1,'B','테이퍼 리본',
+ '뜯긴 자리는 굵고 원반 쪽으로 <b>가늘어집니다</b>. 실제 잔해는 늘어나며 얇아지죠. 형태는 그대로 두고 굵기만 바꾼 최소 변경안.',false,
+ (sc,cam)=>{streamScene(sc,cam)
+  const body=mkBody(sc)
+  let mesh=null
+  const mat=new THREE.MeshBasicMaterial({color:0xdfeaff,transparent:true,opacity:0.85,
+    depthWrite:false,side:THREE.DoubleSide,blending:THREE.AdditiveBlending})
+  // 반경이 곡선을 따라 변하는 튜브를 직접 만든다(TubeGeometry는 반경이 상수라 불가)
+  function taperTube(curve,r0,r1,seg,rad){
+   const pos=[],idx=[],N=seg,M=rad
+   const frames=curve.computeFrenetFrames(N,false)
+   for(let i=0;i<=N;i++){const u=i/N,p=curve.getPoint(u)
+    const r=r0+(r1-r0)*Math.pow(u,0.75)
+    const nrm=frames.normals[Math.min(i,N-1)],bin=frames.binormals[Math.min(i,N-1)]
+    for(let j=0;j<M;j++){const a=j/M*Math.PI*2
+     pos.push(p.x+(nrm.x*Math.cos(a)+bin.x*Math.sin(a))*r,
+              p.y+(nrm.y*Math.cos(a)+bin.y*Math.sin(a))*r,
+              p.z+(nrm.z*Math.cos(a)+bin.z*Math.sin(a))*r)}}
+   for(let i=0;i<N;i++)for(let j=0;j<M;j++){const a=i*M+j,b=i*M+(j+1)%M,c=(i+1)*M+j,d=(i+1)*M+(j+1)%M
+    idx.push(a,c,b, b,c,d)}
+   const g=new THREE.BufferGeometry()
+   g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx)
+   g.computeVertexNormals();return g}
+  return t=>{const pr=(t%CYC)/CYC
+   const {curve,rem,bx,bz}=spiralPath(pr)
+   body.position.set(bx,0,bz);body.scale.setScalar(rem)
+   if(mesh){sc.remove(mesh);mesh.geometry.dispose()}
+   // u=0이 원반 쪽, u=1이 본체 쪽 → 원반 쪽이 가늘다
+   mesh=new THREE.Mesh(taperTube(curve,rem*0.055,rem*0.30,30,10),mat)
+   mat.opacity=0.5+pr*0.4;sc.add(mesh)}})
+
+/* C — 여러 가닥: 위상이 조금씩 다른 필라멘트 3개 */
+mkCard(G1,'C','여러 가닥',
+ '조금씩 다르게 감긴 <b>얇은 가닥 3개</b>. 실제 스트림은 매끈한 관이 아니라 밀도가 고르지 않은 가스입니다.',false,
+ (sc,cam)=>{streamScene(sc,cam)
+  const body=mkBody(sc)
+  const meshes=[]
+  const mats=[0.9,0.6,0.45].map(o=>new THREE.MeshBasicMaterial({color:0xe8f2ff,transparent:true,
+    opacity:o,depthWrite:false,blending:THREE.AdditiveBlending}))
+  return t=>{const pr=(t%CYC)/CYC
+   const {curve,rem,bx,bz}=spiralPath(pr)
+   body.position.set(bx,0,bz);body.scale.setScalar(rem)
+   meshes.forEach(m=>{sc.remove(m);m.geometry.dispose()});meshes.length=0
+   for(let s=0;s<3;s++){
+    const base=curve.getPoints(24)
+    const pts=base.map((p,i)=>{const u=i/24
+     const w=Math.sin(u*Math.PI*(1.6+s*0.5)+t*2.2+s*2.1)*rem*(0.16+0.1*s)*Math.sin(u*Math.PI)
+     return new THREE.Vector3(p.x+w,p.y+w*0.25,p.z-w*0.6)})
+    const c2=new THREE.CatmullRomCurve3(pts)
+    const m=new THREE.Mesh(new THREE.TubeGeometry(c2,24,rem*(0.030+0.016*s),6,false),mats[s])
+    mats[s].opacity=(0.9-s*0.22)*(0.45+pr*0.5)
+    meshes.push(m);sc.add(m)}}})
+
+/* D — 입자 흐름: 관 없이 잔해가 흘러 들어간다 */
+mkCard(G1,'D','입자 흐름',
+ '관이 아니라 <b>잔해 입자</b>가 곡선을 따라 흘러듭니다. 원반에 가까울수록 빨라져요(케플러). 가장 사실적이고 가장 살아 있어 보입니다.',false,
+ (sc,cam)=>{streamScene(sc,cam)
+  const body=mkBody(sc)
+  const N=260
+  const geo=new THREE.BufferGeometry()
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3)
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3))
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3))
+  const pm=new THREE.PointsMaterial({size:0.13,vertexColors:true,transparent:true,opacity:0.95,
+    depthWrite:false,blending:THREE.AdditiveBlending})
+  sc.add(new THREE.Points(geo,pm))
+  const seed=new Float32Array(N).map(()=>Math.random())
+  const off=new Float32Array(N).map(()=>Math.random())
+  return t=>{const pr=(t%CYC)/CYC
+   const {curve,rem,bx,bz}=spiralPath(pr)
+   body.position.set(bx,0,bz);body.scale.setScalar(rem)
+   for(let i=0;i<N;i++){
+    // u=1(본체) → u=0(원반). 진행할수록 가속(케플러: 안쪽이 빠르다)
+    let u=1-((t*0.42+off[i])%1)
+    u=u*u                                    // 원반 쪽에서 촘촘·빠르게
+    const p=curve.getPoint(1-u)
+    const spread=rem*0.20*Math.sin((1-u)*Math.PI)+0.02
+    const a=seed[i]*6.283, rr=Math.sqrt(seed[i])*spread
+    pos[i*3]=p.x+Math.cos(a+t*3)*rr
+    pos[i*3+1]=p.y+Math.sin(a*2.1)*rr*0.5
+    pos[i*3+2]=p.z+Math.sin(a+t*3)*rr
+    const hot=1-u                            // 원반에 가까울수록 뜨겁다
+    col[i*3]=0.75+hot*0.25;col[i*3+1]=0.85+hot*0.12;col[i*3+2]=1.0
+   }
+   geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true
+   pm.opacity=0.5+pr*0.45}})
+
+/* E — 하이브리드: 가는 테이퍼 코어 + 입자 */
+mkCard(G1,'E','하이브리드 (코어+입자)',
+ '<b>가는 테이퍼 코어</b>가 흐름의 길을 그리고 그 위를 <b>입자</b>가 흘러갑니다. 멀리서도 무엇을 먹는지 읽히면서 뻣뻣하지 않습니다.',true,
+ (sc,cam)=>{streamScene(sc,cam)
+  const body=mkBody(sc)
+  let core=null
+  const cm=new THREE.MeshBasicMaterial({color:0xcfe4ff,transparent:true,opacity:0.5,
+    depthWrite:false,blending:THREE.AdditiveBlending})
+  const N=200
+  const geo=new THREE.BufferGeometry()
+  const pos=new Float32Array(N*3),col=new Float32Array(N*3)
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3))
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3))
+  const pm=new THREE.PointsMaterial({size:0.115,vertexColors:true,transparent:true,opacity:0.95,
+    depthWrite:false,blending:THREE.AdditiveBlending})
+  sc.add(new THREE.Points(geo,pm))
+  const seed=new Float32Array(N).map(()=>Math.random())
+  const off=new Float32Array(N).map(()=>Math.random())
+  return t=>{const pr=(t%CYC)/CYC
+   const {curve,rem,bx,bz}=spiralPath(pr)
+   body.position.set(bx,0,bz);body.scale.setScalar(rem)
+   // 코어 — 미세하게 흔들리는 얇은 관
+   const base=curve.getPoints(24)
+   const pts=base.map((p,i)=>{const u=i/24
+    const w=Math.sin(u*Math.PI*1.9+t*1.9)*rem*0.10*Math.sin(u*Math.PI)
+    return new THREE.Vector3(p.x+w,p.y,p.z-w*0.5)})
+   const c2=new THREE.CatmullRomCurve3(pts)
+   if(core){sc.remove(core);core.geometry.dispose()}
+   core=new THREE.Mesh(new THREE.TubeGeometry(c2,26,rem*0.052,7,false),cm)
+   cm.opacity=(0.35+pr*0.3);sc.add(core)
+   for(let i=0;i<N;i++){
+    let u=1-((t*0.46+off[i])%1);u=u*u
+    const p=c2.getPoint(Math.min(1,Math.max(0,1-u)))
+    const spread=rem*0.17*Math.sin((1-u)*Math.PI)+0.02
+    const a=seed[i]*6.283, rr=Math.sqrt(seed[i])*spread
+    pos[i*3]=p.x+Math.cos(a+t*3.4)*rr
+    pos[i*3+1]=p.y+Math.sin(a*2.3)*rr*0.5
+    pos[i*3+2]=p.z+Math.sin(a+t*3.4)*rr
+    const hot=1-u
+    col[i*3]=0.78+hot*0.22;col[i*3+1]=0.86+hot*0.11;col[i*3+2]=1.0}
+   geo.attributes.position.needsUpdate=true;geo.attributes.color.needsUpdate=true
+   pm.opacity=0.55+pr*0.4}})
+
+/* ── 2. 성단 ── */
+const G2=document.getElementById('g2')
+function clusterScene(sc,cam){cam.position.set(0,2.2,6.2);cam.lookAt(0,0,0)}
+function glowSprite(color,size,op){
+ const c=document.createElement('canvas');c.width=c.height=64
+ const x=c.getContext('2d'),gr=x.createRadialGradient(32,32,0,32,32,32)
+ gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.35,'rgba(255,255,255,0.5)')
+ gr.addColorStop(1,'rgba(255,255,255,0)')
+ x.fillStyle=gr;x.fillRect(0,0,64,64)
+ const tx=new THREE.CanvasTexture(c)
+ const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,color,transparent:true,opacity:op,
+   blending:THREE.AdditiveBlending,depthWrite:false}))
+ s.scale.setScalar(size);return s
+}
+
+mkCard(G2,'A','현재 · 저해상도 구 14개',
+ '<b>8×6 세그먼트</b> 구 14개. 각이 그대로 보여 말씀하신 "각진 기둥"처럼 읽힙니다.',false,
+ (sc,cam)=>{clusterScene(sc,cam)
+  const g=new THREE.Group();sc.add(g)
+  for(let i=0;i<14;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(rnd(0.14,0.3),8,6),
+    new THREE.MeshBasicMaterial({color:[0xfff0d0,0xffd27a,0xbfd8ff][i%3]}))
+   sm.position.set(rnd(-1,1),rnd(-0.3,0.3),rnd(-1,1));g.add(sm)}
+  g.add(glowSprite(0xffe8c0,4.4,0.42))
+  g.scale.setScalar(1.5)
+  return t=>{g.rotation.y=t*0.35}})
+
+mkCard(G2,'B','매끄러운 구 14개',
+ '개수·배치는 그대로 두고 <b>세그먼트만 올렸습니다</b>(16×12). 각은 사라지지만 여전히 "덩어리 몇 개"로 보입니다.',false,
+ (sc,cam)=>{clusterScene(sc,cam)
+  const g=new THREE.Group();sc.add(g)
+  for(let i=0;i<14;i++){const sm=new THREE.Mesh(new THREE.SphereGeometry(rnd(0.14,0.3),16,12),
+    new THREE.MeshBasicMaterial({color:[0xfff0d0,0xffd27a,0xbfd8ff][i%3]}))
+   sm.position.set(rnd(-1,1),rnd(-0.3,0.3),rnd(-1,1));g.add(sm)}
+  g.add(glowSprite(0xffe8c0,4.4,0.42))
+  g.scale.setScalar(1.5)
+  return t=>{g.rotation.y=t*0.35}})
+
+mkCard(G2,'C','별 무리 (점광 400)',
+ '<b>점광 400개</b>가 중심으로 갈수록 촘촘해지는 공. 구상성단은 별이 수십만 개라 이쪽이 사실에 맞고, 다른 천체와 실루엣도 확실히 갈립니다.',true,
+ (sc,cam)=>{clusterScene(sc,cam)
+  const g=new THREE.Group();sc.add(g)
+  const N=400,pos=new Float32Array(N*3),col=new Float32Array(N*3)
+  const PAL=[[1,.96,.86],[1,.84,.52],[.76,.86,1]]
+  for(let i=0;i<N;i++){
+   // 중심 집중 분포(실제 성단은 중심 밀도가 압도적으로 높다)
+   const r=Math.pow(Math.random(),2.1)*1.35
+   const th=Math.acos(2*Math.random()-1),ph=Math.random()*6.283
+   pos[i*3]=r*Math.sin(th)*Math.cos(ph)
+   pos[i*3+1]=r*Math.sin(th)*Math.sin(ph)*0.78
+   pos[i*3+2]=r*Math.cos(th)
+   const c=PAL[i%3];col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2]}
+  const geo=new THREE.BufferGeometry()
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3))
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3))
+  g.add(new THREE.Points(geo,new THREE.PointsMaterial({size:0.075,vertexColors:true,
+    transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending})))
+  g.add(glowSprite(0xffe8c0,3.6,0.5))
+  g.scale.setScalar(1.5)
+  return t=>{g.rotation.y=t*0.28}})
+
+mkCard(G2,'D','핵 + 별 무리',
+ 'C에 <b>밝은 핵</b>을 더했습니다. 성단 중심부는 실제로 별이 뭉쳐 하나의 광원처럼 보입니다. 멀리서도 눈에 띄지만 A보다 부드럽습니다.',false,
+ (sc,cam)=>{clusterScene(sc,cam)
+  const g=new THREE.Group();sc.add(g)
+  const N=340,pos=new Float32Array(N*3),col=new Float32Array(N*3)
+  const PAL=[[1,.96,.86],[1,.84,.52],[.76,.86,1]]
+  for(let i=0;i<N;i++){
+   const r=0.35+Math.pow(Math.random(),1.7)*1.15
+   const th=Math.acos(2*Math.random()-1),ph=Math.random()*6.283
+   pos[i*3]=r*Math.sin(th)*Math.cos(ph)
+   pos[i*3+1]=r*Math.sin(th)*Math.sin(ph)*0.78
+   pos[i*3+2]=r*Math.cos(th)
+   const c=PAL[i%3];col[i*3]=c[0];col[i*3+1]=c[1];col[i*3+2]=c[2]}
+  const geo=new THREE.BufferGeometry()
+  geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3))
+  geo.setAttribute('color',new THREE.Float32BufferAttribute(col,3))
+  g.add(new THREE.Points(geo,new THREE.PointsMaterial({size:0.08,vertexColors:true,
+    transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending})))
+  g.add(glowSprite(0xfff2d8,2.0,0.85))
+  g.add(glowSprite(0xffe8c0,4.2,0.4))
+  g.scale.setScalar(1.5)
+  return t=>{g.rotation.y=t*0.28}})
+fitAll();requestAnimationFrame(fitAll) // 폰트·그리드 확정 후 한 번 더
+</script></body></html>
