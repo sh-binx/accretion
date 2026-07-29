@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.0.3</div>
+<div class="credit">ACCRETION · prototype 4.0.4</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -283,6 +283,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <script src="three.min.js"></script>
 <script>
 const DEV=/[?&]dev/.test(location.search)
+const QA_DAY='2000-01-01'   // DEV 제출·조회가 격리되는 QA 전용 날짜 보드
 const $=id=>document.getElementById(id)
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v)
 const rnd=(a,b)=>a+Math.random()*(b-a)
@@ -1526,7 +1527,9 @@ const LB={
  async submit(score,mass,tier,dur,day,modifier){
   // DEV 모드(?dev=1)의 모든 제출은 QA 전용 날짜 보드로 강제한다.
   // 자동 검증이 매 실행마다 실제 리더보드에 행을 쌓아 왔다(2026-07-28 감사에서 적발).
-  if(DEV)day=day||'2000-01-01'
+  // 2026-07-29 재적발: `day||QA_DAY`는 day가 이미 있으면 덮어쓰지 않아, 데일리 제출이
+  // 실제 날짜 보드로 그대로 나갔다(DAILY_QA 4건). 조건 없이 강제한다.
+  if(DEV)day=QA_DAY
   try{
    const r=await fetch(this.URL+'/functions/v1/accretion-submit',{method:'POST',headers:{'Content-Type':'application/json','apikey':this.KEY},body:JSON.stringify({name:this.name||'ANON',score,mass,tier,dur,day:day||null,modifier:modifier||null})})
    const j=await r.json().catch(()=>null)
@@ -1536,7 +1539,7 @@ const LB={
  },
  async top(limit){return this._q('&day=is.null',limit)},          // 글로벌 = 일반런만
  async topWeek(limit){return this._q('&day=is.null&created_at=gte.'+weekStart(),limit)}, // 이번 주
- async topDaily(day,limit){return this._q('&day=eq.'+day,limit)}, // 데일리 = 그날
+ async topDaily(day,limit){return this._q('&day=eq.'+(DEV?QA_DAY:day),limit)}, // 데일리 = 그날(DEV는 QA 보드를 읽어 왕복 검증이 유효하게)
  async _q(filter,limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur,modifier'+filter+'&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
 }
 /* ===== 데일리 챌린지 — 날짜별 모디파이어(그날은 모두 같은 규칙) + 데일리 리더보드 ===== */
