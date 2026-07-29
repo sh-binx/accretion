@@ -196,7 +196,9 @@ body:not(.playing) #feedwrap{opacity:0!important}
 #onb .ob-r b{font-family:'Martian Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.16em;color:#F4F7FA;min-width:96px}
 #onb .ob-r span{font-family:'Martian Mono',monospace;font-weight:300;font-size:9.5px;letter-spacing:.18em;color:#6C727A;min-width:112px;text-align:left}
 #onb .ob-r i{font-style:normal;font-family:'Martian Mono',monospace;font-weight:300;font-size:10px;letter-spacing:.24em;color:#FF6B3D;text-transform:uppercase}
-#onb .ob-h{font-family:'Martian Mono',monospace;font-weight:300;font-size:8.5px;letter-spacing:.26em;color:#4C5158;margin-top:16px;text-transform:uppercase}
+#onb .ob-h{font-family:'Martian Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.26em;color:#FFCDB6;margin-top:20px;text-transform:uppercase;
+ animation:obPulse 1.5s ease-in-out infinite}
+@keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -212,7 +214,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.8.2</div>
+<div class="credit">ACCRETION · prototype 3.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -413,6 +415,20 @@ hole.add(pStar)
 // 상대론적 제트 — QUASAR 티어에서 점화(실제 퀘이사는 극에서 물질을 광속 가까이 뿜는다).
 // 탑다운 게임이라 축을 '플레이 평면(±X)'에 눕힌다 — 보이는 빔과 판정 영역을 정확히 일치시키기 위함.
 const JET_LEN=9, JET_TIP=0.62, JET_BASE=0.14
+// 흡수 연출 — 천체를 늘이는 게 아니라, 천체에서 물질이 '가닥'으로 뜯겨 나와 흘러든다(feed stream).
+// 실제 강착도 그렇다: 표면에서 벗겨진 물질이 좁은 흐름을 이루며 떨어지고, 본체는 형태를 유지한 채 줄어든다.
+const feedStream=(()=>{
+ const g=new THREE.CylinderGeometry(1,1,1,14,1,true)
+ g.translate(0,0.5,0)
+ const cols=[],pos=g.attributes.position
+ for(let i=0;i<pos.count;i++){const t=pos.getY(i)
+  const b=0.35+t*0.65
+  cols.push(0.78*b,0.88*b,1.0*b)}
+ g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3))
+ const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,
+  blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+ m.visible=false;scene.add(m);return m})()
+let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
 // 먹은 방향의 누적 평균 — 이것이 자전축의 목표가 된다(강착 원반 각운동량)
 function noteFeedDir(dx,dz){const l=Math.hypot(dx,dz)||1
@@ -595,7 +611,7 @@ function cancelFeed(){S.feed=null}
 function updateFeed(dt){
  const f=S.feed;if(!f)return
  const o=f.o
- if(o.eaten||objects.indexOf(o)<0){S.feed=null;return} // 남이 먹었거나 사라짐
+ if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;return} // 남이 먹었거나 사라짐
  f.t+=dt
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
@@ -609,8 +625,22 @@ function updateFeed(dt){
  const want=rad(S.mass)*0.95+rem*0.5           // 내 표면 + 남은 반경의 절반
  const nd=fd+(want-fd)*Math.min(1,dt*3.2)
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
- o.g.rotation.y=Math.atan2(-fdz,fdx)           // 조석 방향으로 늘어난다
- o.g.scale.set(rem*(1+pr*0.9),rem*(1-pr*0.35),rem*(1-pr*0.35))
+ o.g.rotation.y=Math.atan2(-fdz,fdx)
+ // 본체는 형태를 유지한 채 줄어들고(조석 팽대는 살짝만), 뜯겨 나온 물질이 '줄기'로 흘러든다.
+ const bulge=1+pr*0.28
+ o.g.scale.set(rem*bulge,rem*(1-pr*0.10),rem*(1-pr*0.10))
+ {const hx=hole.position.x,hz=hole.position.z
+  const sx=o.g.position.x-fnx*rem*0.55, sz=o.g.position.z-fnz*rem*0.55
+  const len=Math.max(0.01,Math.hypot(sx-hx,sz-hz))
+  feedStream.visible=true
+  feedStream.position.set(hx,0.15,hz)
+  feedStream.scale.set(rem*(0.30+pr*0.34),len,rem*(0.30+pr*0.34))
+  feedStream.material.opacity=0.30+pr*0.34
+  feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
+    new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
+  if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.045
+   streamPart(sx,sz,(hx-sx)/len,(hz-sz)/len,0xcfe6ff)}
+ }
  if(pr>=1){
   o.eaten=true;o.eatT=0.2;o.eatBy=null
   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
@@ -625,7 +655,7 @@ function updateFeed(dt){
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
   {const fdx=o.g.position.x-hole.position.x,fdz=o.g.position.z-hole.position.z;noteFeedDir(fdx,fdz)}
   gainPop(hole.position,total);codexToast(o.type)
-  S.feed=null
+  S.feed=null;feedStream.visible=false
  }
 }
 /* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
@@ -1772,6 +1802,7 @@ if(DEV){window.__acc={
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
  gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
+ streamOn:()=>feedStream.visible,streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
  feedObj:()=>{if(!S.feed)return null;const o=S.feed.o
