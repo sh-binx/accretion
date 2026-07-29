@@ -14,6 +14,9 @@
  #hud .tier{font-size:12px;letter-spacing:1.5px;color:#ffcf4a;margin-top:2px}
  #hud .sub{font-size:11px;color:#93a0c4;margin-top:6px}
  #massbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(470px,70vw);z-index:5;pointer-events:none}
+ @media (max-width:820px){#massbar{top:auto;bottom:14px;width:min(320px,54vw)}} /* 좁은 가로: 좌우 HUD와 겹쳐 아래로 */
+ /* 세로 모드는 하단이 코덱스·능력으로 붐빈다 → 상단 HUD 아래 자기 줄을 준다 */
+ @media (max-aspect-ratio:9/10){#massbar{top:122px;bottom:auto;width:min(340px,86vw)}}
  #massbar .t{font-size:10.5px;letter-spacing:2.4px;color:#8e9ac0;text-align:center;margin-bottom:6px}
 #massbar .track{height:12px;border-radius:5px;background:rgba(120,150,220,.12);overflow:hidden}
  #massbar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#ff5d6c,#ffcf4a,#7bed4a);transition:width .1s}
@@ -44,6 +47,8 @@
  /* 콤보 = 질량바 바로 아래(상단 HUD 열). 중앙은 배너·팝업·블랙홀이 이미 쓰고 있어 겹쳤다 */
  #combo{position:fixed;right:16px;top:130px;z-index:6;pointer-events:none;text-align:right;font-family:'Martian Mono',ui-monospace,monospace;font-weight:700;font-size:clamp(18px,2.1vw,26px);letter-spacing:.04em;color:#ffcf4a;text-shadow:0 0 18px rgba(255,207,74,.6);opacity:0;transform-origin:100% 0;transition:opacity .12s}
  #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
+ body.touch #mute{left:14px;right:auto;top:auto;bottom:14px} /* 능력 클러스터(우하단)와 충돌 — 반대편으로 */
+ body.touch .credit{display:none} /* 좌하단은 음소거 자리. 폰에서 버전 표기는 불필요 */
  #mute:hover{opacity:1}
  #codex{position:fixed;left:50%;bottom:78px;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
  #codex.on{opacity:1;transform:translate(-50%,0)}
@@ -99,7 +104,7 @@
  body.touch #surge .track{width:104px}
  body.touch #surge .lab{display:none} /* 세로 바+버튼이 상태를 말한다. 우하단은 음소거 버튼 자리 */
  /* 코덱스 문구는 오른쪽 클러스터를 피해 왼쪽으로 */
- body.touch #codex{left:14px;right:auto;transform:none;max-width:min(60vw,420px);bottom:14px;text-align:left}
+ body.touch #codex{left:52px;right:auto;transform:none;max-width:min(56vw,400px);bottom:14px;text-align:left} /* 좌하단 구석은 음소거 몫 — 비켜 앉는다 */
  body.touch #feedwrap{left:14px;right:auto;transform:none}
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
@@ -191,6 +196,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
  opacity:0;transition:opacity .28s;text-align:center;
  background:rgba(6,8,14,.82);border:1px solid rgba(255,255,255,.14);padding:26px 40px;backdrop-filter:blur(3px)}
 #onb.on{opacity:1}
+body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:0!important} /* 인트로는 모달 — 뒤 UI를 비운다 */
 #onb .ob-t{font-family:'Martian Mono',monospace;font-weight:500;font-size:9px;letter-spacing:.34em;color:#7E848C;margin-bottom:18px}
 #onb .ob-r{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:11px}
 #onb .ob-r b{font-family:'Martian Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.16em;color:#F4F7FA;min-width:96px}
@@ -199,6 +205,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 #onb .ob-h{font-family:'Martian Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.26em;color:#FFCDB6;margin-top:20px;text-transform:uppercase;
  animation:obPulse 1.5s ease-in-out infinite}
 @keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
+ @media (max-aspect-ratio:9/10){#combo{top:176px}} /* 세로: 질량바가 122px로 내려와 그 아래로 */
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -214,7 +221,7 @@ body:not(.playing) #feedwrap{opacity:0!important}
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 3.9</div>
+<div class="credit">ACCRETION · prototype 4.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -428,6 +435,11 @@ const feedStream=(()=>{
  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  m.visible=false;scene.add(m);return m})()
+const spiralPts=[]
+const spiralMesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({color:0x8ec8ff,
+ transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+spiralMesh.visible=false;scene.add(spiralMesh)
+let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운동량 때문에 곧장 떨어지지 못한다
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
 // 먹은 방향의 누적 평균 — 이것이 자전축의 목표가 된다(강착 원반 각운동량)
@@ -611,7 +623,7 @@ function cancelFeed(){S.feed=null}
 function updateFeed(dt){
  const f=S.feed;if(!f)return
  const o=f.o
- if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;return} // 남이 먹었거나 사라짐
+ if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;spiralMesh.visible=false;return} // 남이 먹었거나 사라짐
  f.t+=dt
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
@@ -622,7 +634,9 @@ function updateFeed(dt){
  const base2=o.r*1.15, rem=Math.max(0.05,base2*(1-pr*0.9))
  const fdx=o.g.position.x-hole.position.x, fdz=o.g.position.z-hole.position.z
  const fd=Math.hypot(fdx,fdz)||1, fnx=fdx/fd, fnz=fdz/fd
- const want=rad(S.mass)*0.95+rem*0.5           // 내 표면 + 남은 반경의 절반
+ // 조석 박리는 로슈 한계에서 일어난다 — 지평선 바로 옆이 아니라 여러 반경 밖이다.
+ // 띄워야 흐름 줄기가 휠 거리가 생기고, 무엇을 먹는 중인지도 보인다.
+ const want=rad(S.mass)*1.75+rem*0.6
  const nd=fd+(want-fd)*Math.min(1,dt*3.2)
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
  o.g.rotation.y=Math.atan2(-fdz,fdx)
@@ -634,8 +648,26 @@ function updateFeed(dt){
   const len=Math.max(0.01,Math.hypot(sx-hx,sz-hz))
   feedStream.visible=true
   feedStream.position.set(hx,0.15,hz)
-  feedStream.scale.set(rem*(0.30+pr*0.34),len,rem*(0.30+pr*0.34))
-  feedStream.material.opacity=0.30+pr*0.34
+  const wF=STREAM_STYLE===2?0.13+pr*0.15:0.30+pr*0.34   // ② 가는 실
+  feedStream.scale.set(rem*wF,len,rem*wF)
+  feedStream.material.opacity=(STREAM_STYLE===2?0.42+pr*0.4:0.30+pr*0.34)
+  if(STREAM_STYLE===3){ // ③ 나선 — 실제 강착 흐름은 곧장 떨어지지 않고 각운동량 때문에 감긴다
+   // 실제 강착 흐름은 블랙홀을 향해 곧장 가지 않고 '원반 가장자리를 감고' 들어간다.
+   // 끝점을 중심이 아니라 접선 방향으로 어긋난 원반 언저리에 두면 그 감김이 읽힌다.
+   const tx=-fnz,tz=fnx
+   const rim=rad(S.mass)*1.9                       // 원반 언저리 = 흐름이 합류하는 곳
+   const ex=hx+tx*rim, ez=hz+tz*rim                // 접선 방향으로 어긋난 종점
+   const bend=len*0.42*(0.5+pr*0.5)
+   spiralPts.length=0
+   for(let k=0;k<=16;k++){const u=k/16
+    const px=ex+(sx-ex)*u + tx*Math.sin(u*Math.PI)*bend
+    const pz=ez+(sz-ez)*u + tz*Math.sin(u*Math.PI)*bend
+    spiralPts.push(new THREE.Vector3(px,0.15,pz))}
+   if(spiralMesh.geometry)spiralMesh.geometry.dispose()
+   spiralMesh.geometry=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(spiralPts),26,rem*(0.16+pr*0.2),9,false)
+   spiralMesh.material.opacity=0.55+pr*0.42
+   spiralMesh.visible=true;feedStream.visible=false
+  } else spiralMesh.visible=false
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
     new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
   if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.045
@@ -655,7 +687,7 @@ function updateFeed(dt){
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
   {const fdx=o.g.position.x-hole.position.x,fdz=o.g.position.z-hole.position.z;noteFeedDir(fdx,fdz)}
   gainPop(hole.position,total);codexToast(o.type)
-  S.feed=null;feedStream.visible=false
+  S.feed=null;feedStream.visible=false;spiralMesh.visible=false
  }
 }
 /* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
@@ -1667,8 +1699,8 @@ function showOnboard(){const el=$('onb')
   r[3].querySelector('b').textContent='WAVE'
   el.querySelector('.ob-h').textContent='tap to begin'}
  // 입력 전까지 대기 — 자동 해제(9초)는 안전장치일 뿐이다
- el.classList.add('on');onbT=performance.now()+9000}
-function hideOnboard(){if(onbT){$('onb').classList.remove('on');onbT=0}}
+ el.classList.add('on');document.body.classList.add('intro');onbT=performance.now()+9000}
+function hideOnboard(){if(onbT){$('onb').classList.remove('on');document.body.classList.remove('intro');onbT=0}}
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
@@ -1802,7 +1834,14 @@ if(DEV){window.__acc={
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
  gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
- streamOn:()=>feedStream.visible,streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
+ setStreamStyle:v=>{STREAM_STYLE=v},streamOn:()=>feedStream.visible||spiralMesh.visible,streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
+ hideOnboard:()=>hideOnboard(),
+ forceUI:()=>{ // UI 감사용 — 모든 메시지 채널을 동시에 띄운 '최악의 경우'. hud()가 매 프레임 되돌리므로 타이머를 미래로 민다.
+  banT=performance.now()+20000;codexT=performance.now()+20000
+  $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo';$('banner').style.opacity=1
+  $('codex').classList.add('on');$('feedwrap').classList.add('on')
+  S.combo=42;S.comboAt=performance.now()+20000
+  return true},
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
  feedObj:()=>{if(!S.feed)return null;const o=S.feed.o

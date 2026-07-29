@@ -53,7 +53,9 @@ try {
   if (heroPos) ok('hero: hole sits in the upper area', heroPos.y<0.46, `y=${heroPos.y.toFixed(2)}`)
 
   // playing: HUD returns
-  await page.evaluate(() => window.__acc.begin())
+  // 3.8.2부터 인트로 카드가 뜨는 동안 게임이 멈추고 HUD도 숨는다(모달).
+  // 실제 플레이 흐름대로 카드를 닫은 뒤 HUD를 확인한다.
+  await page.evaluate(() => { window.__acc.begin(); window.__acc.hideOnboard() })
   await sleep(250)
   ok('playing: HUD visible', await hudSettles(page,true))
   ok('playing: body has .playing', (await page.evaluate(() => document.body.classList.contains('playing')))===true)
