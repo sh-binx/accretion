@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.1</div>
+<div class="credit">ACCRETION · prototype 4.1.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -577,11 +577,21 @@ function mkVisual(type,mass){
  else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
   for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
  // ── 티어별 주민 — 실루엣을 갈라야 색이 비슷해도 구분된다(오너: "천체가 뻔하다") ──
- else if(type==='comet'){ // 혜성 — 핵은 작고 꼬리가 길다. 태양풍에 밀려 항상 바깥을 향한다.
+ else if(type==='comet'){ // 혜성 — 핵은 작고 꼬리가 길다. 복사압·항성풍에 밀려 광원 '반대쪽'을 향한다.
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.45,12,9),new THREE.MeshStandardMaterial({color:0xdff0ff,roughness:.6,emissive:0x8fd0ff,emissiveIntensity:.5})))
-  const tg=new THREE.ConeGeometry(0.5,4.2,10,1,true);tg.translate(0,2.3,0);tg.rotateZ(Math.PI)
-  const tm=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.34,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}))
-  tm.rotation.z=rnd(-0.5,0.5);g.add(tm);g.userData.tail=tm}
+  // 뾰족한 끝을 핵에 두고 바깥으로 벌어지게(실제 꼬리는 멀어질수록 퍼진다). 축은 +X — 런타임에 rotation.y로 겨눈다.
+  const tg=new THREE.ConeGeometry(0.74,4.8,14,10,true);tg.translate(0,-2.1,0);tg.rotateZ(Math.PI/2) // 세로 10단 — 1단이면 색이 선형으로만 섞여 끝이 잘린 듯 보인다
+  // 끝으로 갈수록 검게 칠한다 — 가산 혼합에서 검정은 '보이지 않음'이라 딱딱한 끝단 없이 흩어진다.
+  // (단색 원뿔은 회색 깔때기처럼 보였다.)
+  {const pos=tg.attributes.position,col=new Float32Array(pos.count*3)
+   let mn=1e9,mx=-1e9
+   for(let i=0;i<pos.count;i++){const x=pos.getX(i);if(x<mn)mn=x;if(x>mx)mx=x}
+   for(let i=0;i<pos.count;i++){const t=(pos.getX(i)-mn)/Math.max(1e-6,mx-mn),k=Math.pow(1-t,2.4)
+    col[i*3]=0.60*k;col[i*3+1]=0.84*k;col[i*3+2]=1.0*k}
+   tg.setAttribute('color',new THREE.BufferAttribute(col,3))}
+  const tm=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55,
+    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+  g.add(tm);g.userData.tail=tm}
  else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
   const col=new THREE.Color().setHSL(rnd(0.06,0.13),0.55,0.62)
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({color:col,roughness:.8,emissive:col,emissiveIntensity:.35})))
@@ -1065,7 +1075,7 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  protostar:'A star is never gathered from rock. A cloud of gas collapses, and the core glows from its own contraction long before fusion begins.',
  gwave:'Merging black holes radiate energy as ripples in spacetime itself — LIGO first caught one in 2015, from a merger 1.3 billion light years away.',
  framedrag:'A spinning black hole drags spacetime around with it. Nearby matter cannot stay still — it is forced to orbit.',
- comet:'The tail always points away from the star, not backwards along its path — solar wind blows it outward.',
+ comet:'The tail always points away from the star, not backwards along its path — solar wind blows it outward. Here, your accretion disk is that light source.',
  giant:'Jupiter is 318 Earths, yet still 1000 times lighter than the Sun. Gas giants never grew heavy enough to ignite.',
  redgiant:'When a star exhausts its hydrogen it swells enormously. The Sun will one day swell past the orbit of Earth.',
  whitedwarf:'An Earth-sized ember with the mass of a star — one teaspoon would weigh about a tonne.',
@@ -1244,6 +1254,15 @@ function update(dt){
    if(rg)rg.material.color.setHex(threat?0xff3020:0x66e84a)} // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
 
   if(o.g.userData.pair)o.g.rotation.y+=dt*1.5 // 쌍성계는 서로 공전한다
+  // 혜성 꼬리는 광원 '반대쪽'을 향한다(복사압·항성풍). 여기서 가장 밝은 광원은 내 강착원반이다.
+  // 예전엔 겨누는 코드가 아예 없어(userData.tail을 저장만 하고 쓰지 않았다) 아무 방향으로나 뻗은 채
+  // 핵과 같이 돌았고, 그래서 방향을 가리키는 '화살표'처럼 보였다(오너 리포트).
+  {const tl=o.g.userData.tail
+   if(tl&&d>0.01){
+    tl.rotation.y=Math.atan2(-dz/d,dx/d)-o.g.rotation.y   // 핵의 자전을 상쇄하고 월드 기준으로 세운다
+    const near=Math.max(0,Math.min(1,1-d/((22+hr*7)*1.1))) // 가까울수록 승화가 활발 → 길고 밝다
+    tl.scale.setScalar(0.55+near*0.9)
+    tl.material.opacity=0.34+near*0.42}}
   if(o.nmCd>0)o.nmCd-=dt
   if(o.jetStun>0){o.jetStun-=dt
    const rd0=o.g.userData.rdisk;if(rd0)rd0.material.opacity=0.16+Math.sin(S.t*14)*0.06 // 원반이 흩어진 상태
@@ -1895,6 +1914,11 @@ if(DEV){window.__acc={
  setSpawn:v=>{NO_SPAWN=!v},
  eatenGeo:()=>objects.filter(o=>o.eaten).map(o=>({d:+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(2),s:+o.g.scale.x.toFixed(2)})),
  objDists:()=>objects.filter(o=>!o.eaten).map(o=>+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(1)),
+ cometTails:()=>objects.filter(o=>o.type==='comet'&&!o.eaten&&o.g.userData.tail).map(o=>{
+  const tl=o.g.userData.tail
+  const v=new THREE.Vector3(1,0,0).applyQuaternion(tl.getWorldQuaternion(new THREE.Quaternion())) // 꼬리가 실제로 향하는 월드 방향
+  const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
+  return {err:+Math.hypot(v.x-dx/d,v.z-dz/d).toFixed(3)}}),  // 0에 가까울수록 '나로부터 바깥' 정렬
  gridState:()=>({vis:gridMesh.visible,op:+gridMesh.material.opacity.toFixed(3)}),
  _probe:()=>{const out=[];scene.traverse(o=>{if(!o.visible||o.type==="Scene")return
   const box=o.geometry?(o.geometry.boundingSphere||(o.geometry.computeBoundingSphere(),o.geometry.boundingSphere)):null

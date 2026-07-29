@@ -64,6 +64,24 @@ try{
     return seq})
   ok('사슬 = PROTOSTAR → MAIN SEQUENCE → BLACK HOLE', chain.join('>')==='PROTOSTAR>MAIN SEQUENCE>BLACK HOLE', chain.join(' → '))
 
+  // 혜성 꼬리는 광원 반대쪽을 향한다(복사압·항성풍). 코덱스가 그렇게 가르치는데
+  // 정작 게임은 아무 방향으로나 뻗어 있었다(오너 리포트: "화살표 같은 게 뭐냐").
+  {
+    const r = await page.evaluate(async () => {
+      const A = window.__acc
+      A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(1.8)
+      const c = A.pos()
+      const P = [[0,10],[9,5],[-9,5],[7,-6],[-7,-6],[0,-11]]
+      for (const [x,z] of P) A.spawn('comet', 0.5, c.x+x, c.z+z)
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+      return A.cometTails()
+    })
+    const bad = r.filter(v => v.err > 0.12)
+    ok('혜성 꼬리가 광원(플레이어) 반대쪽을 향함', r.length >= 5 && bad.length === 0,
+       'n=' + r.length + (bad.length ? ' 최대오차 ' + Math.max(...bad.map(b => b.err)).toFixed(2) : ''))
+    await page.evaluate(() => window.__acc.setSpawn(true))
+  }
+
   ok('no JS/console errors',errors.length===0,errors.slice(0,3).join(' | '))
 }catch(e){console.error('FATAL',e);results.push([false,'fatal',String(e)])}
 finally{await browser.close()}
