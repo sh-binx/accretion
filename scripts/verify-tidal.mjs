@@ -137,33 +137,50 @@ try {
   ok('B6: TDE 코덱스가 열린다', cdx.seen.includes('tde'), cdx.seen.join(','))
   ok('B6: 코덱스 33항목', cdx.total===33, `${cdx.total}`)
 
-  // ── (C) 흡수 중인 천체가 내 블랙홀과 겹치지 않는가 ──
-  // 오너 리포트: "빨려오면 한번에 빨려야 하는데 내 블랙홀과 겹쳐 뱅글뱅글 도는 현상".
-  // 원인은 '입에 닿아야' 흡수가 시작돼 시작 순간 본체가 원반·지평선 안에 있었던 것.
-  // 이제 로슈 한계(원반 바깥)에서 붙잡으므로, 흡수 내내 본체 안쪽 끝이 원반 밖이어야 한다.
+  // ── (C) 흡수 중인 천체: 겹치지 않고, 무엇보다 '밀려나지 않는다' ──
+  // 오너 리포트 2건을 동시에 만족해야 한다:
+  //   ① "천체가 블랙홀과 겹쳐 뱅글뱅글 돈다"  → 가만히 있을 때 원반과 겹치지 않아야 한다
+  //   ② "행성과 블랙홀이 충돌하면 밀려난다"    → 내가 다가가도 천체가 물러나지 않아야 한다
+  // 예전 해법(하드 하한으로 로슈 거리 유지)은 ①을 고치면서 ②를 만들었다. 이제 밖으로는 밀지 않고,
+  // 파고들면 조석력(1/r³)만큼 잔해가 더 빨리 벗겨지는 방식으로 둘을 같이 만족시킨다.
   {
-    const tgt = await page.evaluate(()=>{const A=window.__acc
-      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(40)
-      const c=A.pos(),hr=Math.cbrt(A.state.mass)
-      return A.spawnTagged(A.state.mass*0.9,c.x+hr*6,c.z,'planet')})
-    let samples=0, worstGap=null, intruded=null
-    for(let i=0;i<70;i++){
-      const r = await page.evaluate((t)=>{const A=window.__acc
-        A.setTarget(t.x,t.z)
+    const r = await page.evaluate(async ()=>{
+      const A=window.__acc
+      const setup=()=>{
+        A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(300);A.step(0.05);A.clearField()
+        const c=A.pos()
+        return {c,t:A.spawnTagged(300*0.9,c.x+Math.cbrt(300)*3.4,c.z,'planet')}}
+      // ① 가만히 둘 때 — 원반과 겹치지 않는다
+      const s1=setup();let worstGap=null,feedT=0
+      for(let i=0;i<160;i++){
+        A.setTarget(s1.c.x,s1.c.z)
+        A.step(0.05)
         const f=A.feedObj()
-        return f?{dist:f.dist,rem:f.sx,hr:f.hr,dists:A.objDists()}:null},tgt)
-      if(r){samples++
-        const disk=r.hr*2.16, gap=r.dist-r.rem-disk
-        if(worstGap===null||gap<worstGap)worstGap=+gap.toFixed(2)
-        for(const d of r.dists)if(d<disk*0.98&&(intruded===null||d<intruded))intruded=+d.toFixed(2)}
-      await page.waitForTimeout(90)
-    }
-    await page.evaluate(()=>window.__acc.setSpawn(true))
-    ok('흡수 표본 확보(≥5)', samples>=5, 'samples='+samples)
-    ok('흡수 중 본체가 원반과 겹치지 않음', worstGap!==null&&worstGap>=0, '최소 여유 '+worstGap)
-    ok('원반 안으로 파고든 천체 없음', intruded===null, intruded===null?'':'d='+intruded)
+        if(f){feedT+=0.05;const gap=f.dist-f.sx-f.hr*2.16
+          if(worstGap===null||gap<worstGap)worstGap=+gap.toFixed(2)}
+        else if(feedT>0)break}
+      // ② 밀고 들어갈 때 — 반발(거리 증가)이 없어야 한다
+      const s2=setup();let repel=0,minD=1e9
+      for(let i=0;i<140;i++){
+        A.setTarget(s2.t.x,s2.t.z)
+        const a=A.tagPos();A.step(0.05);const bb=A.tagPos()
+        if(!a||!bb)break
+        const d0=Math.hypot(a.x-a.hx,a.z-a.hz), d1=Math.hypot(bb.x-bb.hx,bb.z-bb.hz)
+        minD=Math.min(minD,d1)
+        if(d1>d0+0.01&&d1>minD+0.01)repel+=d1-d0
+        if(!A.state.alive)break}
+      A.setSpawn(true)
+      return {feedT:+feedT.toFixed(2),worstGap,repel:+repel.toFixed(1),hr:Math.cbrt(300)}})
+    ok('흡수가 시간을 쓴다(가만히 1초 이상)', r.feedT>=1, r.feedT+'초')
+    // 하드 하한을 뺐으니 붙잡힌 직후 한 프레임은 아주 살짝 안쪽일 수 있다.
+    // 지평선 반경의 5% 미만이면 육안으로 구분되지 않는다(실측 1% 수준).
+    ok('가만히 있을 때 원반과 겹치지 않음', r.worstGap!==null&&r.worstGap>=-r.hr*0.05,
+       '최소 여유 '+r.worstGap+' (허용 '+(-r.hr*0.05).toFixed(2)+')')
+    ok('다가가도 천체가 밀려나지 않음', r.repel<=r.hr*0.8, '반발 '+r.repel+' (한계 '+(r.hr*0.8).toFixed(1)+')')
+  }
 
-    // 오너: "빨려오면 한번에 빨려들어가야" — 흡수가 끝난 잔해는 지평선까지 완주해야 한다.
+    {
+  // 오너: "빨려오면 한번에 빨려들어가야" — 흡수가 끝난 잔해는 지평선까지 완주해야 한다.
     // 로슈 한계에서 시작하므로 예전 속도로는 83%만 가고 사라졌다.
     const sw = await page.evaluate(()=>{const A=window.__acc
       A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(40)

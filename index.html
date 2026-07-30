@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.5.1</div>
+<div class="credit">ACCRETION · prototype 4.6</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -752,7 +752,8 @@ function updateFeed(dt){
  const add=total*pr-f.given
  if(add>0){S.mass+=add;f.given+=add;S.score+=Math.round(add*13)}
  // 테두리에 붙인 채 뜯어먹는다 — 중심으로 끌어오면 거대 천체가 플레이어를 덮는다(오너 리포트)
- const base2=o.r*1.15, rem=Math.max(0.05,base2*(1-pr*0.9))
+ const base2=o.r*1.15
+ let rem=Math.max(0.05,base2*(1-pr*0.9))
  const fdx=o.g.position.x-hole.position.x, fdz=o.g.position.z-hole.position.z
  const fd=Math.hypot(fdx,fdz)||1, fnx=fdx/fd, fnz=fdz/fd
  // 조석 파괴는 로슈 한계에서 일어난다 — 실제로는 강착원반보다 한참 바깥이다.
@@ -761,9 +762,19 @@ function updateFeed(dt){
  // 천체가 블랙홀과 겹친 채 도는 것처럼 보였다(오너 리포트).
  // 이제 '본체의 안쪽 끝'이 원반 바깥에 서도록 잡는다 — 겹치지 않고, 줄기가 감길 거리도 생긴다.
  const want=rad(S.mass)*2.16*1.06+rem
- // 바깥에서 다가올 땐 부드럽게 당기되, 안쪽으로는 절대 못 들어온다(하드 하한).
- // 이징만 두면 빠르게 접근할 때 한 프레임에 파고들어 잠깐 겹쳐 보였다(실측 -0.76).
- const nd=Math.max(want,fd+(want-fd)*Math.min(1,dt*3.2))
+ // 바깥에 있으면 로슈 한계로 당기고, 내가 더 다가가면 '밀어내지 않는다'.
+ // 예전엔 하드 하한(Math.max)을 둬서 전진하는 나를 피해 천체가 밀려났다 — 개연성이 없다(오너 지적:
+ // "행성과 블랙홀이 충돌하면 밀려나는 것 같다"). 실측 밀림 38~71.
+ // 물리는 반대다: 조석력은 1/r³이라 더 깊이 들어오면 더 빨리 찢긴다. 그래서 위치는 그대로 두고
+ // 진행도를 가속한다 — 밀려나지도, 오래 겹쳐 있지도 않는다.
+ const nd=fd>want ? fd+(want-fd)*Math.min(1,dt*3.2) : fd
+ // 얼마나 깊이 파고들었나(0=로슈 한계 밖, 1=중심). 선언을 쓰기 전에 둔다 — 예전 배치는 TDZ 오류였다.
+ const deep=fd<want?Math.min(1,(want-fd)/Math.max(1e-6,want)):0
+ // 파고들면 잔해가 더 빨리 벗겨진다 — 큰 구가 홀을 덮는 그림을 밀어내지 않고 없앤다
+ if(deep>0)rem=Math.max(0.05,rem*(1-deep*0.72))
+ // 조석력은 1/r³이라 더 깊으면 더 빨리 찢긴다. 단 최대 1.5배로 묶는다 —
+ // 무제한이면 램밍만으로 0.2초에 끝나 '큰 천체는 시간이 걸린다'는 약속이 깨진다.
+ if(deep>0)f.t+=dt*deep*0.5
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
  o.g.rotation.y=Math.atan2(-fdz,fdx)
  // 본체는 형태를 유지한 채 줄어들고(조석 팽대는 살짝만), 뜯겨 나온 물질이 '줄기'로 흘러든다.
@@ -1310,11 +1321,20 @@ function update(dt){
   const edible=!bhThreat&&(o.type!=='rival'?(isBH||o.mass<S.mass):o.mass<S.mass)
   const threat=(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
   const crush=!isBH&&o.type!=='rival'&&o.mass>=S.mass // 충돌 위험 천체
+  // 아래 흡입 로직이 '대기 중인 큰 천체'를 알아야 해서 선언을 여기로 올렸다(예전 배치는 TDZ 오류).
+  const relNow=o.mass/Math.max(1e-6,S.mass)
+  const bigFood=edible&&o.type!=='rival'&&relNow>=(isBH?0.6:0.5)
+  const rocheR=rad(S.mass)*2.16*1.06+o.r*1.15   // 본체의 '안쪽 끝'이 원반 바깥에 서는 거리
+  // 차례를 기다리는 큰 천체는 밀어내지도, 즉시 삼키지도, 더 끌어당기지도 않는다.
+  // 밀어내면 개연성이 없고(오너 지적), 즉시 삼키면 '큰 천체는 시간이 걸린다'는 약속이 깨진다.
+  const waiting=bigFood&&S.feed&&S.feed.o!==o
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
    const base=o.r*1.15
-   if(d>0.01&&d<pull&&!(S.feed&&S.feed.o===o)){const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김
+   // waiting: 차례를 기다리는 큰 천체는 더 끌어당기지 않는다(아직 강착이 시작되지 않았다)
+   if(d>0.01&&d<pull&&!(S.feed&&S.feed.o===o)&&!waiting){
+    const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김
     // 흡수 중인 천체는 updateFeed가 위치·형태를 소유한다 — 여기서 끌어당기면 중심으로 빨려들어 플레이어를 덮는다
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
     const damp=Math.min(1,dt*3*s);o.vx-=o.vx*damp;o.vz-=o.vz*damp
@@ -1368,14 +1388,8 @@ function update(dt){
   // 조석 파괴는 강착원반 바깥에서 시작된다. 예전엔 입에 닿아야 흡수가 시작돼, 시작 순간 이미
   // 본체가 원반·지평선과 겹쳐 있었다(실측: 안쪽 끝 2.65 < 지평선 3.54). 그 상태로 움직이면
   // 천체가 블랙홀과 겹친 채 도는 것처럼 보였다(오너 리포트).
-  const relNow=o.mass/Math.max(1e-6,S.mass)
-  const bigFood=edible&&o.type!=='rival'&&relNow>=(isBH?0.6:0.5)
-  const rocheR=rad(S.mass)*2.16*1.06+o.r*1.15   // 본체의 '안쪽 끝'이 원반 바깥에 서는 거리
   if(bigFood&&d<rocheR){
    if(!S.feed){startFeed(o,relNow);continue}
-   if(S.feed.o!==o){ // 차례를 기다리는 큰 천체 — 들여보내면 나를 덮은 채 맴돈다. 원반 언저리에 세워 둔다.
-    const cx=o.g.position.x-hole.position.x,cz=o.g.position.z-hole.position.z,cd=Math.hypot(cx,cz)||1
-    o.g.position.x=hole.position.x+(cx/cd)*rocheR;o.g.position.z=hole.position.z+(cz/cd)*rocheR}
    continue}
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
@@ -1384,7 +1398,7 @@ function update(dt){
    const rel=o.mass/Math.max(1e-6,S.mass)
    // 블랙홀끼리의 병합은 실제로도 밀리초 만에 끝난다(중력파 링다운) → 즉시.
    // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
-   if(bigFood)continue // 큰 천체는 위에서 로슈 한계에 붙잡혔다 — 여기까지 오지 않는다
+   if(bigFood)continue // 큰 천체는 로슈 한계에서 붙잡힌다 — 여기까지 오지 않는다
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
@@ -2111,6 +2125,9 @@ if(DEV){window.__acc={
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
  doFlare:()=>doFlare(),flareCount:()=>S.flareCount||0,jetFire:()=>+(S.jetFire||0).toFixed(2),
  sweptLast:()=>S.sweptLast||0,
+ tagPos:()=>{const o=window.__accTag;if(!o||o.eaten)return null
+  return {x:+o.g.position.x.toFixed(2),z:+o.g.position.z.toFixed(2),
+   hx:+hole.position.x.toFixed(2),hz:+hole.position.z.toFixed(2),feed:!!(S.feed&&S.feed.o===o)}},
  jetProbe:()=>{const hr0=rad(S.mass)
   const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
   return {ang:+jets.rotation.y.toFixed(2),ax:+ax.toFixed(2),az:+az.toFixed(2),
