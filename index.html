@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.4</div>
+<div class="credit">ACCRETION · prototype 4.5</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -456,6 +456,8 @@ const STREAM_OFF=new Float32Array(STREAMN).map(()=>Math.random())
 let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운동량 때문에 곧장 떨어지지 못한다
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
+let jetsReady=false   // 능력 사용 가능 여부(티어). 빔의 '보임'은 발사 순간만 — 둘을 분리한다
+const JETDUR=0.62     // 분출 지속(초) — 나타났다 사라지는 파
 // 먹은 방향의 누적 평균 — 이것이 자전축의 목표가 된다(강착 원반 각운동량)
 function noteFeedDir(dx,dz){const l=Math.hypot(dx,dz)||1
  S.spinX=(S.spinX||0)*0.88+(dx/l)*0.12; S.spinZ=(S.spinZ||0)*0.88+(dz/l)*0.12
@@ -480,9 +482,11 @@ for(const sx of [1,-1]){
 }
 jets.visible=false;hole.add(jets)
 function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
- if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true
+ if(on&&!jetsReady&&S.alive&&!S.jetSeen){S.jetSeen=true
   banner('☄ RELATIVISTIC JETS',(COARSE?'tap JET':'press F')+' — one burst sweeps both poles and kicks you clear',3)}
- jets.visible=on
+ jetsReady=on
+ // 평상시엔 보이지 않는다(오너). 정지 상태의 제트는 플레어보다 수십 배 어두워 실제로도 잘 안 보인다.
+ if(!on)jets.visible=false
  const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
@@ -1453,7 +1457,7 @@ function update(dt){
   }
  }
  // 제트: 회전하며 축선상의 먹이를 삼킨다(QUASAR+)
- if(jets.visible){
+ if(jetsReady){
   // 제트 축은 멈춰 있다(오너 지적 — 실제로 자전축은 안정적이다).
   // 조준은 '먹는 방향'으로 한다: 바딘–패터슨 효과 — 강착 원반의 토크가 블랙홀 자전축을
   // 원반 각운동량 쪽으로 서서히 정렬시킨다. 즉 오른쪽에서 계속 먹으면 축이 그쪽으로 선다.
@@ -1463,11 +1467,16 @@ function update(dt){
    const step=Math.sign(dth)*Math.min(Math.abs(dth),dt*0.55)   // 정렬은 느리다 — 즉시 조준이 아니라 '누적된 식사 방향'
    jets.rotation.y+=step
   }
+  // 평상시엔 아예 보이지 않고, 누른 순간 축 양쪽으로 뻗어 나갔다가 사라진다.
   if(jetFlash>0)jetFlash-=dt
-  // 평상시엔 존재만 보이게 흐리고, 플레어를 쏘는 순간 타오른다(화면을 덮던 상시 밝기 완화)
-  const jetLit=S.jetFire>0||jetFlash>0
-  for(const jm of jets.children)jm.material.opacity=jetLit?0.9:0.17
-  jets.scale.set(1,S.jetFire>0?1.15:0.62,S.jetFire>0?1.15:0.62)
+  if(S.jetFire>0){
+   const prog=1-S.jetFire/JETDUR                      // 0(발사) → 1(소멸)
+   const op=Math.sin(Math.min(1,prog)*Math.PI)        // 나타났다 → 밝아졌다 → 사라진다
+   jets.visible=true
+   for(const jm of jets.children)jm.material.opacity=0.12+op*0.85
+   const grow=0.30+prog*1.05                          // 뻗어 나가는 파
+   jets.scale.set(grow,0.55+op*0.75,0.55+op*0.75)
+  } else jets.visible=false
   // '쓸어버리는 힘'은 상시가 아니라 발사 순간 한 번뿐이다(오너: 1회성). 판정은 doFlare()에서 즉시 처리하고
   // 여기서는 타이머만 흘린다 — 매 프레임 판정하면 축 위에 새로 들어오는 것마다 계속 죽는다.
   if(S.jetFire>0)S.jetFire-=dt
@@ -1563,7 +1572,7 @@ function hud(){
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
- $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jets.visible?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING'
+ $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jetsReady?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING'
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
  if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
   ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?' — CONSUME IT':'')}
@@ -1621,7 +1630,7 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
  // 가스와 별은 상대론적 플라스마에 찢겨 날아가지만, 다른 블랙홀은 제트로 어쩔 수 없다(사건지평선)
  // → 그쪽은 원반 가스만 날려 강착을 끊는다(AGN 피드백).
  // 반동은 쌍극 대칭이면 알짜 0이지만 실제 제트는 한쪽이 더 세다 — 그 비대칭 몫만 받는다.
- if(!S.alive||!jets.visible||S.energy<1)return
+ if(!S.alive||!jetsReady||S.energy<1)return
  // 도망칠 방향 = 가장 위험한 상대의 반대쪽. 없으면 진행 방향 유지.
  let tx=0,tz=0,best=-1
  for(const o of objects){if(o.eaten||o.type!=='rival')continue
@@ -1631,7 +1640,7 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
   if(risk>best){best=risk;tx=dx/d;tz=dz/d}}
  if(best<0){const vl=Math.hypot(S.vx,S.vz)
   if(vl>0.2){tx=-S.vx/vl;tz=-S.vz/vl}else{tx=0;tz=1}}  // 위협이 없으면 진행 방향으로 가속
- S.energy=0;S.jetFire=0.7;jetFlash=0.7;S.flareCount=(S.flareCount||0)+1
+ S.energy=0;S.jetFire=JETDUR;jetFlash=JETDUR;S.flareCount=(S.flareCount||0)+1
  jets.rotation.y=Math.atan2(-tz,tx)                    // 쏘는 로브를 위협 쪽으로 겨눈다
  S.spinTarget=jets.rotation.y                          // 정렬이 되돌아가지 않게
  S.vx-=tx*54;S.vz-=tz*54                               // 반동 — 비대칭 몫만(대시 26의 2배). 쌍극 대칭이면 알짜 추력은 0이다
@@ -1947,7 +1956,7 @@ addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
- S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false // 진화 아크 리셋 — 미행성으로 시작
+ S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
@@ -2082,7 +2091,7 @@ if(DEV){window.__acc={
  bestScore:()=>STATS.best,
  form:()=>({idx:S.formIdx,name:FORMS[S.formIdx].n,inv:Math.round(S.invT*10)/10,lens:FORMS[S.formIdx].lens}),
  formVis:()=>({rock:pRock.visible,star:pStar.visible,bh:eh.visible,disk:disk.visible}),
- shockOn:()=>shock.visible,jetsOn:()=>jets.visible,
+ shockOn:()=>shock.visible,jetsOn:()=>jetsReady,jetsVisible:()=>jets.visible,
  bh:()=>({eh,disk,arc:diskArc,photon}),
  novaCount:()=>S.novaCount||0,
  fx:()=>({low:fxLow,fps:Math.round(fxFps),cap:partCap()}),

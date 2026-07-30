@@ -50,6 +50,21 @@ try{
   ok('쏘지 않으면 아무것도 안 쓸린다(상시 살상 폐지)', sweep.idle===0, `${sweep.idle}개`)
   ok('1회성 — 발사 뒤 새로 들어온 천체는 안전', sweep.once===true)
 
+  // 오너: "제트는 기본적으로 보이지 않고 누른 순간만 분출했다 사라지는 것"
+  const vis = await p.evaluate(async ()=>{
+    const A=window.__acc
+    A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(50000);A.step(0.05)
+    const idle=A.jetsVisible()
+    A.setEnergy(1);A.doFlare()
+    A.step(0.05);const during=A.jetsVisible()
+    A.step(0.9); const after=A.jetsVisible()
+    A.setSpawn(true)
+    return {ready:A.jetsOn(),idle,during,after}})
+  ok('퀘이사에서 능력은 사용 가능', vis.ready===true)
+  ok('평상시 제트는 보이지 않는다', vis.idle===false)
+  ok('누른 순간만 분출한다', vis.during===true)
+  ok('분출이 끝나면 사라진다', vis.after===false)
+
   // 빔 길이 밖은 먹지 않는다
   const far = await p.evaluate(()=>{
     const A=window.__acc; A.begin(); A.setMass(50000); A.step(0.1); A.clearObjs(); A.clearFeats()

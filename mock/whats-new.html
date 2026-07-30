@@ -88,12 +88,13 @@ td.v b{color:#9fd0ff}
 <table>
 <tr><th>항목</th><th>이전 → 지금</th></tr>
 <tr><td class="k">키</td><td class="v">없음(상시 자동) → <b>F</b> · 모바일 <b>☄ JET</b> 버튼</td></tr>
+<tr><td class="k">평상시 모습</td><td class="v">늘 보임(화면을 덮음) → <b>아예 보이지 않음.</b> 누른 순간 0.62초만 뻗었다 사라짐</td></tr>
 <tr><td class="k">사거리</td><td class="v">축 <b>양쪽 모두</b>(쌍극) · 빔 길이만큼 · 축에서 벗어나면 안 맞음</td></tr>
 <tr><td class="k">횟수</td><td class="v">축 위에 걸리는 것마다 계속 → <b>발사 순간 한 번만.</b> 뒤에 들어온 건 안전</td></tr>
 <tr><td class="k">가스·별</td><td class="v">축 밖으로 날아가며 흩어짐 · 질량은 안 들어옴(제트는 뿜는 것) — 점수만</td></tr>
 <tr><td class="k">다른 블랙홀</td><td class="v">밀 수 없음(사건지평선) → <b>원반 가스만 날려</b> 강착을 끊고 추격을 멈추게</td></tr>
 <tr><td class="k">나에게</td><td class="v">반동 <b>대시의 2배</b> + 부스트 + <b>무적 1.2초</b> + 조석 손아귀 해제</td></tr>
-<tr><td class="k">평상시 빔</td><td class="v">불투명도 0.5로 화면을 덮음 → <b>0.17</b>, 굵기 0.62배</td></tr>
+
 <tr><td class="k">실측</td><td class="v">더 큰 블랙홀 앞에서 탈출 없이 <b>0/6 생존</b> → 제트 사용 시 <b>6/6 생존</b></td></tr>
 </table>
 
@@ -311,8 +312,12 @@ function jetScene(mode){   // mode: 'old' | 'new'
    hole.position.set(-kick,0,0);disk.position.copy(hole.position)
    beams.forEach((b,i)=>{b.position.copy(hole.position)
     const lit=fire                            // 쌍극 — 양쪽 로브가 함께 타오른다
-    b.material.opacity=lit?0.9:0.17
-    b.scale.set(1,lit?1.15:0.62,lit?1.15:0.62)})
+    if(mode==='new'&&!lit){b.visible=false}                 // 지금: 평상시 아예 안 보인다
+    else{b.visible=true
+     const op=lit?Math.sin(Math.min(1,(u-0.35)/0.27)*Math.PI):0.17
+     b.material.opacity=lit?(0.12+op*0.85):0.17
+     const grow=lit?(0.30+Math.min(1,(u-0.35)/0.27)*1.05):1
+     b.scale.set(mode==='new'?grow:1,lit?1.15:0.62,lit?1.15:0.62)}})
    // 먹이 — 예전 방식은 축 위에서 부서져 날아갔다
    foods.forEach((m,i)=>{
     const base=1.5+i*0.6
