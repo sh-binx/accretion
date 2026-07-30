@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.5</div>
+<div class="credit">ACCRETION · prototype 4.5.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1666,7 +1666,11 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
    const dd=Math.max(0.001,Math.hypot(ox,oz)),nx=ox/dd,nz=oz/dd
    o.vx+=nx*(52+hr0*2.4);o.vz+=nz*(52+hr0*2.4)         // 축 밖으로 날려 보낸다
    o.eaten=true;o.eatT=0.34;o.eatBy=null;o.eatFast=false
-   S.score+=Math.round(o.mass*4.6)                     // 질량은 안 들어온다(제트는 뿜는 것) — 풀려난 에너지만 점수
+   // 질량은 안 들어온다(제트는 뿜는 것) — 풀려난 에너지만 점수.
+   // 점수는 '먹었다면 얻었을 것'에 묶는다. 절대 질량에 비례시켰더니 후반에 폭주해
+   // 초당 380만점이 나왔고(상한 12만/초) 정상 플레이가 조작으로 거부될 수준이었다.
+   const eatEq=o.mass*0.62*accEff()*(FORMS[S.formIdx].acc||1)
+   S.score+=Math.round(eatEq*13*0.35)                  // 먹었을 때의 35% — 질량을 못 얻는데 더 후하면 앞뒤가 안 맞는다
    eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,8);swept++}
   S.sweptLast=swept
   if(swept)popup(hole.position,'SWEPT ×'+swept,'#bfe8ff')}
@@ -2124,6 +2128,7 @@ if(DEV){window.__acc={
   msgUntil=performance.now()+20000;msgPri=9;banT=msgUntil;codexT=msgUntil
   $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo';$('banner').style.opacity=1
   $('codex').classList.add('on');$('feedwrap').classList.add('on')
+  $('actFlare').style.display=''   // 퀘이사 4번째 버튼까지 감사 대상에 — 숨은 상태만 재던 사각지대
   S.combo=42;S.comboAt=performance.now()+20000
   return true},
  onboardOn:()=>$('onb').classList.contains('on'),
