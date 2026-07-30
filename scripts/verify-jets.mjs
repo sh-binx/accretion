@@ -23,34 +23,32 @@ try{
   ok('the two tips are on opposite sides', Math.sign(tips[0].x)!==Math.sign(tips[1].x), `${tips[0].x} vs ${tips[1].x}`)
 
   // ★ 핵심: 빔 축 위의 천체는 먹히고, 축에서 벗어난 천체는 먹히지 않는다
-  const aim = await p.evaluate(()=>{
+  // 설계(오너 확정): 제트는 자전축 '양쪽으로' 대칭으로 뿜고, 그 축을 발사 순간 한 번만 쓸어낸다.
+  // 라이벌 블랙홀은 밀 수 없으므로 원반 가스만 날린다(AGN 피드백).
+  const sweep = await p.evaluate(()=>{
     const A=window.__acc
-    const probe=(angle, place, fire)=>{     // place: 'onAxis' | 'offAxis' · fire: 플레어 발사 여부
-      A.begin(); A.setMass(50000); A.step(0.1); A.clearObjs(); A.clearFeats()
-      A.setJetAngle(angle)
-      const q=A.pos(), r=Math.cbrt(A.state.mass)
-      const ax=Math.cos(angle), az=-Math.sin(angle)             // 제트 축(월드)
-      const d=r*5
-      const px = place==='onAxis' ? q.x+ax*d : q.x-az*d          // 축 위 / 축에 수직(90°)
-      const pz = place==='onAxis' ? q.z+az*d : q.z+ax*d
-      A.spawnTagged(A.state.mass*0.2, px, pz, 'planet')
-      const m0=A.tagMass()
-      // 제트는 늘 뿜지만 '쓸어버리는 힘'은 플레어를 쏜 순간뿐이다(블레이자 플레어)
+    const run=(dist,fire)=>{
+      A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(50000);A.step(0.02)
+      const hr=A.jetProbe().hr
+      A.clearField()                                  // 스텝 없이 바로 배치 → 네메시스가 축을 돌리지 못한다
+      const q=A.pos(),D=hr*dist
+      A.spawn('planet',5000,q.x,q.z+D)                // +축(발사 시 축은 +Z로 선다)
+      A.spawn('planet',5000,q.x,q.z-D)                // −축 → 쌍극이면 함께 쓸린다
+      A.spawn('planet',5000,q.x+D,q.z)                // 축 밖 → 남아야 한다
       if(fire){A.setEnergy(1);A.doFlare()}
-      A.step(0.02)                                               // 회전 전에 즉시 판정
-      const m1=A.tagMass()
-      return m1!==null && m1 < m0*0.9                            // 제트에 맞으면 부서져 질량이 급감한다
-    }
-    return { on0:probe(0,'onAxis',true), off0:probe(0,'offAxis',true),
-             on1:probe(1.1,'onAxis',true), off1:probe(1.1,'offAxis',true),
-             idle:probe(0,'onAxis',false) }
-  })
-  // 설계 변경(오너): 제트는 '적을 밀어내는' 것이 아니라 '내가 빠져나가는' 수단이다.
-  // 빔에 걸린 천체를 부수지 않는다 — 어느 각도에서도, 쏘든 안 쏘든.
-  ok('제트는 축 위 천체를 부수지 않는다 (각 0)', aim.on0===false)
-  ok('축 밖 천체도 당연히 무사 (각 0)', aim.off0===false)
-  ok('회전한 각도에서도 동일 (1.1 rad)', aim.on1===false && aim.off1===false, `on=${aim.on1} off=${aim.off1}`)
-  ok('안 쏠 때도 안전하다', aim.idle===false, `idle=${aim.idle}`)
+      return {swept:A.sweptLast(),left:A.jetProbe().objs.length,q,D}}
+    const inR=run(4,true), outR=run(12,true), idle=run(4,false)
+    // 1회성 — 발사 뒤 축 위에 새로 들어와도 추가로 쓸리지 않는다
+    const r2=run(4,true);const s1=r2.swept
+    A.spawn('planet',5000,r2.q.x,r2.q.z+r2.D);A.step(0.5)
+    const after=A.sweptLast()
+    A.setSpawn(true)
+    return {inR:inR.swept,left:inR.left,outR:outR.swept,idle:idle.swept,once:after===s1}})
+  ok('쌍극 — 축 양쪽이 함께 쓸린다', sweep.inR===2, `${sweep.inR}개`)
+  ok('축 밖 천체는 남는다', sweep.left===1, `남은 ${sweep.left}개`)
+  ok('사거리 밖은 쓸리지 않는다', sweep.outR===0, `${sweep.outR}개`)
+  ok('쏘지 않으면 아무것도 안 쓸린다(상시 살상 폐지)', sweep.idle===0, `${sweep.idle}개`)
+  ok('1회성 — 발사 뒤 새로 들어온 천체는 안전', sweep.once===true)
 
   // 빔 길이 밖은 먹지 않는다
   const far = await p.evaluate(()=>{

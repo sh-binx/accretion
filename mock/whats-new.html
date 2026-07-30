@@ -69,24 +69,30 @@ td.v b{color:#9fd0ff}
     <div class="cap"><b>암석</b><br>회색 단색이던 것에 광물 얼룩과 크레이터가 생겼습니다.</div></div>
 </div>
 
-<h2>3 · 제트 — 공격에서 위기 탈출로</h2>
+<h2>3 · 제트 — 쌍극 1회성 축 청소 + 탈출</h2>
 <div class="note">
-제가 의도를 잘못 읽어 <b>공격용 충격파</b>로 만들었던 걸 <b>위기 탈출</b>로 되돌렸습니다.
-아래는 같은 상황(더 큰 블랙홀이 붙은 순간)에서의 차이입니다.
+제트는 자전축 <b>양쪽으로 대칭으로</b> 뿜습니다(쌍극). 그래서 발사하면 <b>축 양쪽을 한 번에</b> 쓸어냅니다 —
+<b>1회성</b>이고, 발사 뒤 축 위로 새로 들어온 천체는 안전합니다. 이전에는 축 위에 걸리는 것마다 계속 죽었습니다.
+<br><br>
+다만 <b>다른 블랙홀은 제트로 밀 수 없습니다</b>(사건지평선). 그쪽은 실제로 일어나는 일 — 원반 가스를 날려
+강착을 끊습니다(AGN 피드백). 굶은 블랙홀은 가스를 찾아 흩어지므로 추격이 멈추고, 그게 탈출로 이어집니다.
 </div>
 <div class="pair">
   <div class="card"><div class="hd"><span class="badge was">이전</span><span class="t">축에 걸린 것을 부순다</span></div>
     <canvas class="cv" id="jetOld"></canvas>
-    <div class="cap">축 위 천체를 <b>부수고 밀어냈습니다</b>. 정작 추격자는 그대로라 위기에서 못 벗어났고요.</div></div>
+    <div class="cap">축 위에 들어오는 것마다 <b>계속</b> 죽었습니다. 정작 추격자는 그대로라 위기에서 못 벗어났고요.</div></div>
   <div class="card now"><div class="hd"><span class="badge is">지금</span><span class="t">한쪽 로브 → 나를 튕겨낸다</span></div>
     <canvas class="cv" id="jetNew"></canvas>
-    <div class="cap">위협 쪽으로 <b>한쪽만</b> 터뜨리고 나는 반대로 날아갑니다. 원반 가스가 날아간 추격자는 <b>가스를 찾아 흩어져</b> 추격을 멈춥니다.</div></div>
+    <div class="cap"><b>양쪽 축을 한 번에</b> 쓸고, 반동으로 나도 밀려납니다. 원반 가스가 날아간 추격자는 <b>가스를 찾아 흩어져</b> 추격을 멈춥니다.</div></div>
 </div>
 <table>
 <tr><th>항목</th><th>이전 → 지금</th></tr>
 <tr><td class="k">키</td><td class="v">없음(상시 자동) → <b>F</b> · 모바일 <b>☄ JET</b> 버튼</td></tr>
-<tr><td class="k">적에게</td><td class="v">부수고 밀어냄 → <b>아무것도 밀지 않음.</b> 원반 가스만 날려 추격을 끊음</td></tr>
-<tr><td class="k">나에게</td><td class="v">없음 → 반동 <b>대시의 3배</b> + 부스트 + <b>무적 1.2초</b> + 조석 손아귀 해제</td></tr>
+<tr><td class="k">사거리</td><td class="v">축 <b>양쪽 모두</b>(쌍극) · 빔 길이만큼 · 축에서 벗어나면 안 맞음</td></tr>
+<tr><td class="k">횟수</td><td class="v">축 위에 걸리는 것마다 계속 → <b>발사 순간 한 번만.</b> 뒤에 들어온 건 안전</td></tr>
+<tr><td class="k">가스·별</td><td class="v">축 밖으로 날아가며 흩어짐 · 질량은 안 들어옴(제트는 뿜는 것) — 점수만</td></tr>
+<tr><td class="k">다른 블랙홀</td><td class="v">밀 수 없음(사건지평선) → <b>원반 가스만 날려</b> 강착을 끊고 추격을 멈추게</td></tr>
+<tr><td class="k">나에게</td><td class="v">반동 <b>대시의 2배</b> + 부스트 + <b>무적 1.2초</b> + 조석 손아귀 해제</td></tr>
 <tr><td class="k">평상시 빔</td><td class="v">불투명도 0.5로 화면을 덮음 → <b>0.17</b>, 굵기 0.62배</td></tr>
 <tr><td class="k">실측</td><td class="v">더 큰 블랙홀 앞에서 탈출 없이 <b>0/6 생존</b> → 제트 사용 시 <b>6/6 생존</b></td></tr>
 </table>
@@ -304,13 +310,16 @@ function jetScene(mode){   // mode: 'old' | 'new'
    const kick=(mode==='new'&&u>0.4)?Math.min(1,(u-0.4)*3.4)*2.5:0
    hole.position.set(-kick,0,0);disk.position.copy(hole.position)
    beams.forEach((b,i)=>{b.position.copy(hole.position)
-    const lit=fire&&(mode==='old'||i===0)      // 새 방식은 한쪽 로브만
+    const lit=fire                            // 쌍극 — 양쪽 로브가 함께 타오른다
     b.material.opacity=lit?0.9:0.17
     b.scale.set(1,lit?1.15:0.62,lit?1.15:0.62)})
    // 먹이 — 예전 방식은 축 위에서 부서져 날아갔다
    foods.forEach((m,i)=>{
     const base=1.5+i*0.6
-    if(mode==='old'&&fire){m.position.set(base+k*3.4,0,(i%2?1:-1)*0.42*(1+k*2));m.scale.setScalar(Math.max(0.05,1-k))}
+    // 이전: 축에 걸리는 것마다 계속 · 지금: 발사 순간 한 번(그 뒤엔 그대로 남는다)
+    const hit=(mode==='old')?fire:(u>0.35&&u<0.45)
+    if(hit||(mode==='new'&&u>=0.45&&u<0.62)){const kk=(mode==='old')?k:Math.min(1,(u-0.35)/0.27)
+     m.position.set(base+kk*3.4,0,(i%2?1:-1)*0.42*(1+kk*2));m.scale.setScalar(Math.max(0.05,1-kk))}
     else{m.position.set(base,0,(i%2?1:-1)*0.42);m.scale.setScalar(1)}
     m.visible=!(mode==='old'&&k>0.95)})
    // 추격자 원반 — 새 방식은 발사 후 흩어진다

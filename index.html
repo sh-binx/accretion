@@ -221,7 +221,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.3</div>
+<div class="credit">ACCRETION · prototype 4.4</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -481,7 +481,7 @@ for(const sx of [1,-1]){
 jets.visible=false;hole.add(jets)
 function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
  if(on&&!jets.visible&&S.alive&&!S.jetSeen){S.jetSeen=true
-  banner('☄ RELATIVISTIC JETS',(COARSE?'tap JET':'press F')+' — fire one lobe and kick yourself clear',3)}
+  banner('☄ RELATIVISTIC JETS',(COARSE?'tap JET':'press F')+' — one burst sweeps both poles and kicks you clear',3)}
  jets.visible=on
  const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'}
 scene.add(hole)
@@ -1468,32 +1468,9 @@ function update(dt){
   const jetLit=S.jetFire>0||jetFlash>0
   for(const jm of jets.children)jm.material.opacity=jetLit?0.9:0.17
   jets.scale.set(1,S.jetFire>0?1.15:0.62,S.jetFire>0?1.15:0.62)
-  // 제트는 늘 뿜고 있다(실제 퀘이사 제트는 상시). 다만 '쓸어버리는 힘'은 상시가 아니라
-  // 강착이 급증할 때 터지는 플레어다 — 실제 블레이자 플레어. 그 순간만 살상 판정을 준다.
+  // '쓸어버리는 힘'은 상시가 아니라 발사 순간 한 번뿐이다(오너: 1회성). 판정은 doFlare()에서 즉시 처리하고
+  // 여기서는 타이머만 흘린다 — 매 프레임 판정하면 축 위에 새로 들어오는 것마다 계속 죽는다.
   if(S.jetFire>0)S.jetFire-=dt
-  if(S.jetFire>0){   // ← 블록으로 감싼다. 예전엔 return을 써서 update() 전체가 조기 종료됐고
-                     //    제트가 켜진 뒤로는 스폰·흡수·티어업이 통째로 멈췄다(회귀가 적발).
-  const ang=jets.rotation.y,ax=Math.cos(ang),az=-Math.sin(ang) // 제트 축(수평 성분)
-  const reach=hr*(JET_LEN+0.1),wide=hr*JET_TIP*1.15 // 보이는 빔과 동일 범위(약간의 여유만)
-  for(let i=objects.length-1;i>=0;i--){const o=objects[i];if(o.eaten||(S.feed&&S.feed.o===o))continue
-   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z
-   const along=dx*ax+dz*az, perp=Math.abs(dx*az-dz*ax)
-   if(Math.abs(along)>reach||perp>wide)continue
-   // 제트는 '천체'를 통째로 찢어 삼킨다 — 크기 제한 없음(상대론적 제트 앞에서 행성·항성은 크기가 무의미).
-   // 다만 다른 블랙홀은 제트로 먹을 수 없다(실제로도 제트는 사건지평선을 어쩌지 못한다) → 대신 밀어낸다.
-   if(o.type==='rival'&&o.mass>=S.mass){
-    // 제트는 사건지평선을 어쩌지 못한다 — 블랙홀을 밀어낼 수 없다.
-    // 대신 실제로 일어나는 일: 제트·복사압이 주변 가스를 쓸어내 강착을 멈춘다(AGN 피드백).
-    // 게임에서는 '큰 라이벌의 성장을 일시 정지시키는 견제'가 된다.
-    if(!o.jetStun){eatBurst(o.g.position.x,o.g.position.z,0x9fd8ff,6)
-     if(!S.jetStunSeen){S.jetStunSeen=true;banner('☄ DISK STRIPPED','your jet blew its gas away — it cannot feed')}}
-    o.jetStun=3.0
-    continue}
-   // 오너: 제트가 적을 밀어내는 건 불필요하다 — 살상·밀어내기는 뺐다.
-   // 남긴 것은 실제 AGN 피드백(위 라이벌 원반 박탈)뿐이고, 제트의 쓸모는 '내가 빠져나가는 것'이다.
-   continue
-  }
-  }
  }
  updateFeed(dt)
  topUp();updateFeats(dt)
@@ -1640,9 +1617,10 @@ function doSurge(){
 }
 
 function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
- // 물리: 대칭 쌍제트는 알짜 추력이 0이지만, 실제 제트는 한쪽이 더 세게 뿜는 비대칭이 흔하고
- // 그 비대칭이 블랙홀에 운동량을 준다(jet-driven kick). 그래서 한쪽 로브를 위협 쪽으로 강하게
- // 터뜨리고, 나는 반대로 튕겨 나간다. 적을 밀어내는 게 아니라 '내가 빠져나가는' 능력이다.
+ // 물리: 제트는 자전축 '양쪽으로' 대칭으로 뿜는다(쌍극) → 축 양쪽을 한 번에 쓸어낸다.
+ // 가스와 별은 상대론적 플라스마에 찢겨 날아가지만, 다른 블랙홀은 제트로 어쩔 수 없다(사건지평선)
+ // → 그쪽은 원반 가스만 날려 강착을 끊는다(AGN 피드백).
+ // 반동은 쌍극 대칭이면 알짜 0이지만 실제 제트는 한쪽이 더 세다 — 그 비대칭 몫만 받는다.
  if(!S.alive||!jets.visible||S.energy<1)return
  // 도망칠 방향 = 가장 위험한 상대의 반대쪽. 없으면 진행 방향 유지.
  let tx=0,tz=0,best=-1
@@ -1656,13 +1634,34 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
  S.energy=0;S.jetFire=0.7;jetFlash=0.7;S.flareCount=(S.flareCount||0)+1
  jets.rotation.y=Math.atan2(-tz,tx)                    // 쏘는 로브를 위협 쪽으로 겨눈다
  S.spinTarget=jets.rotation.y                          // 정렬이 되돌아가지 않게
- S.vx-=tx*78;S.vz-=tz*78                               // 반동 — 대시(26)의 3배. 위기에서 확실히 끊고 나가야 한다
+ S.vx-=tx*54;S.vz-=tz*54                               // 반동 — 비대칭 몫만(대시 26의 2배). 쌍극 대칭이면 알짜 추력은 0이다
  S.boost=Math.min(0.9,(S.boost||0)+0.55)               // 튕겨 나간 뒤에도 잠시 빠르게 — 임펄스만으론 곧 감속한다
  S.invT=Math.max(S.invT,1.2)                           // 탈출 유예 — 이 능력의 핵심 가치다.
  S.tidalT=0                                            // 조석 영역에 붙잡혀 있었다면 그 손아귀를 끊는다
  S.shake=Math.min(S.shake+0.7,1.5);AU.jet()
  eatBurst(hole.position.x,hole.position.z,0xbfe8ff,18)
- banner('☄ JET ESCAPE','an asymmetric jet outburst kicks you clear',3)
+ // ── 축 양쪽을 한 번에 청소 ──
+ {const hr0=rad(S.mass)
+  const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
+  const reach=hr0*(JET_LEN+0.1),wide=hr0*JET_TIP*1.35
+  let swept=0
+  for(let k=objects.length-1;k>=0;k--){const o=objects[k]
+   if(o.eaten||(S.feed&&S.feed.o===o))continue
+   const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
+   const along=ox*ax+oz*az, perp=Math.abs(ox*az-oz*ax)
+   if(Math.abs(along)>reach||perp>wide)continue        // abs → 양쪽 모두
+   if(o.type==='rival'){                               // 블랙홀은 밀 수 없다 — 원반만 날린다
+    if(!o.jetStun){eatBurst(o.g.position.x,o.g.position.z,0x9fd8ff,6)
+     if(!S.jetStunSeen){S.jetStunSeen=true;banner('☄ DISK STRIPPED','your jet blew its gas away — it cannot feed',3)}}
+    o.jetStun=3.0;continue}
+   const dd=Math.max(0.001,Math.hypot(ox,oz)),nx=ox/dd,nz=oz/dd
+   o.vx+=nx*(52+hr0*2.4);o.vz+=nz*(52+hr0*2.4)         // 축 밖으로 날려 보낸다
+   o.eaten=true;o.eatT=0.34;o.eatBy=null;o.eatFast=false
+   S.score+=Math.round(o.mass*4.6)                     // 질량은 안 들어온다(제트는 뿜는 것) — 풀려난 에너지만 점수
+   eatBurst(o.g.position.x,o.g.position.z,0xbfe8ff,8);swept++}
+  S.sweptLast=swept
+  if(swept)popup(hole.position,'SWEPT ×'+swept,'#bfe8ff')}
+ banner('☄ JET FLARE','both poles blast — the axis is swept and you are kicked clear',3)
  if(!S.flareSeen){S.flareSeen=true;codexToast('quasar')}
 }
 function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
@@ -2098,6 +2097,13 @@ if(DEV){window.__acc={
   mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
  doFlare:()=>doFlare(),flareCount:()=>S.flareCount||0,jetFire:()=>+(S.jetFire||0).toFixed(2),
+ sweptLast:()=>S.sweptLast||0,
+ jetProbe:()=>{const hr0=rad(S.mass)
+  const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
+  return {ang:+jets.rotation.y.toFixed(2),ax:+ax.toFixed(2),az:+az.toFixed(2),
+   reach:+(hr0*(JET_LEN+0.1)).toFixed(1),wide:+(hr0*JET_TIP*1.35).toFixed(1),hr:+hr0.toFixed(1),
+   objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
+    return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  coreState:()=>({visible:galCore.visible,eaten:coreEaten,dist:+galCore.position.distanceTo(hole.position).toFixed(1),mass:CORE_MASS}),
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
