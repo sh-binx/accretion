@@ -177,6 +177,24 @@ try {
     ok('가만히 있을 때 원반과 겹치지 않음', r.worstGap!==null&&r.worstGap>=-r.hr*0.05,
        '최소 여유 '+r.worstGap+' (허용 '+(-r.hr*0.05).toFixed(2)+')')
     ok('다가가도 천체가 밀려나지 않음', r.repel<=r.hr*0.8, '반발 '+r.repel+' (한계 '+(r.hr*0.8).toFixed(1)+')')
+
+    // 오너 리포트: "굵은 보더처럼 표현되고 블랙홀 근처에서 끊긴다"
+    // 원인은 붙잡는 거리가 밝은 코어 안(2.16hr)이라 본체·줄기가 글로우에 지워지고,
+    // 입자가 서로 겹쳐 한 줄로 뭉친 것. 붙잡는 거리를 4.6hr로 빼고 입자를 잘게 했다.
+    const look = await page.evaluate(async ()=>{
+      const A=window.__acc
+      A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(8000);A.step(0.05);A.clearField()
+      const c=A.pos()
+      const t=A.spawnTagged(8000*0.9,c.x+Math.cbrt(8000)*4.5,c.z,'planet')
+      for(let i=0;i<120;i++){A.setTarget(c.x,c.z);A.step(0.05);if(A.feedObj())break}
+      const f=A.feedObj()
+      A.setSpawn(true)
+      if(!f)return null
+      // 본체 중심이 밝은 코어(원반 2.16hr + 광자링 + 글로우) 밖에 있어야 눈에 보인다
+      return {dist:f.dist,hr:f.hr,ratio:+(f.dist/f.hr).toFixed(2)}})
+    ok('흡수 중인 본체가 밝은 코어 밖에 선다', look && look.ratio>=3.6,
+       look ? look.ratio+'hr (기준 3.6hr — 원반 2.16 + 글로우)' : '흡수 미발생')
+
   }
 
     {
