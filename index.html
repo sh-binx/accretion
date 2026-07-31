@@ -202,6 +202,9 @@
  #chips .v.g{color:#7C828A}
  @media(max-height:520px){#start .wm{font-size:clamp(30px,6vw,52px)}#start .keys{display:none}}
 #feedwrap{position:fixed;left:50%;bottom:136px;transform:translateX(-50%);width:210px;opacity:0;transition:opacity .16s;pointer-events:none;z-index:6}
+/* 낮은 가로 화면(568×320 등)에선 안내 배너가 아래로 내려와 DEVOURING 게이지와 겹쳤다(실측 116×19).
+   음소거 버튼(하단 좌측) 위로 내려 간격을 벌린다. */
+@media (max-height:430px){#feedwrap{bottom:64px}}
 #feedwrap.on{opacity:1}
 #feedlbl{font:600 10px/1 ui-monospace,monospace;letter-spacing:.22em;color:#8fd0ff;text-align:center;margin-bottom:5px;text-shadow:0 0 8px #1a5f8f}
 #feedbar{height:4px;border-radius:3px;background:rgba(143,208,255,.16);overflow:hidden}
@@ -236,7 +239,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.8</div>
+<div class="credit">ACCRETION · prototype 4.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -472,6 +475,7 @@ let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운�
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
 let jetsReady=false   // 능력 사용 가능 여부(티어). 빔의 '보임'은 발사 순간만 — 둘을 분리한다
+let FORCE_UI=false    // 겹침 감사 전용 — 평소엔 항상 false
 const JETDUR=0.62     // 분출 지속(초) — 나타났다 사라지는 파
 // 먹은 방향의 누적 평균 — 이것이 자전축의 목표가 된다(강착 원반 각운동량)
 function noteFeedDir(dx,dz){const l=Math.hypot(dx,dz)||1
@@ -830,9 +834,13 @@ function updateFeed(dt){
    const tube=new THREE.TubeGeometry(curve,TSEG,rem*(0.032+pr*0.022),RSEG,false)  // 코어는 가늘게 — 길만 그린다
    // TubeGeometry는 끝이 평평하게 잘린다 — 그 단면이 '꺾인 직선'으로 보였다(오너 리포트).
    // 양 끝을 검게 칠해(가산 혼합에서 검정=보이지 않음) 단면을 지운다.
+   // 관도 '거리'로 사그라들게 한다 — 매개변수로 자르면 글로우 언저리에서 선이 뚝 끊겨 보인다(오너 지적).
    {const cnt=tube.attributes.position.count,col=new Float32Array(cnt*3)
-    for(let i=0;i<cnt;i++){const t=Math.floor(i/(RSEG+1))/TSEG   // 0=원반 쪽 · 1=본체 쪽
-     const k=Math.min(1,t/0.22)*Math.min(1,(1-t)/0.10+0.0)
+    const pos=tube.attributes.position, hr1=rad(S.mass)
+    for(let i=0;i<cnt;i++){const t=Math.floor(i/(RSEG+1))/TSEG   // 0=홀 쪽 · 1=본체 쪽
+     const dq=Math.hypot(pos.getX(i)-hole.position.x,pos.getZ(i)-hole.position.z)
+     const fz=Math.max(0,Math.min(1,(dq-hr1*2.6)/(hr1*1.6)))
+     const k=fz*fz*(3-2*fz)*Math.min(1,(1-t)/0.10)         // 안쪽은 빛에 스며들고, 본체 쪽 끝단만 살짝 정리
      col[i*3]=0.72*k;col[i*3+1]=0.85*k;col[i*3+2]=1.0*k}
     tube.setAttribute('color',new THREE.BufferAttribute(col,3))}
    spiralMesh.geometry=tube
@@ -854,8 +862,13 @@ function updateFeed(dt){
      pa[i*3]=q.x+Math.cos(a+S.t*3.4)*rr
      pa[i*3+1]=q.y+Math.sin(a*2.3)*rr*0.5
      pa[i*3+2]=q.z+Math.sin(a+S.t*3.4)*rr
-     // 원반 언저리에서는 잔해가 원반에 합류한다 — 딱 끊기지 않게 스며들어 사라진다
-     const fade=Math.min(1,sPar/0.05)   // 페이드를 짧게 — 조각이 글로우에 닿기 전에 사라져 끊겨 보였다
+     // 잔해는 홀의 밝은 빛 속으로 '스며들며' 사라져야 한다.
+     // 곡선 매개변수로 자르면 글로우 언저리에서 뚝 끊겨 보였다(오너 지적) →
+     // 홀까지의 실제 거리로 서서히 어두워지게 한다(밝은 코어 4.2hr에서 시작해 2.6hr에서 소멸).
+     const hr0=rad(S.mass)
+     const dq=Math.hypot(q.x-hole.position.x,q.z-hole.position.z)
+     const fz=Math.max(0,Math.min(1,(dq-hr0*2.6)/(hr0*1.6)))
+     const fade=fz*fz*(3-2*fz)          // smoothstep — 경계가 드러나지 않게
      const hot=1-sPar                                          // 원반에 가까울수록 뜨겁다
      const v=fade*(0.55+STREAM_SEED[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
      ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
@@ -1600,7 +1613,9 @@ function hud(){
  $('sval').textContent=S.score.toLocaleString()
  $('pval').textContent=fmtBig(S.peak)
  const fw=$('feedwrap')
- if(S.feed){fw.classList.add('on');$('feedfill').style.width=Math.round(Math.min(1,S.feed.t/S.feed.dur)*100)+'%'}
+ // FORCE_UI: 감사용. hud()가 매 프레임 .on을 지워 DEVOURING 게이지는 겹침 감사를 한 번도 못 받았다.
+ if(S.feed||FORCE_UI){fw.classList.add('on')
+  $('feedfill').style.width=(S.feed?Math.round(Math.min(1,S.feed.t/S.feed.dur)*100):60)+'%'}
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
@@ -2006,7 +2021,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(let k=0;k<popSlot.length;k++){if(popSlot[k]){clearInterval(popSlot[k].iv);popSlot[k].el.remove();popSlot[k]=null}}
  S.boost=0;S.grazeSeen=false;S.jetSeen=false
  placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
- NO_SPAWN=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
+ NO_SPAWN=false;FORCE_UI=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
  S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
@@ -2170,6 +2185,7 @@ if(DEV){window.__acc={
  hideOnboard:()=>hideOnboard(),
  msgQueue:()=>({len:MSGQ.length,pri:msgPri,showing:$('banner').style.opacity==='1'?'banner':($('codex').classList.contains('on')?'codex':null)}),
  forceUI:()=>{ // UI 감사용 — 모든 메시지 채널을 동시에 띄운 '최악의 경우'. hud()가 매 프레임 되돌리므로 타이머를 미래로 민다.
+  FORCE_UI=true
   msgUntil=performance.now()+20000;msgPri=9;banT=msgUntil;codexT=msgUntil
   $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo';$('banner').style.opacity=1
   $('codex').classList.add('on');$('feedwrap').classList.add('on')

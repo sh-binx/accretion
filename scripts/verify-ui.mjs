@@ -18,7 +18,8 @@ for(const [w,h,touch] of VPS){
     const c=document.getElementById('codex')
     c.innerHTML='<div class="ct">◆ CODEX 20/33 · COMET</div><div class="cf">The tail always points away from the star, not backwards along its path — solar wind blows it outward.</div>'
     A.forceUI()
-    return new Promise(res=>setTimeout(()=>res(measure()),700))
+    // 레이아웃·트랜지션이 부하에서 늦게 정착해 한 번 거짓 겹침이 났다 — 여유를 둔다
+    return new Promise(res=>setTimeout(()=>res(measure()),1300))
     function measure(){
     // '그리는' 요소 전부: 글자 / 배경 / 테두리 / 그림자
     const paints=[...document.querySelectorAll('body *')].filter(e=>{
