@@ -236,7 +236,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.7</div>
+<div class="credit">ACCRETION · prototype 4.8</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -752,7 +752,7 @@ function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)obje
 function startFeed(o,rel){
  const bh=S.formIdx===2
  // 지속 25% 단축(오너 판단: 시간이 걸리는 건 유지하되 대기가 길면 답답하다)
- S.feed={o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0}
+ S.feed={o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0,grow:0}
  popup(o.g.position,'DEVOURING…','#8fd0ff');codexToast('tde')
 }
 function cancelFeed(){S.feed=null}
@@ -813,8 +813,14 @@ function updateFeed(dt){
    const rim=rad(S.mass)*2.16                      // 원반 '바깥 테두리' = 흐름이 합류하는 곳(1.9면 허공에서 끊겨 보였다)
    const ex=hx+tx*rim, ez=hz+tz*rim                // 접선 방향으로 어긋난 종점
    const bend=len*0.42*(0.5+pr*0.5)
+   // 줄기는 본체에서 '자라나' 홀에 닿는다. 예전엔 완성된 길이로 한 프레임에 나타나 이질적이었다(오너 지적).
+   // 실제 조석 파괴도 잔해가 뜯겨 나가 궤도를 돌아 도달하기까지 시간이 걸린다.
+   const growDur=Math.min(0.45,f.dur*0.45)
+   f.grow=Math.min(1,(f.grow||0)+dt/growDur)
+   const gEase=1-Math.pow(1-f.grow,2)               // 처음엔 빠르게 뻗고 끝에서 부드럽게 닿는다
+   const u0=1-gEase                                 // u=1이 본체 쪽 — 거기서부터 자란다
    spiralPts.length=0
-   for(let k=0;k<=22;k++){const u=k/22   // 점을 늘려 곡선이 각지지 않게
+   for(let k=0;k<=22;k++){const u=u0+(1-u0)*(k/22)  // 자란 구간만 그린다
     // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
     const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
     spiralPts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
@@ -830,13 +836,13 @@ function updateFeed(dt){
      col[i*3]=0.72*k;col[i*3+1]=0.85*k;col[i*3+2]=1.0*k}
     tube.setAttribute('color',new THREE.BufferAttribute(col,3))}
    spiralMesh.geometry=tube
-   spiralMesh.material.opacity=0.16+pr*0.14   // 조각이 주인공 — 관은 길만 희미하게 암시한다
+   spiralMesh.material.opacity=(0.16+pr*0.14)*gEase   // 조각이 주인공 — 관은 길만 희미하게 암시한다
    spiralMesh.visible=true;feedStream.visible=false
    // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
    {const pa=streamGeo.attributes.position.array,ca=streamGeo.attributes.color.array
     const cap=fxLow?80:STREAMN
     for(let i=0;i<STREAMN;i++){
-     if(i>=cap){pa[i*3+1]=-1e5;continue}                       // 저사양 모드에선 일부만
+     if(i>=cap*gEase){pa[i*3+1]=-1e5;continue}              // 저사양 모드 · 아직 자라지 않은 몫은 숨긴다
      // 곡선 매개변수는 0=원반 · 1=본체. 시간이 흐르면 본체(1) → 원반(0)으로 간다.
      // sPar=(1-f)^0.65 로 두면 원반에 가까울수록 빨라지고, 그래서 '성글어진다'
      // (예전엔 제곱을 써서 방향도 반대였고 원반 쪽에 뭉쳐 다시 막대처럼 보였다).
@@ -855,7 +861,7 @@ function updateFeed(dt){
      ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
     streamGeo.attributes.position.needsUpdate=true;streamGeo.attributes.color.needsUpdate=true
     streamPts.material.size=Math.max(0.04,rem*0.15)   // 잘게 — 크면 서로 겹쳐 '굵은 선' 하나로 뭉친다(오너 리포트)
-    streamPts.material.opacity=0.55+pr*0.40;streamPts.visible=true}
+    streamPts.material.opacity=(0.55+pr*0.40)*gEase;streamPts.visible=true}
   } else {spiralMesh.visible=false;streamPts.visible=false}
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
     new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
@@ -2143,6 +2149,10 @@ if(DEV){window.__acc={
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
  doFlare:()=>doFlare(),flareCount:()=>S.flareCount||0,jetFire:()=>+(S.jetFire||0).toFixed(2),
  sweptLast:()=>S.sweptLast||0,
+ streamGrow:()=>{if(!S.feed)return null
+  const a=spiralPts
+  let L=0;for(let i=1;i<a.length;i++)L+=a[i].distanceTo(a[i-1])
+  return {grow:+(S.feed.grow||0).toFixed(2),len:+L.toFixed(1),pts:a.length,vis:streamPts.visible}},
  tagPos:()=>{const o=window.__accTag;if(!o||o.eaten)return null
   return {x:+o.g.position.x.toFixed(2),z:+o.g.position.z.toFixed(2),
    hx:+hole.position.x.toFixed(2),hz:+hole.position.z.toFixed(2),feed:!!(S.feed&&S.feed.o===o)}},

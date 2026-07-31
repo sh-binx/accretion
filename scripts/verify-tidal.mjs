@@ -195,6 +195,22 @@ try {
     ok('흡수 중인 본체가 밝은 코어 밖에 선다', look && look.ratio>=3.6,
        look ? look.ratio+'hr (기준 3.6hr — 원반 2.16 + 글로우)' : '흡수 미발생')
 
+    // 오너: "나선고리가 갑자기 뚝 생겨 이질적이다" → 본체에서 자라나 홀에 닿아야 한다
+    const grow = await page.evaluate(async ()=>{
+      const A=window.__acc
+      A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(8000);A.step(0.05);A.clearField()
+      const c=A.pos()
+      A.spawnTagged(8000*0.9,c.x+Math.cbrt(8000)*4.5,c.z,'planet')
+      for(let i=0;i<140;i++){A.setTarget(c.x,c.z);A.step(0.04);if(A.feedObj())break}
+      const seq=[]
+      for(let i=0;i<10;i++){const g=A.streamGrow();if(!g)break;seq.push(g.len);A.step(0.06)}
+      A.setSpawn(true)
+      return seq})
+    const rising = grow.length>=5 && grow.every((v,i)=>i===0||v>=grow[i-1]-0.5)
+    ok('줄기가 한 번에 나타나지 않고 자란다', rising && grow[grow.length-1] > grow[0]*2.5,
+       grow.length? grow[0]+' → '+grow[grow.length-1] : '표본 없음')
+
+
   }
 
     {
