@@ -223,6 +223,21 @@
 #feedbar{height:4px;border-radius:3px;background:rgba(143,208,255,.16);overflow:hidden}
 #feedfill{display:block;height:100%;width:0;background:linear-gradient(90deg,#4aa8e8,#9fe870);box-shadow:0 0 10px #6fd0ff;transition:width .06s linear}
 body:not(.playing) #feedwrap{opacity:0!important}
+/* 진화 선택 — 티어를 올릴 때마다 3택 1. 게임을 잠시 멈추고 고르게 한다(인트로 카드와 같은 모달 규칙). */
+#choice{position:fixed;inset:0;z-index:22;display:none;flex-direction:column;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse 70% 60% at 50% 48%,rgba(10,14,30,.86),rgba(3,4,10,.94));backdrop-filter:blur(3px);padding:18px}
+#choice.on{display:flex}
+#choice .ct{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:4px;color:#8fd0ff;margin-bottom:6px}
+#choice .cs{font-size:12px;color:#7c88ad;margin-bottom:20px;letter-spacing:1px}
+#choice .cw{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:960px}
+#choice .cc{width:min(280px,86vw);background:rgba(10,14,26,.92);border:1px solid rgba(120,150,220,.3);border-radius:12px;
+ padding:16px 18px 18px;cursor:pointer;pointer-events:auto;text-align:left;transition:border-color .15s,transform .15s}
+#choice .cc:hover{border-color:rgba(143,208,255,.75);transform:translateY(-2px)}
+#choice .cn{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:800;letter-spacing:1.5px;color:#ffcf4a;margin-bottom:5px}
+#choice .cd{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9fd0ff;margin-bottom:9px}
+#choice .cwhy{font-size:11.5px;line-height:1.6;color:#8b97b5}
+#choice .ck{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#0a0d18;background:#8fd0ff;
+ border-radius:3px;padding:1px 6px;font-weight:800;margin-right:7px}
 #onb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
  opacity:0;transition:opacity .28s;text-align:center;
  background:rgba(6,8,14,.82);border:1px solid rgba(255,255,255,.14);padding:26px 40px;backdrop-filter:blur(3px)}
@@ -243,6 +258,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div></div>
 <div id="apex"></div>
 <div id="combo"></div>
+<div id="choice"><div class="ct">EVOLVE</div><div class="cs" id="choiceSub"></div><div class="cw" id="choiceWrap"></div></div>
 <div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-h">press any key to begin</div></div>
 <div id="codex"></div>
 <div id="mute">🔊</div>
@@ -252,7 +268,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.1</div>
+<div class="credit">ACCRETION · prototype 5.2</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -496,12 +512,67 @@ function hideAllFeedVis(){for(let k=0;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)}
 //  · 초에딩턴 강착: 고전 한계를 넘겨 물질이 쏟아져 들어가는 상태(밝은 ULX가 그 증거)
 //  · 원반 플레어: 강착률이 치솟으면 원반이 부풀고 영향권이 넓어진다
 //  · 블레이자 상태: 강착 급증이 제트를 밝히고 여러 흐름이 동시에 합류한다
+// ── 진화 선택 — 티어를 올릴 때마다 3택 1. 전부 실재하는 현상이고 전부 트레이드오프가 있다.
+// 매 런 다른 조합이 나오는 것이 '다시 하는 이유'다.
+const EVO_BOONS=[
+ {id:'spin', n:'RAPID SPIN',       d:'accretion +18% · reach −8%',
+  w:'최대 회전 커 블랙홀은 최내안정궤도가 안쪽으로 내려가 강착 효율이 6%→42%까지 오른다. 대신 지평선은 작아진다.',
+  acc:1.18,pull:0.92},
+ {id:'thick',n:'THICK DISK',       d:'reach +15% · speed −8%',
+  w:'강착률이 높으면 원반이 복사압으로 부풀어 두꺼워진다(slim disk). 영향권은 넓어지고 몸은 둔해진다.',
+  pull:1.15,spd:0.92},
+ {id:'jet',  n:'RELATIVISTIC JETS',d:'jet flare +35% · accretion −8%',
+  w:'제트로 빠져나간 에너지는 원반을 덜 밝힌다 — 실제로 제트가 강한 천체는 강착 광도가 낮다.',
+  flare:1.35,acc:0.92},
+ {id:'cold', n:'COLD FLOW',        d:'devour time −22%',
+  w:'차가운 가스는 복사로 열을 빨리 잃어 각운동량을 버리고 더 빨리 떨어진다(cold accretion).',
+  fdur:0.78},
+ {id:'mad',  n:'MAGNETIC ARREST',  d:'combo window +60%',
+  w:'자기장이 강착 흐름을 붙잡아 두는 MAD 상태 — 흐름이 끊기지 않고 이어진다.',
+  cwin:1.6},
+ {id:'wide', n:'WIDE HORIZON',     d:'reach +14% · accretion −5%',
+  w:'같은 질량이라도 회전이 느리면 지평선이 크다. 더 넓게 삼키지만 효율은 조금 떨어진다.',
+  pull:1.14,acc:0.95}
+]
+let choiceOpen=false
+let choiceSkip=false,choiceForce=false   // 검증 하네스가 setMass로 티어를 위조한 런에서만 선택창을 건너뛴다(보온을 주지 않아 밸런스는 불변).
+                                         // 실제 성장(먹어서 오른 티어)과 ?dev=1로 여는 사람에겐 영향이 없다.
+function openChoice(tierName){
+ if(choiceOpen||!S.alive||(choiceSkip&&!choiceForce))return
+ const taken=new Set(S.boons.map(b=>b.id))
+ const pool=EVO_BOONS.filter(b=>!taken.has(b.id))
+ if(pool.length<2)return                       // 남은 게 없으면 건너뛴다
+ const pick=[]
+ while(pick.length<Math.min(3,pool.length)){
+  const b=pool[Math.floor(Math.random()*pool.length)]
+  if(!pick.includes(b))pick.push(b)}
+ $('choiceSub').textContent=tierName+' — choose one'
+ $('choiceWrap').innerHTML=pick.map((b,i)=>
+  '<div class="cc" data-i="'+i+'"><div class="cn"><span class="ck">'+(i+1)+'</span>'+b.n+'</div>'+
+  '<div class="cd">'+b.d+'</div><div class="cwhy">'+b.w+'</div></div>').join('')
+ ;[...$('choiceWrap').children].forEach(el=>el.onclick=e=>{e.stopPropagation();takeBoon(pick[+el.dataset.i])})
+ window.__choicePick=pick
+ $('choice').classList.add('on');choiceOpen=true
+ document.body.classList.add('intro')            // 뒤 UI를 비운다(인트로 카드와 같은 규칙)
+}
+function takeBoon(b){
+ if(!choiceOpen||!b)return
+ S.boons.push(b);closeChoice()
+ banner('◆ '+b.n,b.d,3);if(AU.tierUp)AU.tierUp()
+}
+function closeChoice(){
+ choiceOpen=false;window.__choicePick=null
+ const el=document.getElementById('choice');if(el)el.classList.remove('on')
+ document.body.classList.remove('intro')
+}
+function boonMul(k){let m=1;for(const b of (S.boons||[]))if(b[k])m*=b[k];return m}
 const COMBO_BOONS=[
  {at:20,name:'BLAZAR STATE',    col:'#ff9a5a',acc:1.50,pull:1.30,slot:1},
  {at:10,name:'DISK FLARE',      col:'#ffd27a',acc:1.28,pull:1.18,slot:0},
  {at:5, name:'SUPER-EDDINGTON', col:'#ffe6a8',acc:1.14,pull:1.00,slot:0}]
 function comboBoon(c){for(const b of COMBO_BOONS)if(c>=b.at)return b;return null}
-function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))}
+function comboWin(){return (S.modFrenzy?2400:1400)*boonMul('cwin')}
+function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<comboWin())}
 function boonNow(){return comboOn()?comboBoon(S.combo):null}
 function noteBoon(){const nb=comboBoon(S.combo)   // 단계에 막 올라선 순간만 알린다
  if(nb&&S.boonAt!==nb.at){S.boonAt=nb.at;banner('◈ '+nb.name,'combo ×'+nb.at+' — accretion surges',3)}}
@@ -805,7 +876,7 @@ function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)obje
 function startFeed(o,rel){
  const bh=S.formIdx===2
  // 지속 25% 단축(오너 판단: 시간이 걸리는 건 유지하되 대기가 길면 답답하다)
- S.feeds.push({o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0,grow:0})
+ S.feeds.push({o,dur:(bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel))*boonMul('fdur'),t:0,total:o.mass,given:0,grow:0})
  popup(o.g.position,'DEVOURING…','#8fd0ff');codexToast('tde')
 }
 function cancelFeed(){S.feeds.length=0;hideAllFeedVis()}
@@ -823,7 +894,7 @@ function stepFeed(f,slot,dt){
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
  const bn0=boonNow()
- const total=f.total*(isMerge?0.45:0.62)*(isMerge?mergeEffOf(S.mass):accEff())*(bn0?bn0.acc:1)
+ const total=f.total*(isMerge?0.45:0.62)*(isMerge?mergeEffOf(S.mass):accEff())*(bn0?bn0.acc:1)*boonMul('acc')
  const add=total*pr-f.given
  if(add>0){S.mass+=add;f.given+=add;S.score+=Math.round(add*13)}
  // 테두리에 붙인 채 뜯어먹는다 — 중심으로 끌어오면 거대 천체가 플레이어를 덮는다(오너 리포트)
@@ -1148,7 +1219,7 @@ function checkMassMarks(){
 }
 
 /* ===== state ===== */
-const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[]}   // feeds = 동시 조석 흐름 슬롯(초대질량 2 · 퀘이사 이상 3)
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]}   // feeds = 동시 조석 흐름 슬롯(초대질량 2 · 퀘이사 이상 3)
 // 블랙홀 도달(질량 12) 이후의 규모 티어 — 진화 아크가 앞단을 담당하므로 임계 상향
 let NO_SPAWN=false   // 검증 전용 스폰 차단(프로덕션 경로는 항상 false)
 const TIERS=[
@@ -1378,7 +1449,7 @@ function update(dt){
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
- const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)) // 흡수 중 감속(완화) · 포식 가속
+ const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0))*boonMul('spd') // 흡수 중 감속 · 포식 가속 · 진화 선택
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
@@ -1426,7 +1497,7 @@ function update(dt){
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const bnP=boonNow()
-   const pull=mouth*F.pull*(bnP?bnP.pull:1) // 중력 흡입권 — 형태별 × 콤보 단계(원반이 부풀면 영향권이 넓어진다)
+   const pull=mouth*F.pull*(bnP?bnP.pull:1)*boonMul('pull') // 흡입권 — 형태 × 콤보 단계 × 진화 선택
    const base=o.r*1.15
    // waiting: 차례를 기다리는 큰 천체는 더 끌어당기지 않는다(아직 강착이 시작되지 않았다)
    if(d>0.01&&d<pull&&!feedOf(o)&&!waiting){
@@ -1497,12 +1568,12 @@ function update(dt){
    // 블랙홀끼리의 병합은 실제로도 밀리초 만에 끝난다(중력파 링다운) → 즉시.
    // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
    if(bigFood)continue // 큰 천체는 로슈 한계에서 붙잡힌다 — 여기까지 오지 않는다
-   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
+   S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // FRENZY·MAD로 콤보창 연장
    noteBoon()
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
    const bn=boonNow()
-   const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1) // 형태별 강착 효율 × 콤보 단계
+   const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1)*boonMul('acc') // 형태 × 콤보 단계 × 진화 선택
    const gain=o.mass*(isMerge?0.45:0.62)*eff
    S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
@@ -1601,7 +1672,8 @@ function update(dt){
  const ti=tierOf(S.mass)
  if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,TIERS[ti].d||'');AU.tierUp();S.shake=Math.min(S.shake+0.6,1.1);S.score+=Math.round(S.mass*0.6);$('zone').style.boxShadow=ZONES[zoneIdx()].fx
   codexToast(ti===1?'intermediate':(ti===2?'supermassive':(ti===3?'quasar':'ultramassive')))
-  if(ti>=3)applyJets()}
+  if(ti>=3)applyJets()
+  openChoice(TIERS[ti].n)}   // 티어를 올릴 때마다 3택 1 — 매 런 다른 조합이 '다시 하는 이유'가 된다
  S.tierIdx=ti;applyJets()
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 네메시스 생애: INTERMEDIATE+면 항상 하나. 처치 후엔 잠깐 뒤 더 큰 게 등장.
@@ -1720,7 +1792,8 @@ function frame(now){requestAnimationFrame(frame)
 requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- updateFX(dt);if(!onbT)update(dt);if(!onbT)updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
+ updateFX(dt);const hold=onbT||choiceOpen
+ if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
@@ -1743,6 +1816,7 @@ const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
 if(COARSE)document.body.classList.add('touch') // 터치 기기 = 엄지 탭 영역 확보(미디어 쿼리는 에뮬레이션에서 안 잡혀 JS 판정으로)
 // 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
 function doSurge(){
+ if(choiceOpen)return                                  // 진화 선택 중 발동 금지
  if(!S.alive||S.surgeT>0||S.energy<1)return
  S.energy=0;S.surgeT=0.9;S.surgeCount=(S.surgeCount||0)+1
  const st=steer();let dx=st.x,dz=st.z
@@ -1752,7 +1826,8 @@ function doSurge(){
  eatBurst(hole.position.x,hole.position.z,0x8fd0ff,16);codexToast('surge')
 }
 
-function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
+function doFlare(){
+ if(choiceOpen)return                                  // 진화 선택 중 발동 금지 // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
  // 물리: 제트는 자전축 '양쪽으로' 대칭으로 뿜는다(쌍극) → 축 양쪽을 한 번에 쓸어낸다.
  // 가스와 별은 상대론적 플라스마에 찢겨 날아가지만, 다른 블랙홀은 제트로 어쩔 수 없다(사건지평선)
  // → 그쪽은 원반 가스만 날려 강착을 끊는다(AGN 피드백).
@@ -1770,7 +1845,8 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
  S.energy=0;S.jetFire=JETDUR;jetFlash=JETDUR;S.flareCount=(S.flareCount||0)+1
  jets.rotation.y=Math.atan2(-tz,tx)                    // 쏘는 로브를 위협 쪽으로 겨눈다
  S.spinTarget=jets.rotation.y                          // 정렬이 되돌아가지 않게
- S.vx-=tx*54;S.vz-=tz*54                               // 반동 — 비대칭 몫만(대시 26의 2배). 쌍극 대칭이면 알짜 추력은 0이다
+ const fm=boonMul('flare')
+ S.vx-=tx*54*fm;S.vz-=tz*54*fm                               // 반동 — 비대칭 몫만(대시 26의 2배). 쌍극 대칭이면 알짜 추력은 0이다
  S.boost=Math.min(0.9,(S.boost||0)+0.55)               // 튕겨 나간 뒤에도 잠시 빠르게 — 임펄스만으론 곧 감속한다
  S.invT=Math.max(S.invT,1.2)                           // 탈출 유예 — 이 능력의 핵심 가치다.
  S.tidalT=0                                            // 조석 영역에 붙잡혀 있었다면 그 손아귀를 끊는다
@@ -1779,7 +1855,7 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
  // ── 축 양쪽을 한 번에 청소 ──
  {const hr0=rad(S.mass)
   const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
-  const reach=hr0*(JET_LEN+0.1),wide=hr0*JET_TIP*1.35
+  const reach=hr0*(JET_LEN+0.1)*fm,wide=hr0*JET_TIP*1.35*fm
   let swept=0
   for(let k=objects.length-1;k>=0;k--){const o=objects[k]
    if(o.eaten||feedOf(o))continue
@@ -1804,7 +1880,8 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
  banner('☄ JET FLARE','both poles blast — the axis is swept and you are kicked clear',3)
  if(!S.flareSeen){S.flareSeen=true;codexToast('quasar')}
 }
-function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
+function doWave(){
+ if(choiceOpen)return                                  // 진화 선택 중 발동 금지 // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
  // 그 파동은 주변 물질의 궤도를 흐트러뜨린다. 위협을 밀어내고 라이벌의 강착을 끊는 용도.
  if(!S.alive||S.surgeT>0||S.energy<1)return
  S.energy=0;S.waveCount=(S.waveCount||0)+1;S.invT=Math.max(S.invT,0.5)
@@ -1824,7 +1901,8 @@ function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시�
  eatBurst(hole.position.x,hole.position.z,0xb0a0ff,22)
  banner('◎ GRAVITATIONAL WAVE','spacetime rings — orbits scatter');codexToast('gwave')
 }
-function doPulse(){ // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
+function doPulse(){
+ if(choiceOpen)return                                  // 진화 선택 중 발동 금지 // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
  // 흡수 중이라면 흐름도 함께 당긴다 — 프레임 드래깅은 원반 안쪽 물질을 실제로 끌어당긴다.
  // 흡수를 '보는 것'에서 '개입하는 것'으로 바꾸는 장치(오너: 후반이 무료하다).
  if(!S.alive||S.surgeT>0||S.energy<1)return
@@ -2090,7 +2168,8 @@ function hideOnboard(){if(onbT){$('onb').classList.remove('on');document.body.cl
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[]})
+ choiceSkip=false
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
@@ -2101,7 +2180,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
  NO_SPAWN=false;FORCE_UI=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
- S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.boonAt=0;S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.boonAt=0;S.boons=[];closeChoice();S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -2150,7 +2229,9 @@ refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오�
 $('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
-addEventListener('keydown',e=>{if(typing(e))return;if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()})
+addEventListener('keydown',e=>{if(typing(e))return;if(choiceOpen&&!/^Digit[123]$/.test(e.code))return  // 진화 선택 중엔 능력 키를 잠근다(정지 상태에서 에너지·쿨다운을 잃지 않게)
+ if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()
+ if(choiceOpen&&/^Digit[123]$/.test(e.code)){const i=+e.code.slice(5)-1;const pk=window.__choicePick;if(pk&&pk[i])takeBoon(pk[i])}})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -2166,7 +2247,8 @@ if(DEV){window.__acc={
  hintIdx:()=>S.hintIdx||0,resetOnboard:()=>{try{localStorage.removeItem('acc_onboard')}catch(e){}},surgeReady:()=>$('surge').classList.contains('ready'),
  zoneLens:()=>Math.round(zoneLens*100)/100,fogHex:()=>scene.fog.color.getHexString(),
  begin,gameOver:()=>gameOver('evaporated'),
- setMass:m=>{S.mass=m},setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
+ setMass:m=>{S.mass=m;choiceSkip=true},   // 질량을 위조한 런 — 진화 선택은 건너뛴다(choiceReal(true)로 해제)
+setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  pos:()=>({x:Math.round(hole.position.x*10)/10,z:Math.round(hole.position.z*10)/10}),steer:()=>steer(),
  spawn:(type,mass,x,z)=>spawnObj(type||'planet',mass==null?S.mass*0.5:mass,x,z),
  setSpawn:v=>{NO_SPAWN=!v},
@@ -2281,6 +2363,14 @@ if(DEV){window.__acc={
    dist:+o.g.position.distanceTo(hole.position).toFixed(2),hr:+rad(S.mass).toFixed(2)}},
  feedState:()=>S.feeds.length?{t:Math.round(S.feeds[0].t*100)/100,dur:Math.round(S.feeds[0].dur*100)/100,given:Math.round(S.feeds[0].given*10)/10,n:S.feeds.length}:null,
  feedSlots:()=>feedSlots(),feedCount:()=>S.feeds.length,
+ boons:()=>S.boons.map(b=>b.id),choiceOn:()=>choiceOpen,
+ choiceReal:(on)=>{choiceForce=!!on},   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
+ tierMass:(i)=>i<=0?2:TIERS[Math.min(TIERS.length-1,i-1)].max*1.02,   // 그 티어로 승격되는 질량
+ giveBoon:(id)=>{const b=EVO_BOONS.find(x=>x.id===id);if(b&&!S.boons.includes(b))S.boons.push(b);return S.boons.map(x=>x.id)},
+ pullRadius:()=>{const F=FORMS[S.formIdx],bnP=boonNow()
+  return rad(S.mass)*F.mouth*F.pull*(bnP?bnP.pull:1)*boonMul('pull')},   // update()의 pull 식과 동일(서지 제외)
+ choiceOpts:()=>(window.__choicePick||[]).map(b=>b.id),
+ takeBoon:(i)=>{const pk=window.__choicePick;if(pk&&pk[i])takeBoon(pk[i]);return S.boons.map(b=>b.id)},
  tidalState:()=>({inZone:(S.tidalT||0)>0,depth:Math.round((S.tidalDepth||0)*100)/100}),tiers:()=>TIERS.map(t=>t.n),
  setJetAngle:a=>{jets.rotation.y=a},
  jetSpec:()=>({len:JET_LEN,tip:JET_TIP,ang:jets.rotation.y,n:jets.children.length,

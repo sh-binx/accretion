@@ -23,9 +23,9 @@ for(const MODE of ['b','c']){   // 배너 모드 · 코덱스 모드 — 큐가 
     return new Promise(res=>setTimeout(()=>res(measure()),1300))
     function measure(){
     // '그리는' 요소 전부: 글자 / 배경 / 테두리 / 그림자
-    // 회전 안내는 전체 화면 모달이다 — 떠 있으면 뒤 요소는 보이지 않으므로 모달 안만 잰다
-    const rot=document.getElementById('rotate')
-    const modal=rot&&rot.classList.contains('on')?rot:document.body
+    // 전체 화면 모달(회전 안내 · 진화 선택)이 떠 있으면 뒤 요소는 보이지 않는다 — 모달 안만 잰다
+    const on=id=>{const e=document.getElementById(id);return e&&e.classList.contains('on')?e:null}
+    const modal=on('rotate')||on('choice')||document.body
     const paints=[...modal.querySelectorAll('*')].filter(e=>{
       const st=getComputedStyle(e)
       if(st.display==='none'||st.visibility==='hidden'||parseFloat(st.opacity)<0.06)return false

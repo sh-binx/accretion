@@ -88,6 +88,73 @@ try {
   })
   ok('regression: can grow across forms', grew.m1>grew.m0, `${grew.m0} → ${grew.m1} (${grew.form})`)
 
+  // ── 진화 선택(EVO_BOONS) ──
+  const ch = await page.evaluate(async () => {
+    const A=window.__acc, R={}
+    A.choiceReal(true); A.begin(); A.hideOnboard()
+    R.idle = A.choiceOn()                                   // 시작 직후엔 닫혀 있다
+    A.setMass(A.tierMass(1))                                // 첫 티어 승격 → 열림
+    A.step(0.2)
+    R.opened = A.choiceOn(); R.opts = A.choiceOpts()
+    // 열려 있는 동안 게임은 멈춘다 — frame() 게이트
+    const p0=A.pos(); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))
+    const p1=A.pos(); R.frozen = Math.hypot(p1.x-p0.x,p1.z-p0.z) < 0.01
+    A.takeBoon(0)
+    R.taken = A.boons(); R.closed = !A.choiceOn()
+    // 남은 승격마다 다시 열리고, 이미 고른 보온은 후보로 재등장하지 않는다
+    let dup=false, reopened=0
+    for(let t=2;t<=4;t++){ A.setMass(A.tierMass(t)); A.step(0.2)
+      if(A.choiceOn()){ reopened++
+        if(A.choiceOpts().some(id=>A.boons().includes(id))) dup=true
+        A.takeBoon(0) } }
+    R.noDup = !dup; R.reopened = reopened; R.boonCount = A.boons().length
+    return R
+  })
+  ok('choice: closed at run start', ch.idle===false, String(ch.idle))
+  ok('choice: opens on tier-up with 3 options', ch.opened===true&&ch.opts.length===3, `${ch.opened} ${JSON.stringify(ch.opts)}`)
+  ok('choice: game frozen while open', ch.frozen===true, String(ch.frozen))
+  ok('choice: pick applies and closes', ch.taken.length===1&&ch.closed, `${JSON.stringify(ch.taken)} closed=${ch.closed}`)
+  ok('choice: reopens on every later tier-up', ch.reopened===3, `${ch.reopened}/3 · 보유 ${ch.boonCount}`)
+  ok('choice: taken boon never re-offered', ch.noDup===true, `보유 ${ch.boonCount}`)
+
+  // 보온 효과가 실제 수치에 반영된다 — 선언만이 아니라 계산에
+  const eff = await page.evaluate(async () => {
+    const A=window.__acc
+    A.begin(); A.hideOnboard(); A.setMass(60)
+    const base=A.pullRadius()
+    A.giveBoon('wide')                                       // reach +14%
+    return { base, after:A.pullRadius() }
+  })
+  // 위조 질량이 아니라 '실제로 먹어서' 오른 티어에서도 뜬다 — 스킵 플래그가 기능을 가리지 않는지
+  const real = await page.evaluate(async () => {
+    const A=window.__acc; A.begin(); A.hideOnboard()      // choiceReal 없이 — 순수 프로덕션 경로
+    for(let i=0;i<400;i++){ const c=A.pos()
+      A.spawn('giant',Math.max(1.5,A.state.mass*0.9),c.x+6,c.z)
+      A.eatNearest(); A.step(0.3)
+      if(A.choiceOn()) return { opened:true, mass:Math.round(A.state.mass), tier:A.state.tier } }
+    return { opened:false, mass:Math.round(A.state.mass) }
+  })
+  ok('choice: opens on growth-driven tier-up (no setMass)', real.opened===true,
+     `${real.mass} · ${real.tier||''}`)
+
+  // 선택 중엔 능력이 잠긴다 — 정지 화면에서 에너지·쿨다운을 잃으면 안 된다
+  const lock = await page.evaluate(async () => {
+    const A=window.__acc
+    A.choiceReal(true); A.begin(); A.hideOnboard(); A.setEnergy(3)
+    A.setMass(A.tierMass(1)); A.step(0.2)
+    const e0=A.state.energy
+    A.doSurge(); A.doPulse()
+    const e1=A.state.energy, surging=A.state.surging
+    A.takeBoon(0); A.doSurge()                              // 닫힌 뒤엔 정상 발동
+    return { open:A.choiceOn(), e0, e1, surging, after:A.state.surging }
+  })
+  ok('choice: abilities locked while open', lock.e1===lock.e0&&lock.surging===false,
+     `energy ${lock.e0}→${lock.e1} · surging ${lock.surging}`)
+  ok('choice: abilities work again after picking', lock.after===true, String(lock.after))
+
+  ok('boon changes the real number (pull radius)', eff.after>eff.base*1.10,
+     `${eff.base.toFixed(2)} → ${eff.after.toFixed(2)}`)
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
