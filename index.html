@@ -60,7 +60,14 @@
  #apex.hunt{color:#ff6a7a;background:rgba(255,60,80,.14);border:1px solid rgba(255,80,100,.42);text-shadow:0 0 10px rgba(255,60,80,.6);animation:sp 1.1s ease-in-out infinite}
  #apex.vuln{color:#8fffb0;background:rgba(80,255,140,.12);border:1px solid rgba(100,255,150,.42);text-shadow:0 0 10px rgba(80,255,140,.5)}
  /* 콤보 = 질량바 바로 아래(상단 HUD 열). 중앙은 배너·팝업·블랙홀이 이미 쓰고 있어 겹쳤다 */
- #combo{position:fixed;right:16px;top:130px;z-index:6;pointer-events:none;text-align:right;font-family:'Martian Mono',ui-monospace,monospace;font-weight:700;font-size:clamp(18px,2.1vw,26px);letter-spacing:.04em;color:#ffcf4a;text-shadow:0 0 18px rgba(255,207,74,.6);opacity:0;transform-origin:100% 0;transition:opacity .12s}
+ /* 콤보는 '지금 잘하고 있다'는 즉시 피드백이라 시선이 머무는 곳에 있어야 한다.
+    우측 상단은 점수·시간 옆이라 눈에 안 들어왔다(오너 지적) → 화면 중앙 하단, 능력바 바로 위로. */
+ #combo{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) scale(1);z-index:6;pointer-events:none;
+  text-align:center;font-family:'Martian Mono',ui-monospace,monospace;font-weight:800;
+  font-size:clamp(26px,3.4vw,44px);letter-spacing:.04em;color:#ffcf4a;
+  text-shadow:0 0 24px rgba(255,207,74,.75),0 0 6px rgba(255,207,74,.9);opacity:0;
+  transform-origin:50% 100%;transition:opacity .12s;white-space:nowrap}
+ #combo .cl{display:block;font-size:11px;font-weight:700;letter-spacing:2px;color:#ffe6a8;opacity:.9;margin-top:2px}
  #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
  body.touch #mute{left:14px;right:auto;top:auto;bottom:14px} /* 능력 클러스터(우하단)와 충돌 — 반대편으로 */
  body.touch .credit{display:none} /* 좌하단은 음소거 자리. 폰에서 버전 표기는 불필요 */
@@ -229,7 +236,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 #onb .ob-h{font-family:'Martian Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.26em;color:#FFCDB6;margin-top:20px;text-transform:uppercase;
  animation:obPulse 1.5s ease-in-out infinite}
 @keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
- @media (max-aspect-ratio:9/10){#combo{top:176px}} /* 세로: 질량바가 122px로 내려와 그 아래로 */
+ @media (max-height:430px){#combo{bottom:92px;font-size:clamp(22px,3vw,32px)}} /* 낮은 화면: 능력바와 간격 확보 */
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -245,7 +252,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.0.1</div>
+<div class="credit">ACCRETION · prototype 5.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -463,7 +470,7 @@ const feedStream=(()=>{
 // ── 흡수 흐름 시각 자원 (슬롯별) ──
 // 초대질량 이상은 조석 흐름이 동시에 여러 갈래 합류한다(실제 강착원반이 그렇게 만들어진다).
 // 그래서 슬롯마다 코어 관 + 잔해 입자 세트를 따로 둔다. 슬롯 수는 티어가 정한다.
-const FEED_SLOTS_MAX=3
+const FEED_SLOTS_MAX=4   // 기본 최대 3 + 블레이자 보너스 1
 const STREAMN=220
 function mkFeedVis(){
  const spiral=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({vertexColors:true,
@@ -485,8 +492,22 @@ for(let i=0;i<FEED_SLOTS_MAX;i++)FEEDVIS.push(mkFeedVis())
 function hideFeedVis(k){FEEDVIS[k].spiral.visible=false;FEEDVIS[k].pts.visible=false}
 function hideAllFeedVis(){for(let k=0;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)}
 // 슬롯 수 — 블랙홀이 되고 티어가 오를수록 동시에 더 많은 흐름을 감당한다
-function feedSlots(){if(S.formIdx<2)return 1
- return S.tierIdx>=3?3:(S.tierIdx>=2?2:1)}
+// ── 콤보 단계 — 연속 포식이 강착률을 끌어올린다. 세 단계 모두 실재하는 현상이다.
+//  · 초에딩턴 강착: 고전 한계를 넘겨 물질이 쏟아져 들어가는 상태(밝은 ULX가 그 증거)
+//  · 원반 플레어: 강착률이 치솟으면 원반이 부풀고 영향권이 넓어진다
+//  · 블레이자 상태: 강착 급증이 제트를 밝히고 여러 흐름이 동시에 합류한다
+const COMBO_BOONS=[
+ {at:20,name:'BLAZAR STATE',    col:'#ff9a5a',acc:1.50,pull:1.30,slot:1},
+ {at:10,name:'DISK FLARE',      col:'#ffd27a',acc:1.28,pull:1.18,slot:0},
+ {at:5, name:'SUPER-EDDINGTON', col:'#ffe6a8',acc:1.14,pull:1.00,slot:0}]
+function comboBoon(c){for(const b of COMBO_BOONS)if(c>=b.at)return b;return null}
+function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))}
+function boonNow(){return comboOn()?comboBoon(S.combo):null}
+function noteBoon(){const nb=comboBoon(S.combo)   // 단계에 막 올라선 순간만 알린다
+ if(nb&&S.boonAt!==nb.at){S.boonAt=nb.at;banner('◈ '+nb.name,'combo ×'+nb.at+' — accretion surges',3)}}
+function feedSlots(){const bs=boonNow(),bonus=bs&&bs.slot?bs.slot:0
+ if(S.formIdx<2)return 1+bonus
+ return Math.min(FEED_SLOTS_MAX,(S.tierIdx>=3?3:(S.tierIdx>=2?2:1))+bonus)}
 function feedOf(o){for(const f of S.feeds)if(f.o===o)return f;return null}
 let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운동량 때문에 곧장 떨어지지 못한다
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
@@ -801,7 +822,8 @@ function stepFeed(f,slot,dt){
  f.t+=dt
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
- const total=f.total*(isMerge?0.45:0.62)*(isMerge?mergeEffOf(S.mass):accEff())
+ const bn0=boonNow()
+ const total=f.total*(isMerge?0.45:0.62)*(isMerge?mergeEffOf(S.mass):accEff())*(bn0?bn0.acc:1)
  const add=total*pr-f.given
  if(add>0){S.mass+=add;f.given+=add;S.score+=Math.round(add*13)}
  // 테두리에 붙인 채 뜯어먹는다 — 중심으로 끌어오면 거대 천체가 플레이어를 덮는다(오너 리포트)
@@ -920,6 +942,7 @@ function stepFeed(f,slot,dt){
   o.eaten=true;o.eatT=0.28;o.eatBy=null;o.eatFast=true // 로슈 한계에서 시작해 더 멀다 — 확실히 '한 입에' 삼켜지도록 빠르게
   S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
   S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
+  noteBoon()
   const rel2=f.total/Math.max(1e-6,S.mass-f.given+f.total) // 삼킨 것이 나에 비해 얼마나 컸나
   AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12+Math.round(rel2*26))
   if(rel2>=0.55){ // 자기만 한 천체를 다 삼킨 순간 = 터진다
@@ -1402,7 +1425,8 @@ function update(dt){
   const waiting=bigFood&&S.feeds.length>=feedSlots()&&!feedOf(o)   // 슬롯이 다 찼을 때만 대기
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
-   const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
+   const bnP=boonNow()
+   const pull=mouth*F.pull*(bnP?bnP.pull:1) // 중력 흡입권 — 형태별 × 콤보 단계(원반이 부풀면 영향권이 넓어진다)
    const base=o.r*1.15
    // waiting: 차례를 기다리는 큰 천체는 더 끌어당기지 않는다(아직 강착이 시작되지 않았다)
    if(d>0.01&&d<pull&&!feedOf(o)&&!waiting){
@@ -1474,9 +1498,11 @@ function update(dt){
    // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
    if(bigFood)continue // 큰 천체는 로슈 한계에서 붙잡힌다 — 여기까지 오지 않는다
    S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // 데일리 FRENZY: 콤보창 연장
+   noteBoon()
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
    const isMerge=o.type==='rival'
-   const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1) // 형태별 강착 효율(항성은 복사압·항성풍으로 비효율)
+   const bn=boonNow()
+   const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1) // 형태별 강착 효율 × 콤보 단계
    const gain=o.mass*(isMerge?0.45:0.62)*eff
    S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
@@ -1663,7 +1689,11 @@ function hud(){
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
- cel.style.opacity=active?1:0;if(active){cel.textContent='×'+S.combo;cel.style.transform='scale('+(1+Math.min(S.combo,24)*0.02)+')'}
+ cel.style.opacity=active?1:0
+ if(active){const cb=comboBoon(S.combo)
+  cel.innerHTML='×'+S.combo+(cb?'<span class="cl">'+cb.name+'</span>':'')
+  cel.style.transform='translateX(-50%) scale('+(1+Math.min(S.combo,24)*0.02)+')'   // 중앙 정렬을 유지한 채 커진다
+  cel.style.color=cb?cb.col:'#ffcf4a'}
  if(onbT&&performance.now()>onbT)hideOnboard()
  pumpMsg(performance.now())
  const su=$('surge');su.classList.toggle('on',S.alive)
@@ -2071,7 +2101,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
  NO_SPAWN=false;FORCE_UI=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
- S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.boonAt=0;S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()

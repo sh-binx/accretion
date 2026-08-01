@@ -81,6 +81,24 @@ try {
   ok('begin() clears features', reg.f===0)
   ok('regression: growth intact', reg.grew===true)
 
+  // 콤보 단계 — 연속 포식이 강착률을 끌어올린다(초에딩턴 → 원반 플레어 → 블레이자)
+  {
+    const r = await page.evaluate(()=>{
+      const A=window.__acc
+      A.begin();A.hideOnboard();A.setSpawn(false);A.setMass(60000);A.step(0.3);A.clearField()
+      const c=A.pos(),hr=A.jetProbe().hr
+      const seen={}
+      for(let i=0;i<26;i++){
+        A.spawn('planet',60000*0.05,c.x+hr*0.4,c.z);A.step(0.06)
+        const cb=A.state.combo
+        if(cb===5||cb===10||cb===20)seen[cb]={slots:A.feedSlots()}}
+      A.setSpawn(true)
+      return seen})
+    ok('콤보 5 도달(SUPER-EDDINGTON)', !!r[5], JSON.stringify(r[5]||null))
+    ok('콤보 10 도달(DISK FLARE)', !!r[10], JSON.stringify(r[10]||null))
+    ok('콤보 20에서 흐름 슬롯이 늘어난다(BLAZAR)', !!r[20]&&r[20].slots>=4, JSON.stringify(r[20]||null))
+  }
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
