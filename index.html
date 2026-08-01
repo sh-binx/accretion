@@ -65,7 +65,9 @@
  body.touch #mute{left:14px;right:auto;top:auto;bottom:14px} /* 능력 클러스터(우하단)와 충돌 — 반대편으로 */
  body.touch .credit{display:none} /* 좌하단은 음소거 자리. 폰에서 버전 표기는 불필요 */
  #mute:hover{opacity:1}
- #codex{position:fixed;left:50%;bottom:78px;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
+ /* 코덱스와 배너는 우선순위 큐가 '동시에 하나만' 띄운다 → 같은 자리를 써도 안전하다.
+    하단은 질량바·게이지·능력·음소거가 쓰는 좁은 구역이라, 겹침의 근원을 자리 분리로 없앤다. */
+ #codex{position:fixed;left:50%;top:max(23%,128px);bottom:auto;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
  #codex.on{opacity:1;transform:translate(-50%,0)}
  #codex b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;color:#8fd0ff;margin-bottom:3px}
  #codex span{font-size:12.5px;color:#c4cfe8}
@@ -119,7 +121,11 @@
  body.touch #surge .track{width:104px}
  body.touch #surge .lab{display:none} /* 세로 바+버튼이 상태를 말한다. 우하단은 음소거 버튼 자리 */
  /* 코덱스 문구는 오른쪽 클러스터를 피해 왼쪽으로 */
- body.touch #codex{left:52px;right:auto;transform:none;max-width:min(56vw,400px);bottom:14px;text-align:left} /* 좌하단 구석은 음소거 몫 — 비켜 앉는다 */
+ /* 터치에서도 상단 메시지 띠를 쓴다. 예전엔 좌하단이었는데 거기는 질량바·게이지·음소거가 쓰는 구역이라
+    코덱스가 뜰 때마다 겹쳤다(실측 codex⨯feedlbl 172×10 · drain⨯codex 242×12). */
+ body.touch #codex{left:50%;right:auto;transform:translate(-50%,14px);max-width:min(74vw,430px);
+  top:max(23%,128px);bottom:auto;text-align:center}
+ body.touch #codex.on{transform:translate(-50%,0)}
  body.touch #feedwrap{left:14px;right:auto;transform:none}
  #surge.ready .fill{background:linear-gradient(90deg,#ffcf4a,#fff0a0);box-shadow:0 0 14px rgba(255,207,74,.6)}
  #surge.ready .lab{color:#ffcf4a;animation:sp 1s ease-in-out infinite}
@@ -202,8 +208,8 @@
  #chips .v.g{color:#7C828A}
  @media(max-height:520px){#start .wm{font-size:clamp(30px,6vw,52px)}#start .keys{display:none}}
 #feedwrap{position:fixed;left:50%;bottom:136px;transform:translateX(-50%);width:210px;opacity:0;transition:opacity .16s;pointer-events:none;z-index:6}
-/* 낮은 가로 화면(568×320 등)에선 안내 배너가 아래로 내려와 DEVOURING 게이지와 겹쳤다(실측 116×19).
-   음소거 버튼(하단 좌측) 위로 내려 간격을 벌린다. */
+/* 코덱스를 상단 배너 자리로 옮긴 뒤로 하단은 질량바·게이지·능력·음소거만 쓴다.
+   낮은 화면에서는 게이지를 음소거 위로만 살짝 올려 배너와의 간격을 확보한다. */
 @media (max-height:430px){#feedwrap{bottom:64px}}
 #feedwrap.on{opacity:1}
 #feedlbl{font:600 10px/1 ui-monospace,monospace;letter-spacing:.22em;color:#8fd0ff;text-align:center;margin-bottom:5px;text-shadow:0 0 8px #1a5f8f}
@@ -239,7 +245,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 4.9</div>
+<div class="credit">ACCRETION · prototype 5.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -454,23 +460,34 @@ const feedStream=(()=>{
  const m=new THREE.Mesh(g,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:0,
   blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  m.visible=false;scene.add(m);return m})()
-const spiralPts=[]
-const spiralMesh=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({vertexColors:true,
- transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
-spiralMesh.visible=false;scene.add(spiralMesh)
-// E안(오너 선택) — 가는 테이퍼 코어가 흐름의 '길'을 그리고 그 위를 잔해 입자가 흘러간다.
-// 관 하나만 두면 굵기가 일정한 막대로 읽혀 뻣뻣하다(오너 지적).
+// ── 흡수 흐름 시각 자원 (슬롯별) ──
+// 초대질량 이상은 조석 흐름이 동시에 여러 갈래 합류한다(실제 강착원반이 그렇게 만들어진다).
+// 그래서 슬롯마다 코어 관 + 잔해 입자 세트를 따로 둔다. 슬롯 수는 티어가 정한다.
+const FEED_SLOTS_MAX=3
 const STREAMN=220
-const streamGeo=new THREE.BufferGeometry()
-streamGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
-streamGeo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
-const streamPts=new THREE.Points(streamGeo,new THREE.PointsMaterial({
- size:1,sizeAttenuation:true,   // 매 프레임 본체 크기에 맞춰 갱신 — 화면 픽셀 고정이면 고질량에서 관이 압도해 예전 모습으로 되돌아간다
- map:GT,                       // 기본 점은 사각형으로 그려진다 — 부드러운 원형 텍스처를 씌운다
- vertexColors:true,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}))
-streamPts.visible=false;scene.add(streamPts)
-const STREAM_SEED=new Float32Array(STREAMN).map(()=>Math.random())
-const STREAM_OFF=new Float32Array(STREAMN).map(()=>Math.random())
+function mkFeedVis(){
+ const spiral=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({vertexColors:true,
+  transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+ spiral.visible=false;scene.add(spiral)
+ const geo=new THREE.BufferGeometry()
+ geo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
+ geo.setAttribute('color',new THREE.BufferAttribute(new Float32Array(STREAMN*3),3))
+ const pts=new THREE.Points(geo,new THREE.PointsMaterial({
+  size:1,sizeAttenuation:true,map:GT,
+  vertexColors:true,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}))
+ pts.visible=false;scene.add(pts)
+ return {spiral,pts,geo,curvePts:[],
+  seed:new Float32Array(STREAMN).map(()=>Math.random()),
+  off:new Float32Array(STREAMN).map(()=>Math.random())}
+}
+const FEEDVIS=[]
+for(let i=0;i<FEED_SLOTS_MAX;i++)FEEDVIS.push(mkFeedVis())
+function hideFeedVis(k){FEEDVIS[k].spiral.visible=false;FEEDVIS[k].pts.visible=false}
+function hideAllFeedVis(){for(let k=0;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)}
+// 슬롯 수 — 블랙홀이 되고 티어가 오를수록 동시에 더 많은 흐름을 감당한다
+function feedSlots(){if(S.formIdx<2)return 1
+ return S.tierIdx>=3?3:(S.tierIdx>=2?2:1)}
+function feedOf(o){for(const f of S.feeds)if(f.o===o)return f;return null}
 let STREAM_STYLE=3  // 나선(오너 선택) — 떨어지는 물질은 각운동량 때문에 곧장 떨어지지 못한다
 let FEED_SHAPE=1  // 흡수 중 늘어남 모양(1=타원체 2=눈물방울 3=실 가닥) — 오너 선택 대기
 let jetFlash=0
@@ -756,14 +773,20 @@ function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)obje
 function startFeed(o,rel){
  const bh=S.formIdx===2
  // 지속 25% 단축(오너 판단: 시간이 걸리는 건 유지하되 대기가 길면 답답하다)
- S.feed={o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0,grow:0}
+ S.feeds.push({o,dur:bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel),t:0,total:o.mass,given:0,grow:0})
  popup(o.g.position,'DEVOURING…','#8fd0ff');codexToast('tde')
 }
-function cancelFeed(){S.feed=null}
+function cancelFeed(){S.feeds.length=0;hideAllFeedVis()}
 function updateFeed(dt){
- const f=S.feed;if(!f)return
+ // 동시에 여러 갈래를 흘려보낸다 — 실제 강착원반도 여러 흐름이 합류해 만들어진다.
+ for(let k=S.feeds.length-1;k>=0;k--)stepFeed(S.feeds[k],k,dt)
+ for(let k=S.feeds.length;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)
+}
+function stepFeed(f,slot,dt){
+ const V=FEEDVIS[slot]
  const o=f.o
- if(o.eaten||objects.indexOf(o)<0){S.feed=null;feedStream.visible=false;spiralMesh.visible=false;streamPts.visible=false;return} // 남이 먹었거나 사라짐
+ const drop=()=>{const i=S.feeds.indexOf(f);if(i>=0)S.feeds.splice(i,1);hideAllFeedVis()}
+ if(o.eaten||objects.indexOf(o)<0){drop();return} // 남이 먹었거나 사라짐
  f.t+=dt
  const pr=Math.min(1,f.t/f.dur)
  const isMerge=o.type==='rival'
@@ -796,6 +819,7 @@ function updateFeed(dt){
  if(deep>0)rem=Math.max(0.05,rem*(1-deep*0.72))
  // 조석력은 1/r³이라 더 깊으면 더 빨리 찢긴다. 단 최대 1.5배로 묶는다 —
  // 무제한이면 램밍만으로 0.2초에 끝나 '큰 천체는 시간이 걸린다'는 약속이 깨진다.
+ f.deep=deep
  if(deep>0)f.t+=dt*deep*0.5
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
  o.g.rotation.y=Math.atan2(-fdz,fdx)
@@ -823,13 +847,13 @@ function updateFeed(dt){
    f.grow=Math.min(1,(f.grow||0)+dt/growDur)
    const gEase=1-Math.pow(1-f.grow,2)               // 처음엔 빠르게 뻗고 끝에서 부드럽게 닿는다
    const u0=1-gEase                                 // u=1이 본체 쪽 — 거기서부터 자란다
-   spiralPts.length=0
+   V.curvePts.length=0
    for(let k=0;k<=22;k++){const u=u0+(1-u0)*(k/22)  // 자란 구간만 그린다
     // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
     const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
-    spiralPts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
-   const curve=new THREE.CatmullRomCurve3(spiralPts)
-   if(spiralMesh.geometry)spiralMesh.geometry.dispose()
+    V.curvePts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
+   const curve=new THREE.CatmullRomCurve3(V.curvePts)
+   if(V.spiral.geometry)V.spiral.geometry.dispose()
    const TSEG=30,RSEG=8
    const tube=new THREE.TubeGeometry(curve,TSEG,rem*(0.032+pr*0.022),RSEG,false)  // 코어는 가늘게 — 길만 그린다
    // TubeGeometry는 끝이 평평하게 잘린다 — 그 단면이 '꺾인 직선'으로 보였다(오너 리포트).
@@ -843,22 +867,22 @@ function updateFeed(dt){
      const k=fz*fz*(3-2*fz)*Math.min(1,(1-t)/0.10)         // 안쪽은 빛에 스며들고, 본체 쪽 끝단만 살짝 정리
      col[i*3]=0.72*k;col[i*3+1]=0.85*k;col[i*3+2]=1.0*k}
     tube.setAttribute('color',new THREE.BufferAttribute(col,3))}
-   spiralMesh.geometry=tube
-   spiralMesh.material.opacity=(0.16+pr*0.14)*gEase   // 조각이 주인공 — 관은 길만 희미하게 암시한다
-   spiralMesh.visible=true;feedStream.visible=false
+   V.spiral.geometry=tube
+   V.spiral.material.opacity=(0.16+pr*0.14)*gEase   // 조각이 주인공 — 관은 길만 희미하게 암시한다
+   V.spiral.visible=true;feedStream.visible=false
    // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
-   {const pa=streamGeo.attributes.position.array,ca=streamGeo.attributes.color.array
+   {const pa=V.geo.attributes.position.array,ca=V.geo.attributes.color.array
     const cap=fxLow?80:STREAMN
     for(let i=0;i<STREAMN;i++){
      if(i>=cap*gEase){pa[i*3+1]=-1e5;continue}              // 저사양 모드 · 아직 자라지 않은 몫은 숨긴다
      // 곡선 매개변수는 0=원반 · 1=본체. 시간이 흐르면 본체(1) → 원반(0)으로 간다.
      // sPar=(1-f)^0.65 로 두면 원반에 가까울수록 빨라지고, 그래서 '성글어진다'
      // (예전엔 제곱을 써서 방향도 반대였고 원반 쪽에 뭉쳐 다시 막대처럼 보였다).
-     const f=(S.t*0.46+STREAM_OFF[i])%1
-     const sPar=Math.pow(1-f,0.65)
+     const ph=(S.t*0.46+V.off[i])%1
+     const sPar=Math.pow(1-ph,0.65)
      const q=curve.getPoint(sPar)
      const spread=rem*0.55*Math.sin(sPar*Math.PI)+rem*0.04     // 넓게 흩어져야 '줄'이 아니라 '조각들'로 읽힌다
-     const a=STREAM_SEED[i]*6.283, rr=Math.sqrt(STREAM_SEED[i])*spread
+     const a=V.seed[i]*6.283, rr=Math.sqrt(V.seed[i])*spread
      pa[i*3]=q.x+Math.cos(a+S.t*3.4)*rr
      pa[i*3+1]=q.y+Math.sin(a*2.3)*rr*0.5
      pa[i*3+2]=q.z+Math.sin(a+S.t*3.4)*rr
@@ -870,12 +894,12 @@ function updateFeed(dt){
      const fz=Math.max(0,Math.min(1,(dq-hr0*2.6)/(hr0*1.6)))
      const fade=fz*fz*(3-2*fz)          // smoothstep — 경계가 드러나지 않게
      const hot=1-sPar                                          // 원반에 가까울수록 뜨겁다
-     const v=fade*(0.55+STREAM_SEED[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
+     const v=fade*(0.55+V.seed[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
      ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
-    streamGeo.attributes.position.needsUpdate=true;streamGeo.attributes.color.needsUpdate=true
-    streamPts.material.size=Math.max(0.04,rem*0.15)   // 잘게 — 크면 서로 겹쳐 '굵은 선' 하나로 뭉친다(오너 리포트)
-    streamPts.material.opacity=(0.55+pr*0.40)*gEase;streamPts.visible=true}
-  } else {spiralMesh.visible=false;streamPts.visible=false}
+    V.geo.attributes.position.needsUpdate=true;V.geo.attributes.color.needsUpdate=true
+    V.pts.material.size=Math.max(0.04,rem*0.15)   // 잘게 — 크면 서로 겹쳐 '굵은 선' 하나로 뭉친다(오너 리포트)
+    V.pts.material.opacity=(0.55+pr*0.40)*gEase;V.pts.visible=true}
+  } else hideFeedVis(slot)
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
     new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
   if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.11
@@ -895,7 +919,7 @@ function updateFeed(dt){
   S.boost=Math.min(0.6,(S.boost||0)+0.24);AU.swallow()
   {const fdx=o.g.position.x-hole.position.x,fdz=o.g.position.z-hole.position.z;noteFeedDir(fdx,fdz)}
   gainPop(hole.position,total);codexToast(o.type)
-  S.feed=null;feedStream.visible=false;spiralMesh.visible=false;streamPts.visible=false
+  drop()
  }
 }
 /* ===== 우주 현상 — 맵에 "가볼 이유"를 만드는 지형지물(전부 실제 천체 현상) ===== */
@@ -1090,7 +1114,7 @@ function checkMassMarks(){
 }
 
 /* ===== state ===== */
-const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0}
+const S={mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:false,combo:0,comboAt:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:-1,evapFloor:0.4,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[]}   // feeds = 동시 조석 흐름 슬롯(초대질량 2 · 퀘이사 이상 3)
 // 블랙홀 도달(질량 12) 이후의 규모 티어 — 진화 아크가 앞단을 담당하므로 임계 상향
 let NO_SPAWN=false   // 검증 전용 스폰 차단(프로덕션 경로는 항상 false)
 const TIERS=[
@@ -1314,13 +1338,13 @@ function update(dt){
  const F=FORMS[S.formIdx]
  // 질량 유출 — 형태마다 이유가 다르다(침식 / 항성풍 / 호킹 복사) = 전부 실제 현상
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1)*F.shrink
- if(!S.feed)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
+ if(!S.feeds.length)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  checkMassMarks()
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
- const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feed?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)) // 흡수 중 감속(완화) · 포식 가속
+ const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)) // 흡수 중 감속(완화) · 포식 가속
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
@@ -1364,13 +1388,13 @@ function update(dt){
   const rocheR=rad(S.mass)*4.6+o.r*1.15   // 밝은 코어(원반+광자링+글로우) 바깥. 2.16hr였을 땐 본체가 글로우에 지워졌다
   // 차례를 기다리는 큰 천체는 밀어내지도, 즉시 삼키지도, 더 끌어당기지도 않는다.
   // 밀어내면 개연성이 없고(오너 지적), 즉시 삼키면 '큰 천체는 시간이 걸린다'는 약속이 깨진다.
-  const waiting=bigFood&&S.feed&&S.feed.o!==o
+  const waiting=bigFood&&S.feeds.length>=feedSlots()&&!feedOf(o)   // 슬롯이 다 찼을 때만 대기
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    const pull=mouth*F.pull // 중력 흡입권 — 형태별(암석 약함 → 블랙홀 강함)
    const base=o.r*1.15
    // waiting: 차례를 기다리는 큰 천체는 더 끌어당기지 않는다(아직 강착이 시작되지 않았다)
-   if(d>0.01&&d<pull&&!(S.feed&&S.feed.o===o)&&!waiting){
+   if(d>0.01&&d<pull&&!feedOf(o)&&!waiting){
     const s=1-d/pull,acc=(22+hr*8)*s*dt // 선형 falloff·강한 당김
     // 흡수 중인 천체는 updateFeed가 위치·형태를 소유한다 — 여기서 끌어당기면 중심으로 빨려들어 플레이어를 덮는다
     o.g.position.x-=(dx/d)*acc;o.g.position.z-=(dz/d)*acc
@@ -1387,7 +1411,7 @@ function update(dt){
        streamPart(o.g.position.x-(dx/d)*o.r*0.5,o.g.position.z-(dz/d)*o.r*0.5,-(dx/d),-(dz/d),0xbfe0ff)}}}
     // ── 조석 늘어남(spaghettification) — 영향권에 들면 즉시 사라지지 않고 '늘어나며' 빨려든다.
     //    실제 조석파괴사건에서 천체는 가느다란 강착 흐름으로 찢겨 나선을 그리며 떨어진다.
-    if(!o.eaten&&!(S.feed&&S.feed.o===o)){ // 흡수 중인 천체는 updateFeed가 형태를 소유한다
+    if(!o.eaten&&!feedOf(o)){ // 흡수 중인 천체는 updateFeed가 형태를 소유한다
      const st=Math.pow(s,1.5) // 가까울수록 급격히 늘어난다(조석력 ∝ 1/r³)
      o.g.rotation.y=Math.atan2(-dz,dx)            // 늘어나는 축 = 블랙홀 방향
      o.g.scale.set(base*(1+st*1.35),base*(1-st*0.34),base*(1-st*0.34))
@@ -1426,7 +1450,7 @@ function update(dt){
   // 본체가 원반·지평선과 겹쳐 있었다(실측: 안쪽 끝 2.65 < 지평선 3.54). 그 상태로 움직이면
   // 천체가 블랙홀과 겹친 채 도는 것처럼 보였다(오너 리포트).
   if(bigFood&&d<rocheR){
-   if(!S.feed){startFeed(o,relNow);continue}
+   if(S.feeds.length<feedSlots()&&!feedOf(o)){startFeed(o,relNow);continue}
    continue}
   if(edible&&d<mouth+o.r*0.75){ // 먹기(반경 여유↑ — 표면 겹치면 포식)
    if(o.nemesis){nemesisConsumed(o);continue} // 네메시스 되먹음 = 클라이맥스(세리머니·다음 등장)
@@ -1614,8 +1638,15 @@ function hud(){
  $('pval').textContent=fmtBig(S.peak)
  const fw=$('feedwrap')
  // FORCE_UI: 감사용. hud()가 매 프레임 .on을 지워 DEVOURING 게이지는 겹침 감사를 한 번도 못 받았다.
- if(S.feed||FORCE_UI){fw.classList.add('on')
-  $('feedfill').style.width=(S.feed?Math.round(Math.min(1,S.feed.t/S.feed.dur)*100):60)+'%'}
+ if(S.feeds.length||FORCE_UI){fw.classList.add('on')
+  const pmax=S.feeds.length?Math.max(...S.feeds.map(f=>Math.min(1,f.t/f.dur))):0.6
+  $('feedfill').style.width=Math.round(pmax*100)+'%'
+  // 동시 흡수 수를 라벨에 — 슬롯이 늘어난 게 보여야 성장이 체감된다
+  // 파고들면 조석력(1/r³)으로 빨라진다 — 규칙이 있어도 안 보이면 없는 것과 같다.
+  const fast=S.feeds.some(f=>f.deep>0.12)
+  $('feedlbl').textContent=(S.feeds.length>1?('DEVOURING ×'+S.feeds.length):'DEVOURING')+(fast?' · CLOSER = FASTER':'')
+  $('feedlbl').style.color=fast?'#ffcf4a':''
+  $('feedfill').style.filter=fast?'brightness(1.5)':''}
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
  const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
@@ -1708,7 +1739,7 @@ function doFlare(){ // 네 번째 능력 — 제트 탈출(퀘이사 티어 전�
   const reach=hr0*(JET_LEN+0.1),wide=hr0*JET_TIP*1.35
   let swept=0
   for(let k=objects.length-1;k>=0;k--){const o=objects[k]
-   if(o.eaten||(S.feed&&S.feed.o===o))continue
+   if(o.eaten||feedOf(o))continue
    const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
    const along=ox*ax+oz*az, perp=Math.abs(ox*az-oz*ax)
    if(Math.abs(along)>reach||perp>wide)continue        // abs → 양쪽 모두
@@ -1751,8 +1782,12 @@ function doWave(){ // 세 번째 능력 — 중력파. 실제로 병합은 시�
  banner('◎ GRAVITATIONAL WAVE','spacetime rings — orbits scatter');codexToast('gwave')
 }
 function doPulse(){ // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
+ // 흡수 중이라면 흐름도 함께 당긴다 — 프레임 드래깅은 원반 안쪽 물질을 실제로 끌어당긴다.
+ // 흡수를 '보는 것'에서 '개입하는 것'으로 바꾸는 장치(오너: 후반이 무료하다).
  if(!S.alive||S.surgeT>0||S.energy<1)return
  S.energy=0;S.invT=Math.max(S.invT,0.4);S.pulseCount=(S.pulseCount||0)+1
+ if(S.feeds.length){for(const f of S.feeds)f.t+=f.dur*0.38   // 진행 중인 모든 흐름을 38% 앞당긴다
+  popup(hole.position,'STREAMS PULLED','#8fd0ff')}
  const hr=rad(S.mass),R=hr*7.5,isBH=S.formIdx===2
  for(const o of objects){ if(o.eaten)continue
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
@@ -2012,7 +2047,7 @@ function hideOnboard(){if(onbT){$('onb').classList.remove('on');document.body.cl
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0})
+ Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
@@ -2023,7 +2058,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  placeCore();S.markIdx=0;S.spinX=0;S.spinZ=0;S.spinTarget=null;S.jetStunSeen=false
  NO_SPAWN=false;FORCE_UI=false;MSGQ.length=0;msgUntil=0;msgPri=0   // 새 판은 항상 스폰 켜짐·메시지 비움(검증용 플래그가 다음 판까지 남던 누수 수리)
  gainEl=null;gainSum=0;gainT=0;gainSlot=-1
- S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feed=null;S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
+ S.hintIdx=0;S.grazeChain=0;S.grazeMax=0;S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
@@ -2109,7 +2144,7 @@ if(DEV){window.__acc={
  _hide:(g,r)=>{let n=0;scene.traverse(o=>{if(o.geometry&&o.geometry.type===g){const b=o.geometry.boundingSphere;
   if(r==null||(b&&Math.abs(b.radius-r)<1)){o.visible=false;n++}}});return n},
  clearField:()=>{for(const o of objects)if(o.g&&o.g.parent)o.g.parent.remove(o.g)
-  objects.length=0;S.feed=null
+  objects.length=0;S.feeds=[];hideAllFeedVis()
   for(const f of feats)if(f.g&&f.g.parent)f.g.parent.remove(f.g)
   feats.length=0   // 성운은 안에 있으면 질량이 차오른다 — 지형까지 치워야 순수 손실이 보인다
   return 0},   // 검증용 — 먹이·지형 유입을 끊고 질량 손실만 격리해 측정한다
@@ -2157,20 +2192,20 @@ if(DEV){window.__acc={
  pickPortal:(h,q)=>pickPortal(h,q),
  testAd:cb=>PORTAL.midgameAd(cb),testRewarded:(r,d)=>PORTAL.rewardedAd(r,d),setFxLow:v=>{fxLow=!!v},
  setInv:v=>{S.invT=v},
- maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feed?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)),
+ maxSpeed:()=>(16+rad(S.mass)*5)*FORMS[S.formIdx].spd*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0)),
  boost:()=>S.boost||0,
  dominance:()=>objects.filter(o=>!o.eaten&&o.type!=='rival').map(o=>({m:+o.mass.toFixed(2),
   mine:+(S.mass/Math.max(1,o.g.position.distanceToSquared(hole.position))).toFixed(4),rival:+(o.domR||0).toFixed(4)})),
  doWave:()=>doWave(),waveCount:()=>S.waveCount||0,
  doFlare:()=>doFlare(),flareCount:()=>S.flareCount||0,jetFire:()=>+(S.jetFire||0).toFixed(2),
  sweptLast:()=>S.sweptLast||0,
- streamGrow:()=>{if(!S.feed)return null
-  const a=spiralPts
+ streamGrow:()=>{if(!S.feeds.length)return null
+  const a=FEEDVIS[0].curvePts
   let L=0;for(let i=1;i<a.length;i++)L+=a[i].distanceTo(a[i-1])
-  return {grow:+(S.feed.grow||0).toFixed(2),len:+L.toFixed(1),pts:a.length,vis:streamPts.visible}},
+  return {grow:+(S.feeds[0].grow||0).toFixed(2),len:+L.toFixed(1),pts:a.length,vis:FEEDVIS[0].pts.visible}},
  tagPos:()=>{const o=window.__accTag;if(!o||o.eaten)return null
   return {x:+o.g.position.x.toFixed(2),z:+o.g.position.z.toFixed(2),
-   hx:+hole.position.x.toFixed(2),hz:+hole.position.z.toFixed(2),feed:!!(S.feed&&S.feed.o===o)}},
+   hx:+hole.position.x.toFixed(2),hz:+hole.position.z.toFixed(2),feed:!!feedOf(o)}},
  jetProbe:()=>{const hr0=rad(S.mass)
   const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
   return {ang:+jets.rotation.y.toFixed(2),ax:+ax.toFixed(2),az:+az.toFixed(2),
@@ -2181,23 +2216,28 @@ if(DEV){window.__acc={
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
  gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
- setStreamStyle:v=>{STREAM_STYLE=v},streamOn:()=>feedStream.visible||spiralMesh.visible,streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
+ setStreamStyle:v=>{STREAM_STYLE=v},streamOn:()=>FEEDVIS.some(v=>v.spiral.visible),streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
  hideOnboard:()=>hideOnboard(),
  msgQueue:()=>({len:MSGQ.length,pri:msgPri,showing:$('banner').style.opacity==='1'?'banner':($('codex').classList.contains('on')?'codex':null)}),
- forceUI:()=>{ // UI 감사용 — 모든 메시지 채널을 동시에 띄운 '최악의 경우'. hud()가 매 프레임 되돌리므로 타이머를 미래로 민다.
+ // UI 감사용. 배너와 코덱스는 우선순위 큐가 '동시에 하나만' 띄우므로(회귀로 고정) 같은 자리를 쓴다.
+ // 따라서 감사도 둘을 동시에 띄우면 안 된다 — 현실에 없는 조건이 된다. mode로 나눈다: 'b'=배너 · 'c'=코덱스
+ forceUI:(mode)=>{
   FORCE_UI=true
   msgUntil=performance.now()+20000;msgPri=9;banT=msgUntil;codexT=msgUntil
-  $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo';$('banner').style.opacity=1
-  $('codex').classList.add('on');$('feedwrap').classList.add('on')
+  const showC=mode==='c'
+  $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo'
+  $('banner').style.opacity=showC?0:1
+  $('codex').classList.toggle('on',showC);$('feedwrap').classList.add('on')
   $('actFlare').style.display=''   // 퀘이사 4번째 버튼까지 감사 대상에 — 숨은 상태만 재던 사각지대
   S.combo=42;S.comboAt=performance.now()+20000
   return true},
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
- feedObj:()=>{if(!S.feed)return null;const o=S.feed.o
+ feedObj:()=>{if(!S.feeds.length)return null;const o=S.feeds[0].o
   return {sx:+o.g.scale.x.toFixed(2),sy:+o.g.scale.y.toFixed(2),base:+(o.r*1.15).toFixed(2),
    dist:+o.g.position.distanceTo(hole.position).toFixed(2),hr:+rad(S.mass).toFixed(2)}},
- feedState:()=>S.feed?{t:Math.round(S.feed.t*100)/100,dur:Math.round(S.feed.dur*100)/100,given:Math.round(S.feed.given*10)/10}:null,
+ feedState:()=>S.feeds.length?{t:Math.round(S.feeds[0].t*100)/100,dur:Math.round(S.feeds[0].dur*100)/100,given:Math.round(S.feeds[0].given*10)/10,n:S.feeds.length}:null,
+ feedSlots:()=>feedSlots(),feedCount:()=>S.feeds.length,
  tidalState:()=>({inZone:(S.tidalT||0)>0,depth:Math.round((S.tidalDepth||0)*100)/100}),tiers:()=>TIERS.map(t=>t.n),
  setJetAngle:a=>{jets.rotation.y=a},
  jetSpec:()=>({len:JET_LEN,tip:JET_TIP,ang:jets.rotation.y,n:jets.children.length,

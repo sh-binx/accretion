@@ -8,25 +8,32 @@ const b = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader
 const VPS=[[1440,810,false],[1280,720,false],[852,393,true],[740,360,true],[393,852,true],[1024,1366,true]]
 const results=[]
 let total=0
-for(const [w,h,touch] of VPS){
+for(const [w,h,touch] of VPS)
+for(const MODE of ['b','c']){   // 배너 모드 · 코덱스 모드 — 큐가 둘의 동시 표시를 막으므로 따로 잰다
   const p=await b.newPage({viewport:{width:w,height:h},isMobile:touch,hasTouch:touch})
   await p.goto('http://localhost:3040/?dev=1',{waitUntil:'networkidle'})
   await new Promise(r=>setTimeout(r,2200))
-  const res=await p.evaluate(()=>{
+  const res=await p.evaluate((MODE)=>{
     const A=window.__acc
     A.begin();A.setMass(3000);A.hideOnboard&&A.hideOnboard()
     const c=document.getElementById('codex')
     c.innerHTML='<div class="ct">◆ CODEX 20/33 · COMET</div><div class="cf">The tail always points away from the star, not backwards along its path — solar wind blows it outward.</div>'
-    A.forceUI()
+    A.forceUI(MODE)
     // 레이아웃·트랜지션이 부하에서 늦게 정착해 한 번 거짓 겹침이 났다 — 여유를 둔다
     return new Promise(res=>setTimeout(()=>res(measure()),1300))
     function measure(){
     // '그리는' 요소 전부: 글자 / 배경 / 테두리 / 그림자
-    const paints=[...document.querySelectorAll('body *')].filter(e=>{
+    // 회전 안내는 전체 화면 모달이다 — 떠 있으면 뒤 요소는 보이지 않으므로 모달 안만 잰다
+    const rot=document.getElementById('rotate')
+    const modal=rot&&rot.classList.contains('on')?rot:document.body
+    const paints=[...modal.querySelectorAll('*')].filter(e=>{
       const st=getComputedStyle(e)
       if(st.display==='none'||st.visibility==='hidden'||parseFloat(st.opacity)<0.06)return false
       for(let a=e.parentElement;a;a=a.parentElement){const s2=getComputedStyle(a)
         if(s2.display==='none'||s2.visibility==='hidden'||parseFloat(s2.opacity)<0.06)return false}
+      // 획득 팝업(.pop)은 먹은 천체의 화면 좌표에 뜨는 0.6초짜리다 — 어디든 스칠 수 있어
+      // '겹치면 안 되는 UI'로 볼 수 없다. 대상에서 뺀다(감사가 무작위로 흔들리던 원인).
+      if(e.classList&&e.classList.contains('pop'))return false
       const r=e.getBoundingClientRect()
       if(r.width<3||r.height<3)return false
       if(r.width>=innerWidth*0.9&&r.height>=innerHeight*0.9)return false
@@ -49,9 +56,9 @@ for(const [w,h,touch] of VPS){
       const st=getComputedStyle(e); return st.display!=='none'&&parseFloat(st.opacity)>=0.06})
     const outside=info.filter(x=>x.r.left<-1||x.r.top<-1||x.r.right>innerWidth+1||x.r.bottom>innerHeight+1).map(x=>x.k)
     return {n:info.length,ov,chans,outside:[...new Set(outside)]}}
-  })
+  },MODE)
   total+=res.ov.length; results.push(res.ov.length===0)
-  console.log(`${w}x${h}${touch?' touch':''}  요소 ${res.n} · 겹침 ${res.ov.length} · 동시 메시지 ${res.chans.length} [${res.chans.join(' ')}]`)
+  console.log(`${w}x${h}${touch?' touch':''} [${MODE==='c'?'코덱스':'배너'}]  요소 ${res.n} · 겹침 ${res.ov.length} · 동시 메시지 ${res.chans.length} [${res.chans.join(' ')}]`)
   res.ov.slice(0,5).forEach(x=>console.log('    ',x))
   if(res.outside.length)console.log('     화면 밖:',res.outside.join(','))
   await p.close()
