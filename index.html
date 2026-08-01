@@ -245,7 +245,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.0</div>
+<div class="credit">ACCRETION · prototype 5.0.1</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -680,21 +680,32 @@ function mkVisual(type,mass){
  else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
   for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
  // ── 티어별 주민 — 실루엣을 갈라야 색이 비슷해도 구분된다(오너: "천체가 뻔하다") ──
- else if(type==='comet'){ // 혜성 — 핵은 작고 꼬리가 길다. 복사압·항성풍에 밀려 광원 '반대쪽'을 향한다.
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.45,12,9),new THREE.MeshStandardMaterial({color:0xdff0ff,roughness:.6,emissive:0x8fd0ff,emissiveIntensity:.5})))
-  // 뾰족한 끝을 핵에 두고 바깥으로 벌어지게(실제 꼬리는 멀어질수록 퍼진다). 축은 +X — 런타임에 rotation.y로 겨눈다.
-  const tg=new THREE.ConeGeometry(0.74,4.8,14,10,true);tg.translate(0,-2.1,0);tg.rotateZ(Math.PI/2) // 세로 10단 — 1단이면 색이 선형으로만 섞여 끝이 잘린 듯 보인다
-  // 끝으로 갈수록 검게 칠한다 — 가산 혼합에서 검정은 '보이지 않음'이라 딱딱한 끝단 없이 흩어진다.
-  // (단색 원뿔은 회색 깔때기처럼 보였다.)
-  {const pos=tg.attributes.position,col=new Float32Array(pos.count*3)
+ else if(type==='comet'){ // 혜성 — 핵 + 코마 + 두 갈래 꼬리. 복사압·항성풍에 밀려 광원 '반대쪽'을 향한다.
+  // 예전엔 맨 구체 + 경계가 뚜렷한 원뿔 하나여서 '탐조등'처럼 읽혔다(오너: "플래시 같은 게 뭐냐").
+  // 혜성의 인상을 만드는 건 ① 핵을 감싼 흐릿한 코마 ② 넓고 흐리게 퍼지는 꼬리 — 둘 다 넣는다.
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.36,12,9),new THREE.MeshStandardMaterial({
+    color:0xdff0ff,roughness:.6,emissive:0x8fd0ff,emissiveIntensity:.5})))
+  g.add(glow(0xbfe4ff,2.7,0.40))   // 코마 — 승화한 가스가 핵을 감싼 구름. 혜성의 가장 확실한 표식.
+  // 꼬리 두 갈래(실제 혜성의 특징): 이온 꼬리는 곧고 청백, 먼지 꼬리는 넓고 흐리며 살짝 뒤처진다.
+  const mkTail=(rad0,len,tilt,op,c)=>{
+   const tg=new THREE.ConeGeometry(rad0,len,16,12,true)
+   tg.translate(0,-len*0.44,0);tg.rotateZ(Math.PI/2)
+   const pos=tg.attributes.position,col=new Float32Array(pos.count*3)
    let mn=1e9,mx=-1e9
-   for(let i=0;i<pos.count;i++){const x=pos.getX(i);if(x<mn)mn=x;if(x>mx)mx=x}
-   for(let i=0;i<pos.count;i++){const t=(pos.getX(i)-mn)/Math.max(1e-6,mx-mn),k=Math.pow(1-t,2.4)
-    col[i*3]=0.60*k;col[i*3+1]=0.84*k;col[i*3+2]=1.0*k}
-   tg.setAttribute('color',new THREE.BufferAttribute(col,3))}
-  const tm=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:.55,
-    blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
-  g.add(tm);g.userData.tail=tm}
+   for(let k=0;k<pos.count;k++){const x=pos.getX(k);if(x<mn)mn=x;if(x>mx)mx=x}
+   for(let k=0;k<pos.count;k++){
+    const t=(pos.getX(k)-mn)/Math.max(1e-6,mx-mn)
+    // 길이 방향으로도, 옆으로도 흐려진다 — 옆면이 선명하면 원뿔(탐조등)로 보인다
+    const side=Math.min(1,Math.hypot(pos.getY(k),pos.getZ(k))/(rad0*(0.25+t*0.9)+1e-6))
+    const kk=Math.pow(1-t,2.2)*(1-side*0.55)
+    col[k*3]=c[0]*kk;col[k*3+1]=c[1]*kk;col[k*3+2]=c[2]*kk}
+   tg.setAttribute('color',new THREE.BufferAttribute(col,3))
+   const m=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({vertexColors:true,transparent:true,opacity:op,
+     blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+   m.userData.tilt=tilt;return m}
+  const ion =mkTail(0.42,5.4,0,    0.30,[0.62,0.85,1.0])   // 이온 — 좁고 곧다
+  const dust=mkTail(1.25,4.0,0.30, 0.16,[1.0,0.92,0.78])   // 먼지 — 넓고 흐리며 뒤처진다
+  g.add(ion);g.add(dust);g.userData.tails=[ion,dust]}
  else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
   // 위도별 제트기류 띠 + 대적점 — 실제 가스 거인의 얼굴
   const tx=texOf('gas')
@@ -1434,12 +1445,14 @@ function update(dt){
   // 혜성 꼬리는 광원 '반대쪽'을 향한다(복사압·항성풍). 여기서 가장 밝은 광원은 내 강착원반이다.
   // 예전엔 겨누는 코드가 아예 없어(userData.tail을 저장만 하고 쓰지 않았다) 아무 방향으로나 뻗은 채
   // 핵과 같이 돌았고, 그래서 방향을 가리키는 '화살표'처럼 보였다(오너 리포트).
-  {const tl=o.g.userData.tail
-   if(tl&&d>0.01){
-    tl.rotation.y=Math.atan2(-dz/d,dx/d)-o.g.rotation.y   // 핵의 자전을 상쇄하고 월드 기준으로 세운다
+  {const tls=o.g.userData.tails
+   if(tls&&d>0.01){
+    const base=Math.atan2(-dz/d,dx/d)-o.g.rotation.y      // 핵의 자전을 상쇄하고 월드 기준으로 세운다
     const near=Math.max(0,Math.min(1,1-d/((22+hr*7)*1.1))) // 가까울수록 승화가 활발 → 길고 밝다
-    tl.scale.setScalar(0.55+near*0.9)
-    tl.material.opacity=0.34+near*0.42}}
+    for(const tl of tls){
+     tl.rotation.y=base+(tl.userData.tilt||0)             // 먼지 꼬리는 살짝 뒤처진다(실제 혜성)
+     tl.scale.setScalar(0.55+near*0.9)
+     tl.material.opacity=(tl.userData.tilt?0.10:0.20)+near*(tl.userData.tilt?0.14:0.26)}}}
   if(o.nmCd>0)o.nmCd-=dt
   if(o.jetStun>0){o.jetStun-=dt
    const rd0=o.g.userData.rdisk;if(rd0)rd0.material.opacity=0.16+Math.sin(S.t*14)*0.06 // 원반이 흩어진 상태
@@ -2129,8 +2142,8 @@ if(DEV){window.__acc={
  setSpawn:v=>{NO_SPAWN=!v},
  eatenGeo:()=>objects.filter(o=>o.eaten).map(o=>({d:+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(2),s:+o.g.scale.x.toFixed(2)})),
  objDists:()=>objects.filter(o=>!o.eaten).map(o=>+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(1)),
- cometTails:()=>objects.filter(o=>o.type==='comet'&&!o.eaten&&o.g.userData.tail).map(o=>{
-  const tl=o.g.userData.tail
+ cometTails:()=>objects.filter(o=>o.type==='comet'&&!o.eaten&&o.g.userData.tails).map(o=>{
+  const tl=o.g.userData.tails[0]   // 이온 꼬리(곧은 쪽)로 방향을 잰다 — 먼지 꼬리는 의도적으로 뒤처진다
   const v=new THREE.Vector3(1,0,0).applyQuaternion(tl.getWorldQuaternion(new THREE.Quaternion())) // 꼬리가 실제로 향하는 월드 방향
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
   return {err:+Math.hypot(v.x-dx/d,v.z-dz/d).toFixed(3)}}),  // 0에 가까울수록 '나로부터 바깥' 정렬
