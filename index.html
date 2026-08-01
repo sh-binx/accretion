@@ -50,31 +50,31 @@
  .btn{margin-top:22px;pointer-events:auto;cursor:pointer;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:15px;letter-spacing:1px;color:#03040a;background:#8fd0ff;border:0;border-radius:10px;padding:12px 26px;box-shadow:0 0 26px rgba(53,180,255,.5)}
  .btn:hover{background:#b6e2ff}
  .stat{font-size:13px;color:#93a0c4;margin-top:14px}.stat b{color:#fff}
- #banner{position:fixed;top:max(23%,128px);left:50%;transform:translateX(-50%);width:min(560px,62vw);z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
+ #banner{position:fixed;top:max(24%,166px);left:50%;transform:translateX(-50%);width:min(560px,62vw);z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
  #banner .b{display:inline-block;font-size:22px;font-weight:800;letter-spacing:3px;color:#ffcf4a;text-shadow:0 0 24px rgba(255,207,74,.6)}
  #banner .s{font-size:12px;color:#c4cfe8;letter-spacing:1px;margin-top:4px}
  #vig{position:fixed;inset:0;z-index:4;pointer-events:none;box-shadow:inset 0 0 200px 40px rgba(255,60,80,0);transition:box-shadow .12s}
  .pop{position:fixed;z-index:5;pointer-events:none;font-weight:800;font-size:14px;color:#7bed4a;text-shadow:0 0 8px rgba(0,0,0,.8);transform:translate(-50%,-50%)}
- #apex{position:fixed;top:44px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:800;letter-spacing:1.5px;padding:4px 13px;border-radius:8px;opacity:0;transition:opacity .2s;white-space:nowrap}
+ #apex{position:fixed;top:136px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;font-family:ui-monospace,Menlo,monospace;font-size:12px;font-weight:800;letter-spacing:1.5px;padding:4px 13px;border-radius:8px;opacity:0;transition:opacity .2s;white-space:nowrap}
  #apex.on{opacity:1}
  #apex.hunt{color:#ff6a7a;background:rgba(255,60,80,.14);border:1px solid rgba(255,80,100,.42);text-shadow:0 0 10px rgba(255,60,80,.6);animation:sp 1.1s ease-in-out infinite}
  #apex.vuln{color:#8fffb0;background:rgba(80,255,140,.12);border:1px solid rgba(100,255,150,.42);text-shadow:0 0 10px rgba(80,255,140,.5)}
  /* 콤보 = 질량바 바로 아래(상단 HUD 열). 중앙은 배너·팝업·블랙홀이 이미 쓰고 있어 겹쳤다 */
  /* 콤보는 '지금 잘하고 있다'는 즉시 피드백이라 시선이 머무는 곳에 있어야 한다.
     우측 상단은 점수·시간 옆이라 눈에 안 들어왔다(오너 지적) → 화면 중앙 하단, 능력바 바로 위로. */
- #combo{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) scale(1);z-index:6;pointer-events:none;
+ #combo{position:fixed;left:50%;top:50px;bottom:auto;transform:translateX(-50%) scale(1);z-index:6;pointer-events:none;
   text-align:center;font-family:'Martian Mono',ui-monospace,monospace;font-weight:800;
-  font-size:clamp(26px,3.4vw,44px);letter-spacing:.04em;color:#ffcf4a;
+  font-size:clamp(26px,3.4vw,44px);line-height:1;letter-spacing:.04em;color:#ffcf4a;
   text-shadow:0 0 24px rgba(255,207,74,.75),0 0 6px rgba(255,207,74,.9);opacity:0;
-  transform-origin:50% 100%;transition:opacity .12s;white-space:nowrap}
- #combo .cl{display:block;font-size:11px;font-weight:700;letter-spacing:2px;color:#ffe6a8;opacity:.9;margin-top:2px}
+  transform-origin:50% 0;transition:opacity .12s;white-space:nowrap}
+ #combo .cl{display:block;font-size:11px;line-height:1.15;font-weight:700;letter-spacing:2px;color:#ffe6a8;opacity:.9;margin-top:4px}
  #mute{position:fixed;right:16px;bottom:12px;z-index:7;font-size:20px;cursor:pointer;opacity:.6;pointer-events:auto;user-select:none}
  body.touch #mute{left:14px;right:auto;top:auto;bottom:14px} /* 능력 클러스터(우하단)와 충돌 — 반대편으로 */
  body.touch .credit{display:none} /* 좌하단은 음소거 자리. 폰에서 버전 표기는 불필요 */
  #mute:hover{opacity:1}
  /* 코덱스와 배너는 우선순위 큐가 '동시에 하나만' 띄운다 → 같은 자리를 써도 안전하다.
     하단은 질량바·게이지·능력·음소거가 쓰는 좁은 구역이라, 겹침의 근원을 자리 분리로 없앤다. */
- #codex{position:fixed;left:50%;top:max(23%,128px);bottom:auto;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
+ #codex{position:fixed;left:50%;top:max(24%,166px);bottom:auto;z-index:6;transform:translate(-50%,14px);pointer-events:none;max-width:min(440px,86vw);background:linear-gradient(180deg,rgba(20,30,58,.9),rgba(10,16,32,.9));border:1px solid rgba(120,150,220,.28);border-radius:12px;padding:11px 16px;opacity:0;transition:opacity .25s,transform .25s;text-align:center}
  #codex.on{opacity:1;transform:translate(-50%,0)}
  #codex b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;color:#8fd0ff;margin-bottom:3px}
  #codex span{font-size:12.5px;color:#c4cfe8}
@@ -227,15 +227,30 @@ body:not(.playing) #feedwrap{opacity:0!important}
 #choice{position:fixed;inset:0;z-index:22;display:none;flex-direction:column;align-items:center;justify-content:center;
  background:radial-gradient(ellipse 70% 60% at 50% 48%,rgba(10,14,30,.86),rgba(3,4,10,.94));backdrop-filter:blur(3px);padding:18px}
 #choice.on{display:flex}
+@media (max-height:430px){#choice{padding:10px}#choice .cs{margin-bottom:11px}#choice .cc{padding:11px 13px 13px}
+ #choice .csum{font-size:11.5px;margin-bottom:8px;min-height:34px}#choice .cwhy{font-size:9.8px;line-height:1.45;padding-top:7px;margin-top:8px}}
 #choice .ct{font-family:ui-monospace,Menlo,monospace;font-size:12px;letter-spacing:4px;color:#8fd0ff;margin-bottom:6px}
 #choice .cs{font-size:12px;color:#7c88ad;margin-bottom:20px;letter-spacing:1px}
-#choice .cw{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:960px}
-#choice .cc{width:min(280px,86vw);background:rgba(10,14,26,.92);border:1px solid rgba(120,150,220,.3);border-radius:12px;
+#choice .cw{display:flex;gap:12px;flex-wrap:nowrap;justify-content:center;width:100%;max-width:960px}
+#choice .cc{flex:1 1 0;min-width:0;max-width:300px;background:rgba(10,14,26,.92);border:1px solid rgba(120,150,220,.3);border-radius:12px;
  padding:16px 18px 18px;cursor:pointer;pointer-events:auto;text-align:left;transition:border-color .15s,transform .15s}
 #choice .cc:hover{border-color:rgba(143,208,255,.75);transform:translateY(-2px)}
-#choice .cn{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:800;letter-spacing:1.5px;color:#ffcf4a;margin-bottom:5px}
-#choice .cd{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9fd0ff;margin-bottom:9px}
-#choice .cwhy{font-size:11.5px;line-height:1.6;color:#8b97b5}
+#choice .cn{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;font-weight:800;letter-spacing:1.5px;color:#ffcf4a;margin-bottom:7px;display:flex;align-items:center}
+#choice .cic{display:inline-flex;width:24px;height:24px;margin-right:9px;color:#8fd0ff;flex:0 0 auto}
+#choice .cic svg{width:100%;height:100%}
+#choice .csum{font-size:12.5px;line-height:1.5;color:#e8edff;font-weight:600;margin:0 0 11px;min-height:38px}
+#choice .cfr{display:grid;grid-template-columns:62px 1fr 42px;align-items:center;gap:7px;margin-bottom:5px;
+ font-family:ui-monospace,Menlo,monospace;font-size:9.5px;letter-spacing:.9px}
+#choice .cfk{color:#8b97b5}
+#choice .cfb{position:relative;height:6px;border-radius:3px;background:rgba(120,150,220,.15);overflow:hidden}
+#choice .cfb::before{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(190,210,255,.4)}
+#choice .cfb i{position:absolute;top:0;bottom:0}
+#choice .cfb i.up{left:50%;border-radius:0 3px 3px 0;background:linear-gradient(90deg,#7bed4a,#b8f78e)}
+#choice .cfb i.dn{right:50%;border-radius:3px 0 0 3px;background:linear-gradient(270deg,#ff9a5a,#ffc9a4)}
+#choice .cfv{text-align:right;font-weight:800}
+#choice .cfv.up{color:#7bed4a}
+#choice .cfv.dn{color:#ff9a5a}
+#choice .cwhy{font-size:10.5px;line-height:1.55;color:#78849f;border-top:1px solid rgba(120,150,220,.17);padding-top:9px;margin-top:11px}
 #choice .ck{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:10px;color:#0a0d18;background:#8fd0ff;
  border-radius:3px;padding:1px 6px;font-weight:800;margin-right:7px}
 #onb{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:8;pointer-events:none;
@@ -251,7 +266,8 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 #onb .ob-h{font-family:'Martian Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.26em;color:#FFCDB6;margin-top:20px;text-transform:uppercase;
  animation:obPulse 1.5s ease-in-out infinite}
 @keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
- @media (max-height:430px){#combo{bottom:92px;font-size:clamp(22px,3vw,32px)}} /* 낮은 화면: 능력바와 간격 확보 */
+ @media (max-height:430px){#combo{top:46px;font-size:clamp(22px,3vw,32px)}#apex{top:104px}
+ #banner,#codex{top:134px}} /* 낮은 화면: 상단 밴드를 조인다 — 질량바 14~44 · 콤보 46~100 · APEX 104~128 · 배너 134~ */
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -268,7 +284,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.2</div>
+<div class="credit">ACCRETION · prototype 5.3</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -515,25 +531,52 @@ function hideAllFeedVis(){for(let k=0;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)}
 // ── 진화 선택 — 티어를 올릴 때마다 3택 1. 전부 실재하는 현상이고 전부 트레이드오프가 있다.
 // 매 런 다른 조합이 나오는 것이 '다시 하는 이유'다.
 const EVO_BOONS=[
- {id:'spin', n:'RAPID SPIN',       d:'accretion +18% · reach −8%',
+ // 효과는 전부 실재하는 강착 물리의 맞교환이다. fx = 카드에 그리는 지표(부호 = 이득/손해).
+ {id:'spin', n:'RAPID SPIN', ico:'spin',
+  sum:'한 입이 빨라진다 — 대신 닿는 거리가 준다',
+  fx:[['SWALLOW',18],['REACH',-8]],
   w:'최대 회전 커 블랙홀은 최내안정궤도가 안쪽으로 내려가 강착 효율이 6%→42%까지 오른다. 대신 지평선은 작아진다.',
   acc:1.18,pull:0.92},
- {id:'thick',n:'THICK DISK',       d:'reach +15% · speed −8%',
+ {id:'thick',n:'THICK DISK', ico:'thick',
+  sum:'멀리서도 끌어당긴다 — 대신 몸이 둔해진다',
+  fx:[['REACH',15],['MOVE',-8]],
   w:'강착률이 높으면 원반이 복사압으로 부풀어 두꺼워진다(slim disk). 영향권은 넓어지고 몸은 둔해진다.',
   pull:1.15,spd:0.92},
- {id:'jet',  n:'RELATIVISTIC JETS',d:'jet flare +35% · accretion −8%',
+ {id:'jet',  n:'RELATIVISTIC JETS', ico:'jet',
+  sum:'제트가 더 멀리·세게 쓸어낸다 — 삼키는 속도는 준다',
+  fx:[['JET',35],['SWALLOW',-8]],
   w:'제트로 빠져나간 에너지는 원반을 덜 밝힌다 — 실제로 제트가 강한 천체는 강착 광도가 낮다.',
   flare:1.35,acc:0.92},
- {id:'cold', n:'COLD FLOW',        d:'devour time −22%',
-  w:'차가운 가스는 복사로 열을 빨리 잃어 각운동량을 버리고 더 빨리 떨어진다(cold accretion).',
-  fdur:0.78},
- {id:'mad',  n:'MAGNETIC ARREST',  d:'combo window +60%',
-  w:'자기장이 강착 흐름을 붙잡아 두는 MAD 상태 — 흐름이 끊기지 않고 이어진다.',
-  cwin:1.6},
- {id:'wide', n:'WIDE HORIZON',     d:'reach +14% · accretion −5%',
+ {id:'cold', n:'COLD FLOW', ico:'cold',
+  sum:'큰 천체를 훨씬 빨리 비운다 — 흐름이 가늘어 손은 짧다',
+  fx:[['DEVOUR',28],['REACH',-6]],
+  w:'차가운 가스는 데워질 필요 없이 곧장 떨어진다(cold accretion). 다만 그 흐름은 넓은 헤일로가 아니라 가는 필라멘트로 온다.',
+  fdur:0.78,pull:0.94},
+ {id:'mad',  n:'MAGNETIC ARREST', ico:'mad',
+  sum:'콤보가 훨씬 오래 유지된다 — 자기장이 유입을 붙잡는다',
+  fx:[['COMBO',60],['SWALLOW',-8]],
+  w:'MAD 상태의 자기장은 유입 물질을 붙잡아 흐름을 오래 지속시킨다. 다만 그 이름대로 유입 자체를 "붙잡아(arrest)" 강착률에 뚜껑을 씌운다.',
+  cwin:1.6,acc:0.92},
+ {id:'wide', n:'WIDE HORIZON', ico:'wide',
+  sum:'넓게 삼킨다 — 효율은 조금 떨어진다',
+  fx:[['REACH',14],['SWALLOW',-5]],
   w:'같은 질량이라도 회전이 느리면 지평선이 크다. 더 넓게 삼키지만 효율은 조금 떨어진다.',
-  pull:1.14,acc:0.95}
-]
+  pull:1.14,acc:0.95}]
+// 카드 도식 — 각 진화가 블랙홀에 무슨 일을 하는지 한눈에(글자보다 먼저 읽힌다)
+const BICO={
+ spin:'<circle cx="12" cy="12" r="2.8"/><path d="M12 4.4a7.6 7.6 0 1 1-5.4 2.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M11.3 1.3l3.4 3-3.4 3z"/>',
+ thick:'<ellipse cx="12" cy="12" rx="10.2" ry="3.4" fill="none" stroke="currentColor" stroke-width="5.4"/>',
+ jet:'<ellipse cx="12" cy="12" rx="9" ry="2.4" fill="none" stroke="currentColor" stroke-width="1.3" opacity=".5"/><path d="M12 9.6L9.3 1.2h5.4z"/><path d="M12 14.4l-2.7 8.4h5.4z"/><circle cx="12" cy="12" r="2.7"/>',
+ cold:'<circle cx="12" cy="12" r="3"/><path d="M12 1.6v4.2M12 22.4v-4.2M1.6 12h4.2M22.4 12h-4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M10.5 5.4h3L12 8zM10.5 18.6h3L12 16zM5.4 10.5v3L8 12zM18.6 10.5v3L16 12z"/>',
+ mad:'<path d="M4.2 2.4c3.8 3.4 3.8 15.8 0 19.2M19.8 2.4c-3.8 3.4-3.8 15.8 0 19.2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M7.4 8.2h9.2M7.4 15.8h9.2" fill="none" stroke="currentColor" stroke-width="1.1" opacity=".55"/><circle cx="12" cy="12" r="2.7"/>',
+ wide:'<circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2.3 2.7"/><circle cx="12" cy="12" r="6.2"/>'}
+const bIco=k=>'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'+(BICO[k]||'')+'</svg>'
+// 발산 막대 — 가운데가 0, 이득은 오른쪽(초록) 손해는 왼쪽(주황). 최대 눈금 ±60%.
+function bBar(k,v){const w=Math.min(50,Math.abs(v)/60*50),up=v>0
+ return '<div class="cfr"><span class="cfk">'+k+'</span>'+
+  '<span class="cfb"><i class="'+(up?'up':'dn')+'" style="width:'+w.toFixed(1)+'%"></i></span>'+
+  '<span class="cfv '+(up?'up':'dn')+'">'+(up?'+':'−')+Math.abs(v)+'%</span></div>'}
+function boonMul(k){let m=1;for(const b of (S.boons||[]))if(b[k])m*=b[k];return m}
 let choiceOpen=false
 let choiceSkip=false,choiceForce=false   // 검증 하네스가 setMass로 티어를 위조한 런에서만 선택창을 건너뛴다(보온을 주지 않아 밸런스는 불변).
                                          // 실제 성장(먹어서 오른 티어)과 ?dev=1로 여는 사람에겐 영향이 없다.
@@ -548,8 +591,11 @@ function openChoice(tierName){
   if(!pick.includes(b))pick.push(b)}
  $('choiceSub').textContent=tierName+' — choose one'
  $('choiceWrap').innerHTML=pick.map((b,i)=>
-  '<div class="cc" data-i="'+i+'"><div class="cn"><span class="ck">'+(i+1)+'</span>'+b.n+'</div>'+
-  '<div class="cd">'+b.d+'</div><div class="cwhy">'+b.w+'</div></div>').join('')
+  '<div class="cc" data-i="'+i+'">'+
+  '<div class="cn"><span class="ck">'+(i+1)+'</span><span class="cic">'+bIco(b.ico)+'</span>'+b.n+'</div>'+
+  '<div class="csum">'+b.sum+'</div>'+
+  '<div class="cfx">'+b.fx.map(f=>bBar(f[0],f[1])).join('')+'</div>'+
+  '<div class="cwhy">'+b.w+'</div></div>').join('')
  ;[...$('choiceWrap').children].forEach(el=>el.onclick=e=>{e.stopPropagation();takeBoon(pick[+el.dataset.i])})
  window.__choicePick=pick
  $('choice').classList.add('on');choiceOpen=true
@@ -558,14 +604,13 @@ function openChoice(tierName){
 function takeBoon(b){
  if(!choiceOpen||!b)return
  S.boons.push(b);closeChoice()
- banner('◆ '+b.n,b.d,3);if(AU.tierUp)AU.tierUp()
+ banner('◆ '+b.n,b.sum,3);if(AU.tierUp)AU.tierUp()
 }
 function closeChoice(){
  choiceOpen=false;window.__choicePick=null
  const el=document.getElementById('choice');if(el)el.classList.remove('on')
  document.body.classList.remove('intro')
 }
-function boonMul(k){let m=1;for(const b of (S.boons||[]))if(b[k])m*=b[k];return m}
 const COMBO_BOONS=[
  {at:20,name:'BLAZAR STATE',    col:'#ff9a5a',acc:1.50,pull:1.30,slot:1},
  {at:10,name:'DISK FLARE',      col:'#ffd27a',acc:1.28,pull:1.18,slot:0},
@@ -1011,7 +1056,7 @@ function stepFeed(f,slot,dt){
  }
  if(pr>=1){
   o.eaten=true;o.eatT=0.28;o.eatBy=null;o.eatFast=true // 로슈 한계에서 시작해 더 멀다 — 확실히 '한 입에' 삼켜지도록 빠르게
-  S.combo=(performance.now()-S.comboAt<(S.modFrenzy?2400:1400))?S.combo+1:1;S.comboAt=performance.now()
+  S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now()   // 연쇄 판정도 comboWin() — MAD(+60%)가 실제 연쇄에는 적용된 적이 없었다
   S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
   noteBoon()
   const rel2=f.total/Math.max(1e-6,S.mass-f.given+f.total) // 삼킨 것이 나에 비해 얼마나 컸나
@@ -1760,11 +1805,11 @@ function hud(){
   $('feedfill').style.filter=fast?'brightness(1.5)':''}
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
- const cel=$('combo'),active=S.combo>=2&&S.alive&&(performance.now()-S.comboAt<1400)
+ const cel=$('combo'),active=comboOn()   // 1400ms 하드코딩이 MAD 보온(+60%)·FRENZY 모드를 무시해, 콤보가 살아 있는데 표시만 사라졌다
  cel.style.opacity=active?1:0
  if(active){const cb=comboBoon(S.combo)
   cel.innerHTML='×'+S.combo+(cb?'<span class="cl">'+cb.name+'</span>':'')
-  cel.style.transform='translateX(-50%) scale('+(1+Math.min(S.combo,24)*0.02)+')'   // 중앙 정렬을 유지한 채 커진다
+  cel.style.transform='translateX(-50%) scale('+(1+Math.min(S.combo,24)*0.012)+')'   // 중앙 정렬을 유지한 채 커진다(상단 밴드를 넘지 않는 배율)
   cel.style.color=cb?cb.col:'#ffcf4a'}
  if(onbT&&performance.now()>onbT)hideOnboard()
  pumpMsg(performance.now())
@@ -2355,6 +2400,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   $('codex').classList.toggle('on',showC);$('feedwrap').classList.add('on')
   $('actFlare').style.display=''   // 퀘이사 4번째 버튼까지 감사 대상에 — 숨은 상태만 재던 사각지대
   S.combo=42;S.comboAt=performance.now()+20000
+  $('apex').textContent='◆ APEX PREDATOR NEARBY';$('apex').style.opacity=1   // 상단 밴드 사각지대였다
   return true},
  onboardOn:()=>$('onb').classList.contains('on'),
  jetStun:()=>objects.filter(o=>o.type==='rival'&&!o.eaten).map(o=>+(o.jetStun||0).toFixed(2)),
@@ -2364,7 +2410,17 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  feedState:()=>S.feeds.length?{t:Math.round(S.feeds[0].t*100)/100,dur:Math.round(S.feeds[0].dur*100)/100,given:Math.round(S.feeds[0].given*10)/10,n:S.feeds.length}:null,
  feedSlots:()=>feedSlots(),feedCount:()=>S.feeds.length,
  boons:()=>S.boons.map(b=>b.id),choiceOn:()=>choiceOpen,
- choiceReal:(on)=>{choiceForce=!!on},   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
+ choiceReal:(on)=>{choiceForce=!!on},
+ setCombo:(n,ageMs)=>{S.combo=n;S.comboAt=performance.now()-(ageMs||0)},
+ comboWin:()=>comboWin(),
+ // SwiftShader(헤드리스)는 컴포지터가 안 돌아 CSS 트랜지션이 중간값(0.176)에 얼어붙는다 —
+ // 컴퓨티드 opacity는 환경 산물이라 진실이 아니다. hud()가 내린 결정(인라인)을 읽는다.
+ comboShown:()=>{const e=$('combo')
+  return parseFloat(e.style.opacity!==''?e.style.opacity:getComputedStyle(e).opacity)>0.5},
+ comboProbe:()=>({age:Math.round(performance.now()-S.comboAt),win:comboWin(),on:comboOn(),
+  shown:(()=>{const e=$('combo')
+   return parseFloat(e.style.opacity!==''?e.style.opacity:getComputedStyle(e).opacity)>0.5})()}),
+ boonPool:()=>EVO_BOONS.map(b=>({id:b.id,ico:b.ico,sum:b.sum,fx:b.fx})),   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
  tierMass:(i)=>i<=0?2:TIERS[Math.min(TIERS.length-1,i-1)].max*1.02,   // 그 티어로 승격되는 질량
  giveBoon:(id)=>{const b=EVO_BOONS.find(x=>x.id===id);if(b&&!S.boons.includes(b))S.boons.push(b);return S.boons.map(x=>x.id)},
  pullRadius:()=>{const F=FORMS[S.formIdx],bnP=boonNow()

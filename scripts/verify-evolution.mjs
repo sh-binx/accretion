@@ -137,6 +137,55 @@ try {
   ok('choice: opens on growth-driven tier-up (no setMass)', real.opened===true,
      `${real.mass} · ${real.tier||''}`)
 
+  // 카드가 '읽히는' 구조인가 — 도식·요약·양방향 막대(오너: 특장점이 직관적으로 안 보인다)
+  const card = await page.evaluate(async () => {
+    const A=window.__acc; A.choiceReal(true); A.begin(); A.hideOnboard()
+    A.setMass(A.tierMass(1)); A.step(0.2)
+    const cc=[...document.querySelectorAll('#choiceWrap .cc')]
+    return { n:cc.length, ok:cc.map(c=>({
+      ico:!!c.querySelector('.cic svg'),
+      sum:(c.querySelector('.csum')?.textContent||'').length,
+      up:c.querySelectorAll('.cfb i.up').length,
+      dn:c.querySelectorAll('.cfb i.dn').length })),
+      pool:A.boonPool() }
+  })
+  ok('card: every option has a diagram', card.ok.every(c=>c.ico), `${card.n}장`)
+  ok('card: every option has a plain-language summary', card.ok.every(c=>c.sum>8),
+     card.ok.map(c=>c.sum).join('/'))
+  ok('card: gain and cost are both shown as bars', card.ok.every(c=>c.up===1&&c.dn===1),
+     card.ok.map(c=>`+${c.up}/-${c.dn}`).join(' '))
+  // 순수 이득 카드가 있으면 그것만 고르게 되어 선택이 사라진다 — 6종 전부 맞교환이어야 한다
+  ok('no pure-upside boon exists (all 6 are trade-offs)',
+     card.pool.length===6&&card.pool.every(b=>b.fx.some(f=>f[1]>0)&&b.fx.some(f=>f[1]<0)),
+     card.pool.filter(b=>!b.fx.some(f=>f[1]<0)).map(b=>b.id).join(',')||'전부 맞교환')
+
+  // 콤보 표시가 실제 유지 시간을 따라간다(MAD +60% · 하드코딩 1400ms 회귀)
+  // 벽시계 대기도 고정 나이도 못 쓴다 — SwiftShader의 1프레임이 100~280ms로 요동친다.
+  // 프레임 비용을 먼저 재고, 판별 구간(1400 밖 · 2240 안) 한가운데에 떨어지도록 나이를 역산한다.
+  const cw = await page.evaluate(async () => {
+    const A=window.__acc
+    const frames=n=>new Promise(r=>{const t=()=>--n<=0?r():requestAnimationFrame(t);requestAnimationFrame(t)})
+    A.begin(); A.hideOnboard()
+    A.setSpawn(false); A.clearObjs(); A.setMass(60)   // 살아 있는 세계가 충돌로 콤보를 0으로 지운다
+    const base=A.comboWin()
+    A.giveBoon('mad'); const wide=A.comboWin()
+    const aim=async (target)=>{ A.setCombo(6,target); await frames(2); return A.comboProbe() }
+    let p2=null
+    for(let k=0;k<5&&!p2;k++){                       // 프레임 비용을 재고 겨눈다(빗나가면 다시 잰다)
+      const t0=performance.now(); await frames(2); const cost=performance.now()-t0
+      const q=await aim(Math.max(base+120,(base+wide)/2-cost))
+      if(q.age>base&&q.age<wide) p2=q
+    }
+    A.setSpawn(false)
+    const p1=await (async()=>{ A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearObjs(); A.setMass(60)
+      return aim(base+500) })()                      // 보온 없이 — 기본 창을 확실히 넘긴 나이
+    return { base, wide, p1, p2 }
+  })
+  ok('combo window widens with MAGNETIC ARREST', cw.wide>cw.base*1.5, `${cw.base} → ${cw.wide}ms`)
+  ok('combo display follows the real window, not a hardcoded 1400ms',
+     !!cw.p2 && cw.p1.age>cw.base && cw.p1.shown===false && cw.p2.shown===true,
+     `기본 ${cw.p1.age}ms→${cw.p1.shown} · MAD ${cw.p2?cw.p2.age+'ms→'+cw.p2.shown:'판별 구간 조준 실패'}`)
+
   // 선택 중엔 능력이 잠긴다 — 정지 화면에서 에너지·쿨다운을 잃으면 안 된다
   const lock = await page.evaluate(async () => {
     const A=window.__acc
