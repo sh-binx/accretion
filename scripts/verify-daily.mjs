@@ -47,12 +47,14 @@ try {
 
   // daily submit lands on the DAILY board, and is scoped out of the GLOBAL board
   await page.evaluate(() => window.__acc.setName('DAILY_QA'))
-  const sub = await page.evaluate(() => window.__acc.submitDaily(4242, 9, 'INTERMEDIATE', 55))
+  // 점수 4242로는 QA 데이에 테스트 행이 쌓이면 top-100 밖으로 밀린다(실측: 699행 누적 → 140위).
+  // 반복 실행에 흔들리지 않게 허용 상한 바로 아래로 제출하고, 조회 범위도 넓힌다.
+  const sub = await page.evaluate(() => window.__acc.submitDaily(500000, 9, 'INTERMEDIATE', 55))
   ok('daily submit ok + rank', !!(sub && sub.ok && sub.rank>=1), JSON.stringify(sub))
   await sleep(700)
   const boards = await page.evaluate(async () => {
     const A = window.__acc
-    const daily = await A.topDaily(100)
+    const daily = await A.topDaily(500)
     const global = await A.LB.top(100)
     return { inDaily: daily.some(r=>r.name==='DAILY_QA'), inGlobal: global.some(r=>r.name==='DAILY_QA'), dailyMod: (daily.find(r=>r.name==='DAILY_QA')||{}).modifier }
   })

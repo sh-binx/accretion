@@ -75,6 +75,69 @@ try {
   ok('regression: growth intact (5회 중앙값)', grew.m1 > grew.m0, `${grew.m0} → ${grew.m1.toFixed(2)}`)
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
+  // ── 종착점: 은하 중심(Sgr A*) ──
+  // 조건이 '질량 2,365,000'이던 시절, 실측 544런 중 도달 0건 · 역대 최고도 209,304(8.8%)로
+  // 게임이 종착점이라 부르는 곳에 아무도 닿은 적이 없었다. 이제 퀘이사 티어면 도전할 수 있다.
+  const coreTravel = (m) => page.evaluate((m) => {
+    const A=window.__acc
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(m)
+    const before=A.state.mass
+    let n=0
+    while(!A.coreState().eaten && A.state.alive && n<3000){
+      const cp=A.corePos(); A.setTarget(cp.x,cp.z); A.step(0.05,20); n++
+      if(n%10===0) A.clearField()          // 이동 중 천적에게 뜯기면 기전이 아니라 조우를 재게 된다
+    }
+    return { eaten:A.coreState().eaten, alive:A.state.alive,
+             before:Math.round(before), after:Math.round(A.state.mass) }
+  }, m)
+
+  const quasar = await coreTravel(40000)
+  ok('core: a QUASAR-tier hole reaches and swallows it', quasar.eaten===true&&quasar.alive===true,
+     `${quasar.before.toLocaleString()} → ${quasar.after.toLocaleString()}`)
+  ok('core: swallowing it is a real jump (not a rounding error)', quasar.after>quasar.before*10,
+     `×${(quasar.after/quasar.before).toFixed(1)}`)
+  const small = await coreTravel(3000)
+  ok('core: below QUASAR you are the one eaten', small.eaten===false&&small.alive===false,
+     `eaten=${small.eaten} alive=${small.alive}`)
+
+  // 나침반 — 목적지는 보여야 끌어당긴다
+  const comp = await page.evaluate(async () => {
+    const A=window.__acc, f=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))
+    const row=()=>document.getElementById('coreRow').style.display!=='none'
+    A.begin(); A.hideOnboard(); A.setMass(300); A.step(0.3); await f()
+    const low=row()
+    A.setMass(40000); A.step(0.3); await f()
+    return { low, high:row(), txt:document.getElementById('cval').textContent }
+  })
+  ok('core: compass hidden before SUPERMASSIVE', comp.low===false, String(comp.low))
+  ok('core: compass shows bearing + distance once you can look for it', comp.high===true&&/[↑↗→↘↓↙←↖]/.test(comp.txt),
+     comp.txt)
+
+  // 병합 경제에 제동이 남아 있는가 — 감쇠를 없앴더니 220초 완전 플레이에 7.4e17로 폭주했다
+  const runaway = await page.evaluate(() => {
+    const A=window.__acc
+    const one=(m)=>{ A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(m)
+      const c=A.pos(), hr=Math.cbrt(m)
+      A.spawn('rival', m*0.8, c.x+hr*1.2, c.z)
+      for(let i=0;i<40;i++){ A.eatNearest(); A.step(0.05,20) }
+      return (A.state.mass-m)/m }
+    return { low:one(500), high:one(5e5) }
+  })
+  ok('merge economy still brakes at high mass (no runaway)', runaway.high < runaway.low*0.25,
+     `+${(runaway.low*100).toFixed(0)}% @500 → +${(runaway.high*100).toFixed(2)}% @500K`)
+
+  // 후반 맵이 계속 같아 보이던 문제 — 초대질량부터 지형이 하나 늘어난다
+  const feats = await page.evaluate(() => {
+    const A=window.__acc, out={}
+    for(const [k,m] of [['bh',300],['smbh',4000]]){
+      A.begin(); A.hideOnboard(); A.setMass(m)
+      for(let i=0;i<8;i++)A.step(0.25)
+      out[k]=A.featCount?A.featCount():null }
+    return out
+  })
+  ok('map keeps growing: more terrain from SUPERMASSIVE', feats.smbh>feats.bh,
+     `${feats.bh} → ${feats.smbh}`)
+
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
 } finally {
