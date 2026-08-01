@@ -1,0 +1,183 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACCRETION · 후반부 회고와 개선안</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#03040a;color:#c8d2e8;font:14px/1.7 ui-monospace,SFMono-Regular,Menlo,monospace;padding:34px 20px 100px}
+.wrap{max-width:1120px;margin:0 auto}
+h1{font-size:15px;letter-spacing:5px;font-weight:800;color:#fff;margin-bottom:7px}
+.sub{color:#6b7692;font-size:12px;letter-spacing:1px;margin-bottom:40px}
+h2{font-size:13px;letter-spacing:3px;color:#8fd0ff;font-weight:800;margin:46px 0 14px;padding-top:28px;border-top:1px solid #161c2e}
+h2:first-of-type{border-top:0;padding-top:0;margin-top:0}
+h3{font-size:12.5px;color:#e6ecf8;font-weight:800;margin:26px 0 8px;letter-spacing:.5px}
+p{color:#8b97b5;font-size:13px;max-width:82ch;margin-bottom:12px}
+p b,li b{color:#9fd0ff;font-weight:700}
+.hi{color:#ffb14a;font-weight:800}
+ul{margin:0 0 14px 18px;color:#8b97b5;font-size:13px;max-width:82ch}
+li{margin-bottom:5px}
+.chart{background:#080b16;border:1px solid #161c2e;border-radius:10px;padding:20px 22px;margin:16px 0 22px}
+.row{display:grid;grid-template-columns:110px 1fr 116px;align-items:center;gap:12px;margin-bottom:9px}
+.row .nm{font-size:12px;color:#c8d2e8}
+.bar{height:16px;background:#0e1322;border-radius:4px;overflow:hidden;position:relative}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#35a0ff,#8fd0ff);border-radius:4px}
+.bar i.hot{background:linear-gradient(90deg,#ff7a3a,#ffcf4a)}
+.row .vv{font-size:12px;color:#8b97b5;text-align:right;font-variant-numeric:tabular-nums}
+.row .vv b{color:#ffcf4a}
+.cap{color:#6b7692;font-size:11.5px;margin-top:10px}
+.cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));margin-top:6px}
+.card{background:#080b16;border:1px solid #161c2e;border-radius:10px;padding:18px 20px 20px}
+.card.rec{border-color:#2b4a78;box-shadow:0 0 0 1px rgba(143,208,255,.12) inset}
+.card .tag{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.key{font-weight:800;color:#ffb14a;font-size:12px;letter-spacing:2px}
+.nm2{font-size:12.5px;color:#e6ecf8;font-weight:700}
+.rec-badge{margin-left:auto;font-size:10px;letter-spacing:1px;color:#08111e;background:#8fd0ff;border-radius:3px;padding:1px 7px;font-weight:800}
+.card p{font-size:12px;margin-bottom:9px}
+.meta{border-top:1px solid #141a2b;margin-top:12px;padding-top:10px;font-size:11.5px;color:#7e8aa8}
+.meta div{margin-bottom:3px}
+.meta span{color:#5c667f;display:inline-block;width:52px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin:10px 0 6px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid #141a2b;vertical-align:top}
+th{color:#6b7692;font-weight:700;font-size:11px;letter-spacing:1px}
+td.k{color:#e6ecf8;width:26%}
+td.v{color:#8b97b5}
+.callout{background:#0d1220;border-left:3px solid #ffb14a;padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:12.5px;color:#c8d2e8}
+.foot{margin-top:52px;padding-top:22px;border-top:1px solid #161c2e;color:#5c667f;font-size:12px}
+</style></head><body><div class="wrap">
+
+<h1>ACCRETION · 후반부 회고</h1>
+<div class="sub">"후반부로 갈수록 특별한 게 없어 무료하다" · "흡수 중엔 다른 행성을 못 먹는 것 같다" — 두 지적을 실측으로 확인하고 개선안을 정리했습니다</div>
+
+<h2>1 · 진단 — 두 지적은 같은 뿌리입니다</h2>
+
+<p>봇으로 각 구간을 20초씩 플레이하며 <b>흡수 애니메이션에 묶여 있는 시간의 비율</b>을 쟀습니다.
+초·중반에는 36~46%인데 퀘이사부터 <span class="hi">79%</span>로 뜁니다.</p>
+
+<div class="chart">
+  <div class="row"><div class="nm">항성질량</div><div class="bar"><i style="width:39%"></i></div><div class="vv">39% · 1.29초</div></div>
+  <div class="row"><div class="nm">중간질량</div><div class="bar"><i style="width:46%"></i></div><div class="vv">46% · 1.55초</div></div>
+  <div class="row"><div class="nm">초대질량</div><div class="bar"><i style="width:36%"></i></div><div class="vv">36% · 1.44초</div></div>
+  <div class="row"><div class="nm">퀘이사</div><div class="bar"><i class="hot" style="width:79%"></i></div><div class="vv"><b>79%</b> · 1.98초</div></div>
+  <div class="row"><div class="nm">극대질량</div><div class="bar"><i class="hot" style="width:77%"></i></div><div class="vv"><b>77%</b> · 1.93초</div></div>
+  <div class="cap">가로축 = 전체 플레이 시간 중 '큰 천체를 흡수하는 중'인 비율 · 오른쪽 = 비율 · 1회 평균 흡수 시간</div>
+</div>
+
+<p>왜 후반에 치솟나 — 흡수 시간이 <b>상대 크기에 비례</b>하는데(최대 2.03초), 후반 먹이는 대부분 큽니다.
+질량대와 무관하게 먹이의 <b>42~45%가 '내 질량의 60% 이상'</b>입니다. 여기에 후반은 화면 천체 수가
+56 → 30으로 줄어 사이사이 먹을 작은 것도 적습니다.</p>
+
+<div class="callout">
+정리하면 후반부 플레이는 <b>2초짜리 애니메이션을 보고 → 잠깐 움직이고 → 다시 2초를 보는</b> 반복입니다.
+성장 수치는 계속 오르는데 <b>플레이어가 하는 일은 늘지 않습니다.</b> 이게 "특별한 게 없다"의 정체입니다.
+</div>
+
+<h2>2 · 확인된 결함 — 흡수 중엔 큰 천체를 전혀 못 먹습니다</h2>
+
+<p>지적하신 그대로였습니다. 흡수가 도는 동안 반대편에 천체를 놓고 실측했습니다.</p>
+
+<table>
+<tr><th>같이 놓은 천체</th><th>결과</th></tr>
+<tr><td class="k">0.1× (작은 천체)</td><td class="v">먹힘 — 질량 +88</td></tr>
+<tr><td class="k">0.3×</td><td class="v">먹힘 — 질량 +147</td></tr>
+<tr><td class="k">0.55× (경계 아래)</td><td class="v">먹힘 — 질량 +220</td></tr>
+<tr><td class="k">0.8× (큰 천체)</td><td class="v"><span class="hi">먹히지 않음</span> — 흡수분 외 증가 0</td></tr>
+<tr><td class="k">1.4× (거대)</td><td class="v"><span class="hi">먹히지 않음</span> — 흡수분 외 증가 0</td></tr>
+</table>
+
+<p>코드가 <b>동시에 하나만</b> 흡수하도록 되어 있어, 두 번째 큰 천체는 로슈 한계에서 대기만 합니다.
+먹이의 45%가 큰 천체이고 시간의 79%를 흡수에 쓰니, 후반에는 <b>보이는 먹이의 절반을 대부분의 시간 동안 건드릴 수 없습니다.</b></p>
+
+<h2>3 · 개선안</h2>
+<p>실제 천체물리에 어긋나지 않는 선에서, 효과가 큰 순서로 놓았습니다. 하나만 골라도 되고 조합해도 됩니다.</p>
+
+<div class="cards">
+
+  <div class="card rec">
+    <div class="tag"><span class="key">A</span><span class="nm2">동시 조석 흐름 (흡수 병렬화)</span><span class="rec-badge">권장 1</span></div>
+    <p>흡수를 <b>동시에 2~3개</b>까지 허용합니다. 티어가 오를수록 슬롯이 늘어나 "커질수록 더 많이 삼킨다"가
+    수치가 아니라 <b>화면으로</b> 보입니다.</p>
+    <p>물리 근거 — 초대질량 블랙홀은 한 번에 하나만 찢지 않습니다. 실제 강착원반은 <b>여러 갈래의 흐름</b>이
+    동시에 합류해 만들어지고, 그래서 밝습니다. 오히려 지금이 덜 정확합니다.</p>
+    <div class="meta">
+      <div><span>효과</span> 묶인 시간 79% → 실질 대기 사라짐 · 먹이의 45%가 다시 살아남</div>
+      <div><span>위험</span> 성장이 빨라져 밸런스 재조정 필요(흡수 효율 하향으로 상쇄)</div>
+      <div><span>비용</span> 중간 — S.feed 단일 객체를 배열로</div>
+    </div>
+  </div>
+
+  <div class="card rec">
+    <div class="tag"><span class="key">B</span><span class="nm2">흡수를 '보는 것'에서 '하는 것'으로</span><span class="rec-badge">권장 2</span></div>
+    <p>흡수 중에 할 일을 줍니다. 이미 <b>파고들면 빨라지는</b> 규칙(조석력 1/r³)이 있으니 이걸 드러내고,
+    SPIN(프레임 드래깅)을 쓰면 현재 흐름이 가속되게 합니다. 게이지에 "더 파고들어라" 힌트를 띄웁니다.</p>
+    <p>물리 근거 — 가까울수록 조석력이 급증하는 건 이미 구현된 사실이고, 프레임 드래깅은 원반 안쪽 물질을
+    실제로 끌어당깁니다.</p>
+    <div class="meta">
+      <div><span>효과</span> 같은 2초가 '기다림'에서 '판단'으로 바뀜 · 숙련 차이가 생김</div>
+      <div><span>위험</span> 낮음 — 기존 규칙을 노출하는 수준</div>
+      <div><span>비용</span> 낮음</div>
+    </div>
+  </div>
+
+  <div class="card rec">
+    <div class="tag"><span class="key">C</span><span class="nm2">은하 중심 — 후반의 목적지</span><span class="rec-badge">권장 3</span></div>
+    <p>이미 맵에 <b>궁수자리 A*(430만 태양질량)</b>가 고정 좌표로 있습니다. 지금은 배경이지만,
+    후반의 <b>도착지</b>로 만듭니다 — 다가가면 조석 영역·별 흐름·기존 원반이 있고, 삼키면 런의 클라이맥스가 됩니다.</p>
+    <p>물리 근거 — 은하 중심은 실제로 별들이 궤도를 도는 곳이고(S2 별), 블랙홀 병합은 초대질량 성장의 주 경로입니다.</p>
+    <div class="meta">
+      <div><span>효과</span> 후반에 '어디로 갈지'가 생김 — 무한 성장에 종착점</div>
+      <div><span>위험</span> 중간 — 난이도 곡선 재설계 필요</div>
+      <div><span>비용</span> 중간~높음</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tag"><span class="key">D</span><span class="nm2">티어마다 새 동사 하나씩</span></div>
+    <p>지금은 퀘이사에서만 제트가 열립니다. 중간질량·초대질량·극대질량에도 하나씩 줍니다 —
+    예: <b>초대질량</b>은 원반이 커져 <b>주변 천체를 궤도에 붙잡고</b>(포획), <b>극대질량</b>은
+    사건지평선이 커져 <b>스쳐도 삼킵니다</b>.</p>
+    <p>물리 근거 — 질량이 커지면 지평선 반경은 선형으로, 조석 영역은 그보다 빠르게 커집니다. 실제로 능력이 달라집니다.</p>
+    <div class="meta">
+      <div><span>효과</span> 티어업이 숫자가 아니라 체감으로 바뀜</div>
+      <div><span>위험</span> 능력이 늘어 학습 부담 — 하나씩, 배너로 안내</div>
+      <div><span>비용</span> 중간</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tag"><span class="key">E</span><span class="nm2">후반 사건 — 우주가 반응한다</span></div>
+    <p>일정 질량 이후 주기적으로 사건이 일어납니다. <b>초신성 충격파</b>가 화면을 쓸고 지나가거나,
+    <b>별 흐름</b>(작은 별 수십 개의 강)이 지나가 짧게 폭식할 기회를 줍니다.</p>
+    <p>물리 근거 — 별 흐름은 실제로 은하가 위성은하를 찢어 만드는 구조이고, 초신성 충격파는 성간 가스를 압축해
+    되레 강착을 촉진합니다.</p>
+    <div class="meta">
+      <div><span>효과</span> 후반의 리듬 — 평탄한 반복에 굴곡</div>
+      <div><span>위험</span> 화면이 더 복잡해질 수 있음(이미 한 번 지적하신 부분)</div>
+      <div><span>비용</span> 중간</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tag"><span class="key">F</span><span class="nm2">흡수 시간 상한</span></div>
+    <p>가장 값싼 대증요법. 흡수 시간 상한을 2.03초 → 1.2초로 낮추면 묶인 시간이 79% → 약 55%로 떨어집니다.</p>
+    <p>다만 "큰 천체는 시간이 걸린다"는 오너님이 직접 요청한 규칙이라, <b>단독으로는 권하지 않습니다</b> —
+    A나 B와 함께 미세 조정으로만.</p>
+    <div class="meta">
+      <div><span>효과</span> 즉시 체감 개선 · 근본 해결은 아님</div>
+      <div><span>위험</span> 기존 설계 의도 약화</div>
+      <div><span>비용</span> 아주 낮음</div>
+    </div>
+  </div>
+
+</div>
+
+<h2>4 · 제 권장</h2>
+<p><b>A + B를 먼저</b> 하시길 권합니다. 둘이 지금의 병목(대기 시간과 못 먹는 먹이)을 직접 없애고,
+비용 대비 효과가 가장 큽니다. A가 성장 속도를 올리므로 흡수 효율을 함께 내려 균형을 맞추겠습니다.</p>
+<p>그다음 <b>C(은하 중심)</b>가 후반에 목적지를 줍니다. 이건 "무료하다"의 나머지 절반 —
+<b>할 일은 생겼는데 갈 곳이 없다</b>는 부분을 채웁니다. D·E는 그 뒤에 하나씩 얹는 게 안전합니다.</p>
+<p>F는 단독으로 쓰지 않고, A·B 적용 후 남는 체감을 다듬는 용도로만 쓰겠습니다.</p>
+
+<div class="foot">
+번호로 골라 주시면 됩니다 — <b>"A B"</b> 처럼요. 다르게 조합하셔도 되고,
+여기 없는 방향을 주셔도 그대로 진행하겠습니다.
+</div>
+</div></body></html>
