@@ -284,7 +284,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.3</div>
+<div class="credit">ACCRETION · prototype 5.4</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -299,6 +299,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
    <button class="lnk" id="startCodex">CODEX <span id="chipCodex">–</span></button>
    <button class="lnk" id="startBoard">LEADERBOARD</button>
    <button class="lnk" id="startAwards">AWARDS <span id="chipAwards">–</span></button>
+  <button class="lnk" id="startLang">🌐 ENGLISH</button>
   </div>
   <div class="keys">WASD · ← ↑ → ↓ · DRAG</div>
   <div id="chips">
@@ -346,6 +347,15 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <script src="three.min.js"></script>
 <script>
 const DEV=/[?&]dev/.test(location.search)
+// ── 언어 — 포털 요건은 '영어로 플레이 가능할 것'이지 '영어만 있을 것'이 아니다.
+// 기본은 브라우저 언어(한국어 브라우저면 한국어), ?lang= 또는 메뉴 토글로 바꾼다.
+let LANG=(()=>{const q=new URLSearchParams(location.search).get('lang')
+ if(q==='en'||q==='ko')return q
+ try{const v=localStorage.getItem('acc_lang');if(v==='en'||v==='ko')return v}catch(e){}
+ return /^ko/i.test(navigator.language||'')?'ko':'en'})()
+const T=o=>typeof o==='string'?o:(o&&(o[LANG]||o.en))||''
+function setLang(l){LANG=(l==='ko')?'ko':'en';try{localStorage.setItem('acc_lang',LANG)}catch(e){}
+ const b=document.getElementById('startLang');if(b)b.textContent=LANG==='ko'?'🌐 한국어':'🌐 ENGLISH'}
 const QA_DAY='2000-01-01'   // DEV 제출·조회가 격리되는 QA 전용 날짜 보드
 const $=id=>document.getElementById(id)
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v)
@@ -533,34 +543,46 @@ function hideAllFeedVis(){for(let k=0;k<FEED_SLOTS_MAX;k++)hideFeedVis(k)}
 const EVO_BOONS=[
  // 효과는 전부 실재하는 강착 물리의 맞교환이다. fx = 카드에 그리는 지표(부호 = 이득/손해).
  {id:'spin', n:'RAPID SPIN', ico:'spin',
-  sum:'한 입이 빨라진다 — 대신 닿는 거리가 준다',
+  sum:{en:'Bigger bites — but a shorter reach',
+       ko:'한 입이 빨라진다 — 대신 닿는 거리가 준다'},
   fx:[['SWALLOW',18],['REACH',-8]],
-  w:'최대 회전 커 블랙홀은 최내안정궤도가 안쪽으로 내려가 강착 효율이 6%→42%까지 오른다. 대신 지평선은 작아진다.',
+  w:{en:'A maximally spinning black hole drags its innermost stable orbit inward, raising accretion efficiency from 6% to 42%. The horizon itself gets smaller.',
+     ko:'최대 회전 커 블랙홀은 최내안정궤도가 안쪽으로 내려가 강착 효율이 6%→42%까지 오른다. 대신 지평선은 작아진다.'},
   acc:1.18,pull:0.92},
  {id:'thick',n:'THICK DISK', ico:'thick',
-  sum:'멀리서도 끌어당긴다 — 대신 몸이 둔해진다',
+  sum:{en:'Pulls from farther out — but you move heavier',
+       ko:'멀리서도 끌어당긴다 — 대신 몸이 둔해진다'},
   fx:[['REACH',15],['MOVE',-8]],
-  w:'강착률이 높으면 원반이 복사압으로 부풀어 두꺼워진다(slim disk). 영향권은 넓어지고 몸은 둔해진다.',
+  w:{en:'At high accretion rates radiation pressure puffs the disk up into a slim disk. Your reach widens; your body slows.',
+     ko:'강착률이 높으면 원반이 복사압으로 부풀어 두꺼워진다(slim disk). 영향권은 넓어지고 몸은 둔해진다.'},
   pull:1.15,spd:0.92},
  {id:'jet',  n:'RELATIVISTIC JETS', ico:'jet',
-  sum:'제트가 더 멀리·세게 쓸어낸다 — 삼키는 속도는 준다',
+  sum:{en:'Jets sweep farther and harder — you swallow slower',
+       ko:'제트가 더 멀리·세게 쓸어낸다 — 삼키는 속도는 준다'},
   fx:[['JET',35],['SWALLOW',-8]],
-  w:'제트로 빠져나간 에너지는 원반을 덜 밝힌다 — 실제로 제트가 강한 천체는 강착 광도가 낮다.',
+  w:{en:'Energy that leaves as a jet never lights the disk — jet-dominated objects really do show a lower accretion luminosity.',
+     ko:'제트로 빠져나간 에너지는 원반을 덜 밝힌다 — 실제로 제트가 강한 천체는 강착 광도가 낮다.'},
   flare:1.35,acc:0.92},
  {id:'cold', n:'COLD FLOW', ico:'cold',
-  sum:'큰 천체를 훨씬 빨리 비운다 — 흐름이 가늘어 손은 짧다',
+  sum:{en:'Drains big bodies far faster — the stream runs narrow',
+       ko:'큰 천체를 훨씬 빨리 비운다 — 흐름이 가늘어 손은 짧다'},
   fx:[['DEVOUR',28],['REACH',-6]],
-  w:'차가운 가스는 데워질 필요 없이 곧장 떨어진다(cold accretion). 다만 그 흐름은 넓은 헤일로가 아니라 가는 필라멘트로 온다.',
+  w:{en:'Cold gas needs no heating to fall straight in (cold accretion). But it arrives as thin filaments, not as a broad halo.',
+     ko:'차가운 가스는 데워질 필요 없이 곧장 떨어진다(cold accretion). 다만 그 흐름은 넓은 헤일로가 아니라 가는 필라멘트로 온다.'},
   fdur:0.78,pull:0.94},
  {id:'mad',  n:'MAGNETIC ARREST', ico:'mad',
-  sum:'콤보가 훨씬 오래 유지된다 — 자기장이 유입을 붙잡는다',
+  sum:{en:'Combos last much longer — the field grips the inflow',
+       ko:'콤보가 훨씬 오래 유지된다 — 자기장이 유입을 붙잡는다'},
   fx:[['COMBO',60],['SWALLOW',-8]],
-  w:'MAD 상태의 자기장은 유입 물질을 붙잡아 흐름을 오래 지속시킨다. 다만 그 이름대로 유입 자체를 "붙잡아(arrest)" 강착률에 뚜껑을 씌운다.',
+  w:{en:'In a magnetically arrested disk the field grips infalling matter and keeps the flow going. True to the name, it also arrests the inflow itself — capping how fast you accrete.',
+     ko:'MAD 상태의 자기장은 유입 물질을 붙잡아 흐름을 오래 지속시킨다. 다만 그 이름대로 유입 자체를 "붙잡아(arrest)" 강착률에 뚜껑을 씌운다.'},
   cwin:1.6,acc:0.92},
  {id:'wide', n:'WIDE HORIZON', ico:'wide',
-  sum:'넓게 삼킨다 — 효율은 조금 떨어진다',
+  sum:{en:'Swallows wider — efficiency dips a little',
+       ko:'넓게 삼킨다 — 효율은 조금 떨어진다'},
   fx:[['REACH',14],['SWALLOW',-5]],
-  w:'같은 질량이라도 회전이 느리면 지평선이 크다. 더 넓게 삼키지만 효율은 조금 떨어진다.',
+  w:{en:'At the same mass a slower spin means a larger horizon. You swallow over a wider area, but a little less efficiently.',
+     ko:'같은 질량이라도 회전이 느리면 지평선이 크다. 더 넓게 삼키지만 효율은 조금 떨어진다.'},
   pull:1.14,acc:0.95}]
 // 카드 도식 — 각 진화가 블랙홀에 무슨 일을 하는지 한눈에(글자보다 먼저 읽힌다)
 const BICO={
@@ -593,9 +615,9 @@ function openChoice(tierName){
  $('choiceWrap').innerHTML=pick.map((b,i)=>
   '<div class="cc" data-i="'+i+'">'+
   '<div class="cn"><span class="ck">'+(i+1)+'</span><span class="cic">'+bIco(b.ico)+'</span>'+b.n+'</div>'+
-  '<div class="csum">'+b.sum+'</div>'+
+  '<div class="csum">'+T(b.sum)+'</div>'+
   '<div class="cfx">'+b.fx.map(f=>bBar(f[0],f[1])).join('')+'</div>'+
-  '<div class="cwhy">'+b.w+'</div></div>').join('')
+  '<div class="cwhy">'+T(b.w)+'</div></div>').join('')
  ;[...$('choiceWrap').children].forEach(el=>el.onclick=e=>{e.stopPropagation();takeBoon(pick[+el.dataset.i])})
  window.__choicePick=pick
  $('choice').classList.add('on');choiceOpen=true
@@ -604,7 +626,7 @@ function openChoice(tierName){
 function takeBoon(b){
  if(!choiceOpen||!b)return
  S.boons.push(b);closeChoice()
- banner('◆ '+b.n,b.sum,3);if(AU.tierUp)AU.tierUp()
+ banner('◆ '+b.n,T(b.sum),3);if(AU.tierUp)AU.tierUp()
 }
 function closeChoice(){
  choiceOpen=false;window.__choicePick=null
@@ -1192,7 +1214,7 @@ const PORTAL={
    if(this.kind==='cg'){await window.CrazyGames.SDK.init();this.sdk=window.CrazyGames.SDK;this.wireSave()}
    else{await window.PokiSDK.init();this.sdk=window.PokiSDK}
    if(this.loadingDone)this.loadingStop() // init보다 부팅이 빨랐던 경우 재생
-  }catch(e){this.sdk=null;console.warn('[portal] SDK 실패 — 로컬 폴백',e)}
+  }catch(e){this.sdk=null;console.warn('[portal] SDK unavailable — local fallback',e)}
  },
  // CG Progress Save(Data Module) — 쓰기는 SDK+로컬 이중화, 읽기는 SDK 우선.
  // 비로그인/프리뷰에서 SDK 쓰기가 무효인 사례가 있어 로컬 미러가 진행을 지킨다(nova-surge 실측).
@@ -2273,6 +2295,8 @@ refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
 $('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
+setLang(LANG)   // 토글 라벨을 현재 언어로 맞춘다
+$('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko')}
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
 addEventListener('keydown',e=>{if(typing(e))return;if(choiceOpen&&!/^Digit[123]$/.test(e.code))return  // 진화 선택 중엔 능력 키를 잠근다(정지 상태에서 에너지·쿨다운을 잃지 않게)
  if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()
@@ -2420,7 +2444,8 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  comboProbe:()=>({age:Math.round(performance.now()-S.comboAt),win:comboWin(),on:comboOn(),
   shown:(()=>{const e=$('combo')
    return parseFloat(e.style.opacity!==''?e.style.opacity:getComputedStyle(e).opacity)>0.5})()}),
- boonPool:()=>EVO_BOONS.map(b=>({id:b.id,ico:b.ico,sum:b.sum,fx:b.fx})),   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
+ boonPool:()=>EVO_BOONS.map(b=>({id:b.id,ico:b.ico,sum:b.sum,w:b.w,fx:b.fx})),
+ lang:()=>LANG,setLang:l=>{setLang(l);return LANG},   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
  tierMass:(i)=>i<=0?2:TIERS[Math.min(TIERS.length-1,i-1)].max*1.02,   // 그 티어로 승격되는 질량
  giveBoon:(id)=>{const b=EVO_BOONS.find(x=>x.id===id);if(b&&!S.boons.includes(b))S.boons.push(b);return S.boons.map(x=>x.id)},
  pullRadius:()=>{const F=FORMS[S.formIdx],bnP=boonNow()
