@@ -71,6 +71,23 @@ try {
   ok('extremal: it ends (no permanent god mode)', ext.after.on===false, `11초 뒤 ${ext.after.on}`)
   ok('extremal: the disk goes white-hot while it holds', ext.disk.a==='#ffffff', ext.disk.a)
 
+  // 최종 형태는 '시공간이 휘는' 게 보여야 한다 — 예전엔 원반 색만 희게 바꿔
+  // 고질량에서 이미 포화된 흰색과 구분되지 않았다(오너: 최종 형태가 안 보인다)
+  const warp = await page.evaluate(async () => {
+    const A=window.__acc, f=n=>new Promise(r=>{const t=()=>--n<=0?r():requestAnimationFrame(t);requestAnimationFrame(t)})
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(40000)
+    await f(30)                                  // 존 팔레트가 목표까지 lerp 하도록 충분히
+    const base=A.lens().strength, e0=A.ergo()
+    A.fireExtremal(); await f(8)
+    const peak=A.lens().strength, e1=A.ergo()
+    return { base, peak, e0, e1 }
+  })
+  ok('extremal: spacetime visibly warps (lensing surges)', warp.peak > warp.base*1.5,
+     `${warp.base.toFixed(3)} → ${warp.peak.toFixed(3)} (×${(warp.peak/warp.base).toFixed(2)})`)
+  ok('extremal: the ergosphere ring only shows while it holds',
+     warp.e0.vis===false && warp.e1.vis===true && warp.e1.op>0.2,
+     `평소 ${warp.e0.vis} → 완전체 ${warp.e1.vis}(투명도 ${warp.e1.op})`)
+
   // ── ③ 시간이 흐르면 어려워지는가 ──
   // 질량을 고정하고 시간만 흘려 '순수한 시간 효과'만 잰다.
   const heat = await page.evaluate(() => {

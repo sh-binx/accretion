@@ -288,7 +288,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.11</div>
+<div class="credit">ACCRETION · prototype 5.12</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -485,6 +485,10 @@ hole.add(diskArc);hole.userData.diskArc=diskArc
 // 광자 고리 — 그림자를 감싸는 얇고 밝은 원(블랙홀 정체성). 카메라를 향함(빌보드)
 const photon=new THREE.Mesh(new THREE.RingGeometry(0.645,0.688,140),new THREE.MeshBasicMaterial({color:0xffeed0,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,side:THREE.DoubleSide,fog:false}))
 photon.renderOrder=6;hole.add(photon);hole.userData.photon=photon
+// 에르고구면 — 완전체에만 나타나는 바깥 고리. 지평선 밖인데도 시공간이 끌려 도는 영역이다.
+const ergo=new THREE.Mesh(new THREE.RingGeometry(0.80,0.90,120),
+ new THREE.MeshBasicMaterial({color:0xbfe4ff,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,depthTest:false,side:THREE.DoubleSide,fog:false}))
+ergo.renderOrder=7;ergo.visible=false;hole.add(ergo);hole.userData.ergo=ergo
 hole.add(glow(0x66a8ff,4.2,0.28)) // 은은한 코어 글로우(작게)
 /* ===== 진화 아크 — 블랙홀은 시작이 아니라 도달. 형태별 플레이어 메시(실제 별의 일생) ===== */
 const bhParts=[eh,disk,diskArc,photon,hole.children[hole.children.length-1]] // 블랙홀 전용 파츠
@@ -1937,6 +1941,12 @@ function updateCamera(dt){
 function render(){
  stars.position.copy(cam.position);neb.position.copy(cam.position) // 먼 배경 = 스카이박스(카메라 추종) · 먼지는 월드 고정(시차)
  hole.userData.photon.quaternion.copy(cam.quaternion) // 광자 고리 = 카메라 향함(그림자 감싸는 원)
+ {const ex=extremalOn()
+  ergo.visible=ex
+  if(ex){ergo.quaternion.copy(cam.quaternion)
+   const k=Math.min(1,S.extT/0.6)*Math.min(1,(S.extT)/0.6)
+   ergo.scale.setScalar(1.18+0.10*Math.sin(S.t*5))   // 끌려 도는 시공간 — 맥동한다
+   ergo.material.opacity=0.55*Math.min(1,S.extT/0.5)}}
  {const dp=dustGeo.attributes.position,hx=hole.position.x,hz=hole.position.z // 먼지 랩 → 무한 시차(이동 체감)
   for(let i=0;i<DUSTN;i++){let x=dp.getX(i),z=dp.getZ(i)
    if(x-hx>DUSTR)x-=2*DUSTR;else if(x-hx<-DUSTR)x+=2*DUSTR
@@ -1951,8 +1961,12 @@ function render(){
  const p=hole.position.clone().project(cam)
  lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
  const hr=rad(S.mass)
- if(S.alive){lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens // 블랙홀이 되는 순간 렌징이 켜진다
-  lensMat.uniforms.uEH.value=0.02+Math.min(0.13,hr*0.02)}
+ // 완전체(EXTREMAL KERR)는 '시공간이 휘는' 게 보여야 최종 형태로 읽힌다 — 예전엔 원반 색만 희게 바꿔
+ // 고질량에서 이미 포화된 흰색과 구분되지 않았다(오너: 최종 형태가 안 보인다).
+ // 물리: 최대 회전 커 블랙홀의 에르고구면 — 시공간 자체가 끌려 도는 영역이 지평선 밖까지 뻗는다.
+ const exK=extremalOn()?Math.min(1,(EXT_DUR-Math.max(0,S.extT-EXT_DUR+1.2))/1.2)*Math.min(1,S.extT/0.8):0
+ if(S.alive){lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens*(1+1.35*exK) // 블랙홀이 되는 순간 렌징이 켜진다 · 완전체는 시공간을 왜곡한다
+  lensMat.uniforms.uEH.value=(0.02+Math.min(0.13,hr*0.02))*(1+0.45*exK)}
  else{lensMat.uniforms.uStrength.value=0.082;lensMat.uniforms.uEH.value=0.058} // 메뉴 히어로 — 아크 왜곡은 강하게, 광자링은 얇고 또렷하게
  lensMat.uniforms.uAspect.value=innerWidth/innerHeight
  renderer.autoClear=true;renderer.render(postScene,postCam)
@@ -2646,6 +2660,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ ergo:()=>({vis:hole.userData.ergo.visible,op:+hole.userData.ergo.material.opacity.toFixed(2),sc:+hole.userData.ergo.scale.x.toFixed(2)}),
  beamLen:()=>{const o=objects.find(x=>x.type==='pulsar'&&x.g.userData.beams);if(!o)return null
   return +(3.2*o.g.scale.x).toFixed(1)},   // 월드 단위 빔 길이
  beamOp:()=>{const o=objects.find(x=>x.type==='pulsar'&&x.g.userData.beams);if(!o)return null

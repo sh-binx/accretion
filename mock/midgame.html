@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ACCRETION — 중후반 개선 시안</title>
+<style>
+:root{
+  --void:#05070f; --panel:#0b1020; --panel2:#0e1424; --line:rgba(120,150,220,.18);
+  --ink:#e8edff; --ink2:#9aa6c6; --ink3:#6f7b99;
+  --gold:#ffcf4a; --cyan:#8fd0ff; --gain:#7bed4a; --cost:#ff9a5a; --bad:#ff5d6c;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--void);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Pretendard',system-ui,sans-serif;
+  line-height:1.65;letter-spacing:-.01em;word-break:keep-all;overflow-wrap:anywhere;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%,rgba(255,207,74,.07),transparent 70%),
+    radial-gradient(ellipse 60% 40% at 85% 20%,rgba(143,208,255,.05),transparent 70%);
+  background-attachment:fixed;
+}
+.wrap{max-width:940px;margin:0 auto;padding:0 20px 110px}
+header{padding:70px 0 40px;text-align:center;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:4px;color:var(--cyan);text-transform:uppercase}
+h1{font-family:var(--mono);font-size:clamp(26px,5vw,42px);font-weight:800;letter-spacing:.1em;margin:14px 0 12px;text-wrap:balance}
+.sub{color:var(--ink2);font-size:15px;max-width:60ch;margin:0 auto}
+section{margin-top:60px}
+h2{font-family:var(--mono);font-size:13px;letter-spacing:3.5px;color:var(--cyan);text-transform:uppercase;
+   margin:0 0 8px;display:flex;align-items:center;gap:12px}
+h2::after{content:'';flex:1;height:1px;background:var(--line)}
+.lede{color:var(--ink2);font-size:14.5px;margin:0 0 24px;max-width:70ch}
+
+.diag{background:linear-gradient(180deg,rgba(255,93,108,.07),rgba(255,93,108,.02));
+      border:1px solid rgba(255,93,108,.22);border-radius:14px;padding:20px 22px}
+.diag h3{margin:0 0 6px;font-size:15px;color:#ffb0b8;font-weight:700}
+.diag p{margin:0 0 16px;font-size:14px;color:var(--ink2)}
+.diag p:last-child{margin-bottom:0}
+.diag b{color:var(--ink)}
+
+.verbs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:18px 0 4px}
+.verb{background:rgba(10,14,26,.7);border:1px solid var(--line);border-radius:10px;padding:12px 14px;text-align:center}
+.verb .v{font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:1px;color:var(--gold)}
+.verb .d{font-size:11.5px;color:var(--ink3);margin-top:4px}
+.verb.same{opacity:.55}
+.verb.same .v{color:var(--ink3)}
+
+.opt{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--line);
+     border-radius:16px;padding:22px 24px;margin-bottom:16px}
+.opt.pick{border-color:rgba(123,237,74,.45);box-shadow:0 0 0 1px rgba(123,237,74,.12)}
+.opt .hd{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:4px}
+.opt .tag{font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:2px;color:#0a0d18;
+          background:var(--cyan);border-radius:5px;padding:3px 9px}
+.opt.pick .tag{background:var(--gain)}
+.opt h3{margin:0;font-size:19px;font-weight:800;letter-spacing:-.02em}
+.opt .newverb{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;color:var(--gain);
+              border:1px solid rgba(123,237,74,.35);border-radius:999px;padding:2px 10px}
+.opt .newverb.no{color:var(--ink3);border-color:var(--line)}
+.opt .what{font-size:14.5px;color:var(--ink);margin:12px 0 0;font-weight:600}
+.opt .body{font-size:13.5px;color:var(--ink2);margin:10px 0 0}
+.opt .why{font-size:12.5px;color:var(--ink3);border-top:1px solid rgba(120,150,220,.15);
+          padding-top:12px;margin-top:16px}
+.opt .why b{color:var(--ink2)}
+.meta{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px;font-family:var(--mono);font-size:10.5px;letter-spacing:1px}
+.meta span{color:var(--ink3)}
+.meta b{color:var(--ink2);font-weight:700}
+.meta .risk-hi{color:var(--bad)} .meta .risk-mid{color:var(--cost)} .meta .risk-lo{color:var(--gain)}
+
+.rec{margin-top:26px;padding:18px 20px;border-left:2px solid var(--gain);
+     background:rgba(123,237,74,.05);border-radius:0 12px 12px 0;font-size:14px;color:var(--ink2)}
+.rec b{color:var(--ink)}
+.done{margin-top:22px;padding:16px 18px;border-left:2px solid var(--cyan);
+      background:rgba(143,208,255,.05);border-radius:0 12px 12px 0;font-size:13.5px;color:var(--ink2)}
+.done b{color:var(--ink)}
+footer{margin-top:70px;padding-top:24px;border-top:1px solid var(--line);
+       font-family:var(--mono);font-size:11px;color:var(--ink3);letter-spacing:1px;text-align:center}
+footer a{color:var(--cyan);text-decoration:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">ACCRETION · 중후반 개선 시안</div>
+  <h1>먹기 말고 할 게 없다</h1>
+  <p class="sub">오너 리포트: “블랙홀 단계로 들어가고 나서 후반부까지 행성을 먹는 것 외에
+     별다른 게 없어 매우 무료합니다.” — 진단부터 하고, 선택지를 놓고, 하나를 고릅니다.</p>
+</header>
+
+<!-- ══ 진단 ══ -->
+<section>
+  <h2>진단 · 왜 안 풀렸나</h2>
+
+  <div class="diag">
+    <h3>제가 이번 세션에 넣은 건 전부 ‘볼거리’였습니다</h3>
+    <p>런 리듬 사건 2종, 후반 천체 2종, 진화 선택 6종, 종착점, 콤보 7단계 — 다 <b>보는 것</b>이지
+       <b>하는 것</b>이 아니었습니다. 그래서 무료함이 안 풀렸습니다. 지적이 정확합니다.</p>
+
+    <h3>블랙홀이 된 뒤 동사(verb)가 하나뿐입니다</h3>
+    <p>능력 3개는 전부 “<b>더 잘 먹기</b>” 또는 “<b>안 죽기</b>”의 변주입니다.
+       진짜 새로운 행동은 질량 20 이후 <b>하나도</b> 늘지 않습니다.</p>
+    <div class="verbs">
+      <div class="verb"><div class="v">먹기</div><div class="d">유일한 핵심 동사</div></div>
+      <div class="verb same"><div class="v">DASH</div><div class="d">더 잘 먹기</div></div>
+      <div class="verb same"><div class="v">SPIN</div><div class="d">더 잘 먹기</div></div>
+      <div class="verb same"><div class="v">WAVE</div><div class="d">안 죽기</div></div>
+      <div class="verb same"><div class="v">JET</div><div class="d">안 죽기</div></div>
+    </div>
+  </div>
+
+  <div class="done">
+    <b>먼저 고친 것 — 최종 형태가 안 보이던 문제.</b>
+    완전체(EXTREMAL KERR)는 원반 색만 희게 바꿨는데, 고질량에선 이미 하얗게 포화돼 있어
+    <b>사실상 아무 변화가 없었습니다.</b> 이제 발동하면 <b>중력 렌징이 ×2.6으로 치솟아 시공간이 휘고</b>,
+    지평선 밖으로 <b>에르고구면 고리</b>가 맥동하며 나타납니다 — 실제로 시공간 자체가 끌려 도는 영역입니다.
+    (기억하시는 “예전의 최종 형태”는 질량 20의 초신성일 가능성이 큽니다. 그건 지금도 그대로 있습니다.)
+  </div>
+</section>
+
+<!-- ══ 선택지 ══ -->
+<section>
+  <h2>선택지 · 무엇을 만들까</h2>
+  <p class="lede">넷 다 실제 천체물리에 근거가 있습니다. 차이는 <b>새 동사를 주는가</b>,
+     그리고 <b>기존 밸런스를 얼마나 흔드는가</b>입니다.</p>
+
+  <div class="opt pick">
+    <div class="hd"><span class="tag">A</span><h3>블랙홀 사냥 — 라이벌에 현상금</h3>
+      <span class="newverb">새 목표</span></div>
+    <p class="what">후반의 주 활동을 ‘행성 먹기’에서 ‘블랙홀 사냥’으로 바꿉니다.</p>
+    <p class="body">특정 라이벌에 <b>현상금(BOUNTY)</b>이 붙고 화면에 추적 표시가 뜹니다.
+      그 놈은 도망치고, 다른 것을 먹어 몸집을 불리며, 시간이 지나면 사라집니다.
+      쫓아가 병합하면 큰 보상 — 질량·점수·능력 충전. 놓치면 그놈이 더 커져 나중에 위협으로 돌아옵니다.
+      <b>추적 → 포위 → 병합</b>이라는 완결된 루프가 생깁니다.</p>
+    <div class="meta">
+      <span>새 동사 <b>추적·사냥</b></span><span>비용 <b>중</b></span>
+      <span>밸런스 위험 <b class="risk-lo">낮음</b></span><span>기존 시스템 재사용 <b>네메시스·병합</b></span>
+    </div>
+    <p class="why"><b>물리 근거.</b> 초대질량 블랙홀이 자라는 <b>주된 경로는 강착이 아니라 병합</b>입니다.
+      에딩턴 한계 때문에 가스만 먹어서는 10⁶ M☉에 닿을 수 없습니다 — 게임의 후반이 사냥이 되는 건
+      물리적으로 정확합니다.</p>
+  </div>
+
+  <div class="opt pick">
+    <div class="hd"><span class="tag">B</span><h3>펜로즈 과정 — 스쳐서 빼앗기</h3>
+      <span class="newverb">새 동사</span></div>
+    <p class="what">먹지 않고 <b>스치는 것만으로</b> 이득을 봅니다.</p>
+    <p class="body">천체를 지평선이 아니라 <b>에르고구면</b>에 스치듯 통과시키면,
+      그 천체는 튕겨 나가고 <b>나는 회전 에너지를 얻습니다</b> — 능력 게이지 급충전 + 콤보 유지.
+      대신 내 회전이 줄어 강착 효율이 잠시 떨어집니다.
+      <b>“삼킬까, 스칠까”</b>가 매 순간의 판단이 됩니다. 큰 놈일수록 스치는 값이 큽니다.</p>
+    <div class="meta">
+      <span>새 동사 <b>스치기(그레이징)</b></span><span>비용 <b>중</b></span>
+      <span>밸런스 위험 <b class="risk-mid">중간</b></span><span>기존 시스템 재사용 <b>에르고구면·능력</b></span>
+    </div>
+    <p class="why"><b>물리 근거.</b> 펜로즈 과정 — 회전하는 블랙홀의 에르고구면에서는 물체가
+      음의 에너지 궤도를 탈 수 있어, <b>블랙홀의 회전 에너지를 실제로 뽑아낼 수 있습니다.</b>
+      이론상 커 블랙홀 질량의 29%까지 추출 가능합니다.</p>
+  </div>
+
+  <div class="opt">
+    <div class="hd"><span class="tag">C</span><h3>원반 짓기 — 삼키지 말고 쌓기</h3>
+      <span class="newverb">새 동사</span></div>
+    <p class="what">천체를 <b>궤도에 붙잡아</b> 내 강착원반으로 쌓습니다.</p>
+    <p class="body">삼키면 즉시 질량, 붙잡으면 <b>시간당 질량 + 제트로 쏘는 탄약 + 콤보 창 연장</b>.
+      원반이 두꺼워질수록 내가 밝아지고, 라이벌이 그 빛을 보고 몰려옵니다.
+      <b>“지금 먹을까, 쌓을까”</b>가 게임 전체를 관통하는 선택이 됩니다.</p>
+    <div class="meta">
+      <span>새 동사 <b>포획·비축</b></span><span>비용 <b class="risk-hi">높음</b></span>
+      <span>밸런스 위험 <b class="risk-hi">높음</b></span><span>기존 시스템 재사용 <b>흡수 흐름</b></span>
+    </div>
+    <p class="why"><b>물리 근거.</b> 실제 강착원반은 물질을 곧장 삼키지 않고 <b>오래 궤도에 붙잡아 둡니다</b> —
+      각운동량을 버려야만 안쪽으로 내려갑니다. 다만 이건 성장 경제 전체를 다시 짜야 해서
+      가장 크고 가장 위험한 선택지입니다.</p>
+  </div>
+
+  <div class="opt">
+    <div class="hd"><span class="tag">D</span><h3>은하 지도 — 목적지를 여러 개로</h3>
+      <span class="newverb no">새 목표(약함)</span></div>
+    <p class="what">지금 목적지는 은하 중심 <b>하나뿐</b>입니다. 명소를 여러 개 둡니다.</p>
+    <p class="body">구상성단·거대분자운·왜소은하 잔해 등이 맵에 표시되고, 각각 보상과 위험이 다릅니다.
+      나침반이 여러 개를 가리키고, 어디부터 갈지 고릅니다.</p>
+    <div class="meta">
+      <span>새 동사 <b>없음(경로 선택)</b></span><span>비용 <b>낮음</b></span>
+      <span>밸런스 위험 <b class="risk-lo">낮음</b></span><span>기존 시스템 재사용 <b>나침반·지형</b></span>
+    </div>
+    <p class="why"><b>물리 근거.</b> 은하는 균일하지 않습니다 — 성단·분자운·나선팔이 밀도의 섬을 이룹니다.
+      다만 이건 <b>또 볼거리에 가깝습니다.</b> 진단에서 지적한 문제를 직접 풀지는 못합니다.</p>
+  </div>
+</section>
+
+<!-- ══ 추천 ══ -->
+<section>
+  <h2>추천</h2>
+  <div class="rec">
+    <b>A(블랙홀 사냥) + B(펜로즈 과정)</b>을 함께 권합니다.<br><br>
+    <b>A가 후반의 ‘무엇을 하는가’를 바꿉니다</b> — 지금 라이벌은 그냥 배경인데, 현상금이 붙는 순간
+    후반 전체가 추적 게임이 됩니다. 기존 네메시스·병합 시스템을 재사용하므로 밸런스 위험이 낮고,
+    물리적으로도 정확합니다(초대질량 블랙홀은 병합으로 자랍니다).<br><br>
+    <b>B가 ‘어떻게 하는가’를 늘립니다</b> — 지금은 모든 천체가 “먹거나 피하거나”인데,
+    스치기가 생기면 <b>위험한 것을 자원으로 바꾸는</b> 제3의 답이 생깁니다.
+    방금 넣은 에르고구면 고리를 그대로 쓰므로 시각적 기반도 이미 있습니다.<br><br>
+    <b>C는 가장 크고 가장 위험합니다</b> — 성장 경제 전체를 다시 짜야 합니다.
+    A·B를 치신 뒤에도 부족하면 그때 가는 게 맞다고 봅니다.
+    <b>D는 또 볼거리라 지금 문제를 안 풉니다.</b>
+  </div>
+</section>
+
+<footer>
+  ACCRETION · prototype 5.12 · <a href="../">게임</a> · <a href="items.html">아이템 도감</a><br>
+  진단 수치는 배포본 코드 실측 · 전 회귀 446/446
+</footer>
+
+</div>
+</body>
+</html>
