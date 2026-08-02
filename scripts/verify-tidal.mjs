@@ -135,7 +135,7 @@ try {
     return { seen:A.codex().seen, total:A.codex().total }
   })
   ok('B6: TDE 코덱스가 열린다', cdx.seen.includes('tde'), cdx.seen.join(','))
-  ok('B6: 코덱스 33항목', cdx.total===33, `${cdx.total}`)
+  ok('B6: 코덱스 37항목', cdx.total===37, `${cdx.total}`)
 
   // ── (C) 흡수 중인 천체: 겹치지 않고, 무엇보다 '밀려나지 않는다' ──
   // 오너 리포트 2건을 동시에 만족해야 한다:

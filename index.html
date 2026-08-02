@@ -284,7 +284,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.5</div>
+<div class="credit">ACCRETION · prototype 5.6</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -898,6 +898,21 @@ function mkVisual(type,mass){
   for(let i=0;i<6;i++){ // 구름 속에서 갓 태어난 별들
    const sm=new THREE.Mesh(new THREE.SphereGeometry(0.085,8,6),new THREE.MeshBasicMaterial({color:0xffffff}))
    sm.position.set(rnd(-0.6,0.6),rnd(-0.12,0.12),rnd(-0.6,0.6));g.add(sm)}}
+ else if(type==='sstar'){ // S성 — 은하 중심을 도는 별. S2는 근점에서 광속의 3%로 스친다.
+  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:0xdff0ff})));g.add(glow(0xbfe0ff,5.0,0.75))
+  const tr=new THREE.Mesh(new THREE.RingGeometry(1.7,1.85,48),new THREE.MeshBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0.30,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+  tr.rotation.x=-Math.PI/2+0.22;g.add(tr)}   // 극단 이심 궤도의 흔적
+ else if(type==='nucleus'){ // 왜소은하 핵 — 소규모 병합이 중심으로 실어 나르는 성단 덩어리.
+  const N=220,np=new Float32Array(N*3),nc=new Float32Array(N*3)
+  for(let i=0;i<N;i++){const rr2=Math.pow(Math.random(),3.0)*1.5   // 핵성단은 중심 밀도가 극단적이다
+   const th=Math.acos(2*Math.random()-1),ph=Math.random()*6.283
+   np[i*3]=rr2*Math.sin(th)*Math.cos(ph);np[i*3+1]=rr2*Math.sin(th)*Math.sin(ph)*0.7;np[i*3+2]=rr2*Math.cos(th)
+   const v=0.75+Math.random()*0.25;nc[i*3]=v;nc[i*3+1]=v*0.88;nc[i*3+2]=v*0.72}
+  const ng=new THREE.BufferGeometry()
+  ng.setAttribute('position',new THREE.BufferAttribute(np,3));ng.setAttribute('color',new THREE.BufferAttribute(nc,3))
+  g.add(new THREE.Points(ng,new THREE.PointsMaterial({size:0.19,vertexColors:true,transparent:true,opacity:0.95,blending:THREE.AdditiveBlending,depthWrite:false,fog:false})))
+  g.add(glow(0xffd9a0,4.4,0.55))
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),new THREE.MeshBasicMaterial({color:0x000000,fog:false})))}   // 자기 블랙홀을 품고 온다
  else if(type==='hypergiant'){ // 극대거성 — R136a1급. 태양의 200배 질량에 수백만 배 밝기.
   const SC=[0x9fc0ff,0xcfe4ff,0xfff0d0],col=SC[Math.floor(Math.random()*SC.length)]
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,7.2,0.9))}
@@ -933,7 +948,8 @@ function foodTable(){
  if(t<=0) return ['planet','giant','star','whitedwarf','redgiant']               // 항성질량 — 별의 시체들
  if(t===1)return ['whitedwarf','redgiant','binary','giant','pulsar','hypergiant']        // 중간질량 — 쌍성계·극대거성
  if(t===2)return ['binary','cluster','redgiant','gascloud','giant','hypergiant']        // 초대질량 — 성단·분자운
- return ['cluster','binary','gascloud','hypergiant','redgiant','cluster']               // 퀘이사·극대질량 — 성단·구름·극대거성
+ if(t===3)return ['cluster','binary','gascloud','sstar','hypergiant','sstar']          // 퀘이사 — 은하 중심을 도는 S성이 섞인다
+ return ['nucleus','cluster','sstar','gascloud','nucleus','hypergiant']                // 극대질량 — 왜소은하 핵을 삼키는 단계
  // 후반이 성단·쌍성 두 종뿐이라 진부했다(오너 지적) → 구름·극대거성·거인을 섞어 색과 실루엣을 늘린다
 }
 function pickFood(){const t=foodTable();return t[Math.floor(Math.random()*t.length)]}
@@ -943,7 +959,8 @@ function spawnObj(type,mass,x,z){
  if(x==null){const a=rnd(0,6.283),dist=(22+rad(S.mass)*7)*rnd(1.15,1.9);x=hole.position.x+Math.cos(a)*dist;z=hole.position.z+Math.sin(a)*dist} // 뷰(camDist) 바로 밖에 스폰 — 커져도 필드가 화면 근처에 밀집(고질량 공백 방지)
  g.position.set(x,0,z==null?0:z)
  scene.add(g)
- const o={g,type,mass,r,vx:rnd(-2,2),vz:rnd(-2,2),spin:rnd(-1,1),eaten:false,nmCd:0}
+ const sp0=type==='sstar'?5.5:(type==='nucleus'?0.35:1)   // S성은 근점에서 광속의 3%로 스친다 · 핵성단은 무겁고 굼뜨다
+ const o={g,type,mass,r,vx:rnd(-2,2)*sp0,vz:rnd(-2,2)*sp0,spin:rnd(-1,1),eaten:false,nmCd:0}
  objects.push(o);return o}
 function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
@@ -1390,9 +1407,9 @@ let banT=0
 
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster','gascloud','hypergiant']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster','gascloud','hypergiant','sstar','nucleus','stream','blast']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER',gascloud:'MOLECULAR CLOUD',hypergiant:'HYPERGIANT'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER',gascloud:'MOLECULAR CLOUD',hypergiant:'HYPERGIANT',sstar:'S-STAR',nucleus:'GALACTIC NUCLEUS',stream:'STELLAR STREAM',blast:'SHOCK BREAKOUT'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -1425,7 +1442,11 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  binary:'Most stars are not alone. Over half the points of light you see are two or more stars orbiting each other.',
  cluster:'A globular cluster packs hundreds of thousands of stars into a ball a few dozen light years across.',
  gascloud:'Giant molecular clouds are the coldest, densest gas in a galaxy — stars are born inside them, and they are what actually feeds a growing black hole.',
- hypergiant:'R136a1 holds about 200 solar masses and shines millions of times brighter than the Sun. Stars this heavy live only a few million years.'}
+ hypergiant:'R136a1 holds about 200 solar masses and shines millions of times brighter than the Sun. Stars this heavy live only a few million years.',
+ sstar:'S2 loops our galaxy\'s central black hole every 16 years, sweeping past at about 3% of light speed. Tracking those orbits is how we weighed Sagittarius A*.',
+ nucleus:'When a small galaxy is swallowed, its dense nuclear star cluster sinks to the centre and delivers its own black hole. Big holes grow by eating small galaxies whole.',
+ stream:'A star cluster torn apart by tides does not scatter — it stretches into a stream along its orbit. The Sagittarius stream still wraps our galaxy.',
+ blast:'When a massive star dies, the shock reaches the surface and breaks out in a flash of hours, then the blast wave sweeps the neighbourhood for centuries.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -1519,6 +1540,7 @@ function update(dt){
  // 질량 유출 — 형태마다 이유가 다르다(침식 / 항성풍 / 호킹 복사) = 전부 실제 현상
  const shrink=0.05*(1+1.6/Math.max(0.3,S.mass))*(S.modEvap||1)*F.shrink
  if(!S.feeds.length)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
+ updateEvents(dt)   // 런 리듬 — 주기적으로 맵 전체를 흔든다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  checkMassMarks()
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
@@ -1879,7 +1901,7 @@ requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
  updateFX(dt);const hold=onbT||choiceOpen
- if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateCamera(dt);hud();render()}
+ if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
@@ -2216,6 +2238,71 @@ function updateShock(dt){
  if(shockT>=1)shock.visible=false
 }
 
+/* ===== 런 리듬 이벤트 — 같은 밀도로 계속 먹기만 하면 시간이 평평해진다.
+   맵 전체를 흔드는 사건을 주기적으로 넣어 '지금 무슨 일이 일어났다'를 만든다. 둘 다 실제 현상. ===== */
+const evShock=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xffd0a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+evShock.rotation.x=-Math.PI/2;evShock.visible=false;scene.add(evShock)
+let evShockT=0,evShockR=1
+function updateEvShock(dt){
+ if(!evShock.visible)return
+ evShockT+=dt*1.5
+ evShock.scale.setScalar(Math.max(0.001,Math.min(1,evShockT)*evShockR))
+ evShock.material.opacity=Math.max(0,0.85*(1-evShockT))
+ if(evShockT>=1)evShock.visible=false
+}
+// 조석 흐름 — 성단이 조석에 찢기면 흩어지지 않고 궤도를 따라 '줄'로 늘어선다(궁수자리 흐름).
+function stellarStream(){
+ const hx=hole.position.x,hz=hole.position.z,hr=rad(S.mass)
+ const a0=rnd(0,6.283), ca=Math.cos(a0), sa=Math.sin(a0)
+ // '22+hr*7'은 스폰 기준이지 시야가 아니다 — 실측하니 camDist 56일 때 그 값은 78이라
+ // 사슬 전체가 화면 밖에 놓였다. 실제로 보이는 범위는 카메라 거리로 잡아야 한다.
+ const R=cam.position.distanceTo(hole.position)
+ const off=R*rnd(0.5,0.8)                           // 화면 안을 가로질러 흐른다
+ const px=-sa*off, pz=ca*off
+ const step=R*0.40, n=13                            // 사슬은 화면보다 길다 — 흘러 들어오고 흘러 나간다
+ const spd=rnd(7,11)
+ for(let i=0;i<n;i++){
+  const t=(i-(n-1)/2)*step
+  spawnObj('star', Math.max(0.4,S.mass*rnd(0.05,0.13)), hx+px+ca*t, hz+pz+sa*t)   // 찢긴 성단의 구성원은 별이다
+  const o=objects[objects.length-1]
+  o.vx=ca*spd; o.vz=sa*spd; o.stream=true            // 줄 전체가 같은 궤도를 따라 흐른다
+ }
+ S.streamCount=(S.streamCount||0)+1
+ banner('✧ STELLAR STREAM','a shredded cluster strung along its orbit — harvest the chain',2)
+ codexToast('stream')
+}
+// 초신성 충격파 — 이웃 별이 터지면 폭풍이 지나간다. 밀려나지만 잔해가 남는다.
+function shockBreakout(){
+ const hr=rad(S.mass)
+ const a0=rnd(0,6.283), dist=(22+hr*7)*rnd(0.7,1.1)
+ const ex=hole.position.x+Math.cos(a0)*dist, ez=hole.position.z+Math.sin(a0)*dist
+ evShockR=(22+hr*7)*1.9
+ evShock.position.set(ex,0.1,ez);evShock.visible=true;evShockT=0
+ for(const o of objects){ if(o.eaten)continue
+  const dx=o.g.position.x-ex,dz=o.g.position.z-ez,d=Math.hypot(dx,dz)||1
+  if(d>evShockR)continue
+  const push=(1-d/evShockR)*40
+  o.vx+=(dx/d)*push;o.vz+=(dz/d)*push }
+ {const dx=hole.position.x-ex,dz=hole.position.z-ez,d=Math.hypot(dx,dz)||1   // 나도 밀려난다
+  if(d<evShockR){const push=(1-d/evShockR)*26;S.vx+=(dx/d)*push;S.vz+=(dz/d)*push;S.shake=Math.min(S.shake+0.8,1.5)}}
+ mkFeat('remnant',ex,ez)                              // 폭풍이 지나간 자리에 무거운 원소가 남는다
+ S.blastCount=(S.blastCount||0)+1
+ AU.boom();banner('✦ SHOCK BREAKOUT','a neighbour went supernova — the blast is passing',2)
+ codexToast('blast')
+}
+function fireEvent(kind){
+ if(!S.alive)return null
+ const k=kind||(((S.evN=(S.evN||0)+1)%2)?'stream':'blast')
+ if(k==='stream')stellarStream(); else shockBreakout()
+ return k
+}
+function updateEvents(dt){
+ if(S.formIdx<2)return                                 // 블랙홀이 된 뒤부터 — 그 전은 기본기에 집중
+ if(S.evT==null)S.evT=rnd(16,24)
+ S.evT-=dt
+ if(S.evT<=0){S.evT=rnd(26,40);fireEvent()}
+}
+
 /* ===== 네메시스(에이펙스 포식자) — 중반부터 쫓는 항상 더 큰 블랙홀. 키워서 되먹으면 클라이맥스·다음 등장 ===== */
 let nemesis=null,nemPending=0
 function spawnNemesis(){
@@ -2255,7 +2342,8 @@ addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>
 function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
- Object.assign(S,{mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
+ evShock.visible=false
+ Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
@@ -2367,7 +2455,10 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  tagDist:()=>{const o=window.__accTag;return o?Math.round(o.g.position.distanceTo(hole.position)*10)/10:null},
  eatenInfo:()=>objects.filter(o=>o.eaten).map(o=>({t:o.type,byRival:!!o.eatBy,dPlayer:Math.round(o.g.position.distanceTo(hole.position))})),
  seen:()=>[...CODEX.seen],types:()=>objects.map(o=>o.type),
- objInfo:()=>objects.map(o=>({t:o.type,mass:Math.round(o.mass*10)/10,bigger:o.mass>=S.mass,
+ // 좌표가 없어 거리 계산이 NaN이 되던 사각지대 — 검증에서 두 번 헛돌았다
+ objInfo:()=>objects.map(o=>({t:o.type,mass:Math.round(o.mass*10)/10,bigger:o.mass>=S.mass,eaten:!!o.eaten,
+  x:+o.g.position.x.toFixed(1),z:+o.g.position.z.toFixed(1),
+  d:+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(1),
   edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
  codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
@@ -2426,6 +2517,10 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ viewR:()=>{const h=rad(S.mass);return {V:Math.round(22+h*7),camDist:Math.round(cam.position.distanceTo(hole.position))}},
+ fireEvent:(k)=>fireEvent(k),
+ eventState:()=>({t:Math.round((S.evT||0)*10)/10,streams:S.streamCount||0,blasts:S.blastCount||0,ring:evShock.visible}),
+ streamCount:()=>objects.filter(o=>o.stream&&!o.eaten).length,
  corePos:()=>({x:galCore.position.x,z:galCore.position.z}),
  coreState:()=>({visible:galCore.visible,eaten:coreEaten,dist:+galCore.position.distanceTo(hole.position).toFixed(1),mass:CORE_MASS}),
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
@@ -2489,7 +2584,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  accEff:()=>Math.round(accEff()*1000)/1000,fogDensity:()=>scene.fog.density,
  // 측정용 가속기: render 스킵하고 update만 고속 반복
  // frame()은 update() 다음에 updateCore()를 부른다 — 여기서 빠져 있어 검증이 종착점을 볼 수 없었다
- step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000);updateCore(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
+ step:(secs,dtms=16)=>{const n=Math.floor(secs*1000/dtms);for(let i=0;i<n&&S.alive;i++){update(dtms/1000);updateCore(dtms/1000);updateEvShock(dtms/1000)}return {t:Math.round(S.t*10)/10,mass:Math.round(S.mass*100)/100,alive:S.alive}},
  LB,openBoard,closeBoard,
  boardOpen:()=>!$('board').classList.contains('off'),
  boardRows:()=>$('boardList').querySelectorAll('.brow').length,

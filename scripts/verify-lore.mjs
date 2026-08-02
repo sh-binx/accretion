@@ -52,7 +52,7 @@ try{
   const cdx=await page.evaluate(()=>{const A=window.__acc;A.resetCodex();A.begin();A.step(0.05)
     return {seen:A.codex().seen,total:A.codex().total}})
   ok('PROTOSTAR 코덱스가 첫 판에 열린다', cdx.seen.includes('protostar'), cdx.seen.join(','))
-  ok('코덱스 33항목', cdx.total===33, `${cdx.total}`)
+  ok('코덱스 37항목', cdx.total===37, `${cdx.total}`)
 
   const fact=await page.evaluate(()=>{const A=window.__acc;A.discover('protostar');A.openCodex()
     const t=document.getElementById('codexGrid')?.textContent||'';A.closeCodex();return t})

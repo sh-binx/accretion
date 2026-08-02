@@ -68,7 +68,7 @@ try {
 
   // codex grew to 19 and skins re-tuned
   const cdx = await page.evaluate(() => ({ total: window.__acc.codex().total }))
-  ok('codex now has 33 entries', cdx.total===33, `${cdx.total}`)
+  ok('codex now has 37 entries', cdx.total===37, `${cdx.total}`)
 
   // regression: restarting clears features, growth still works
   const reg = await page.evaluate(async () => {

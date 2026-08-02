@@ -138,6 +138,55 @@ try {
   ok('map keeps growing: more terrain from SUPERMASSIVE', feats.smbh>feats.bh,
      `${feats.bh} → ${feats.smbh}`)
 
+  // ── 런 리듬 이벤트 — 같은 밀도로 계속 먹기만 하면 시간이 평평해진다 ──
+  const ev = await page.evaluate(() => {
+    const A=window.__acc, out={}
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000)
+    const n0=A.objInfo().length
+    A.fireEvent('stream'); A.step(0.1)
+    out.stream={ added:A.objInfo().length-n0, tagged:A.streamCount(), rec:A.eventState().streams }
+    A.clearField()
+    const p0=A.pos(), f0=A.featCount()
+    A.spawn('giant', 300, p0.x+20, p0.z)
+    const before=A.objInfo()[0]
+    A.fireEvent('blast'); A.step(0.05,20)
+    out.blast={ ring:A.eventState().ring, feats:A.featCount()-f0, rec:A.eventState().blasts }
+    // 형태 게이트 — 원시별 구간엔 사건이 없다(기본기에 집중)
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(2)
+    for(let i=0;i<60;i++){ A.step(1.0); if(i%5===0)A.clearField() }
+    out.proto=A.eventState().streams+A.eventState().blasts
+    // 블랙홀이 되면 주기적으로 온다
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000)
+    for(let i=0;i<80;i++){ A.step(1.0); if(i%5===0)A.clearField() }
+    out.bh={ n:A.eventState().streams+A.eventState().blasts, s:A.eventState().streams, b:A.eventState().blasts }
+    return out
+  })
+  ok('event: stellar stream lays down a chain of stars', ev.stream.added>=12&&ev.stream.rec===1,
+     `${ev.stream.added}개 · 흐름표시 ${ev.stream.tagged}`)
+  ok('event: shock breakout rings out and leaves a remnant', ev.blast.ring===true&&ev.blast.feats>=1&&ev.blast.rec===1,
+     `ring=${ev.blast.ring} 지형+${ev.blast.feats}`)
+  ok('event: none while still a protostar', ev.proto===0, `${ev.proto}건/60s`)
+  ok('event: both kinds arrive once you are a black hole', ev.bh.n>=2&&ev.bh.s>=1&&ev.bh.b>=1,
+     `80초에 ${ev.bh.n}건(흐름 ${ev.bh.s} · 충격파 ${ev.bh.b})`)
+
+  // ── 후반 천체 구성 — 40,000 이후가 전부 같았다 ──
+  const roster = await page.evaluate(() => {
+    const A=window.__acc
+    const at=(m)=>{ A.begin(); A.hideOnboard(); A.setMass(m)
+      const k={}
+      for(let r=0;r<25;r++){ A.clearObjs(); A.setMass(m); A.step(0.1)
+        for(const o of A.objInfo()) k[o.t]=(k[o.t]||0)+1 }
+      return k }
+    return { smbh:at(4000), quasar:at(40000), ultra:at(3e5) }
+  })
+  ok('roster: S-stars only from QUASAR', !roster.smbh.sstar && roster.quasar.sstar>0,
+     `초대질량 ${roster.smbh.sstar||0} → 퀘이사 ${roster.quasar.sstar}`)
+  ok('roster: galactic nuclei only at ULTRAMASSIVE', !roster.quasar.nucleus && roster.ultra.nucleus>0,
+     `퀘이사 ${roster.quasar.nucleus||0} → 극대질량 ${roster.ultra.nucleus}`)
+  ok('roster: QUASAR and ULTRAMASSIVE no longer look the same',
+     Math.abs((roster.quasar.sstar||0)-(roster.ultra.sstar||0))>10 || (roster.ultra.nucleus||0)>10,
+     `sstar ${roster.quasar.sstar}/${roster.ultra.sstar} · nucleus ${roster.quasar.nucleus||0}/${roster.ultra.nucleus}`)
+
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
 } finally {
