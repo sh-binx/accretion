@@ -62,7 +62,7 @@ try{
     return {seen:A.codex().seen,total:A.codex().total,txt:t}})
   ok('중력파 코덱스가 열린다', cdx.seen.includes('gwave'))
   ok('LIGO 2015 관측 사실이 실린다', /LIGO/.test(cdx.txt))
-  ok('코덱스 37항목', cdx.total===37, `${cdx.total}`)
+  ok('코덱스 38항목', cdx.total===38, `${cdx.total}`)
 
   ok('no JS/console errors',errors.length===0,errors.slice(0,3).join(' | '))
 }catch(e){console.error('FATAL',e);results.push([false,'fatal',String(e)])}
