@@ -89,10 +89,27 @@ try {
     return out
   })
   ok('heat: run heat rises with time (it was never used before)',
-     heat[0].heat < 0.05 && heat[1].heat > 0.95, `${heat[0].heat} → ${heat[1].heat}`)
+     heat[0].heat < 0.06 && heat[1].heat > 0.90, `${heat[0].heat} → ${heat[1].heat}`)
   ok('heat: the field gets denser', heat[1].n > heat[0].n * 1.15, `${heat[0].n} → ${heat[1].n}개`)
   ok('heat: threats get more common', heat[1].mix.rivalP > heat[0].mix.rivalP * 1.25,
      `스폰 확률 ${heat[0].mix.rivalP} → ${heat[1].mix.rivalP} (표본 ${Math.round(heat[0].riv*100)}% → ${Math.round(heat[1].riv*100)}%)`)
+
+  // 곡선이 실제 런 분포에 맞는가 — 210초 선형이던 시절, 중앙값 60초 런은 상승의 29%만 겪었다.
+  const shape = await page.evaluate(() => {
+    const A=window.__acc, out={}
+    A.begin(); A.hideOnboard(); A.setMass(3000)
+    for(const t of [30,60,114,217]){
+      A.begin(); A.hideOnboard(); A.setMass(3000)
+      let g=0
+      while(A.state.t<t && g++<500){ A.step(1.0); A.setMass(3000); A.clearObjs() }
+      out[t]=A.heat()
+    }
+    return out
+  })
+  ok('heat: the median run (60s) already feels most of the ramp', shape[60] > 0.45,
+     `30s ${shape[30]} · 60s ${shape[60]} · 114s ${shape[114]} · 217s ${shape[217]}`)
+  ok('heat: long runs keep climbing (no flat ceiling)', shape[217] > shape[114] && shape[114] > shape[60],
+     `${shape[60]} → ${shape[114]} → ${shape[217]}`)
 
   // 궤도 속도 — 중심에 가까울수록 빨라진다. 스텝 사이 인덱스로 짝지으면 객체가 바뀌어 무의미하다(첫 시도 실패) → 속도를 직접 읽는다.
   const spd = await page.evaluate(() => {

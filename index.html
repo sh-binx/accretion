@@ -284,7 +284,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.8</div>
+<div class="credit">ACCRETION · prototype 5.9</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1592,8 +1592,14 @@ function codexToast(type){
 // 물리 근거: 이 런은 은하 중심으로의 나선 낙하다. 중심에 가까울수록 별의 밀도와 궤도 속도가
 // 가파르게 오른다 — Sgr A* 근처의 S성은 광속의 3%로 돈다. 그 압박을 시간으로 옮긴다.
 let lastMix={}
-const HEAT_FULL=210                                  // 이 시간(초)에 걸쳐 최대치로
-function runHeat(){return S.alive?Math.min(1,(S.t||0)/HEAT_FULL):0}
+// 처음엔 210초 선형으로 잡았다가 실제 런 분포(30초 이상 28건)에 대보니 잘못이었다:
+// 중앙값 60초 · p75 114초 · p90 217초 — 중앙값 런은 상승의 29%만 겪고 14%만 끝까지 본다.
+// 선형+상한은 '대부분 못 느끼고, 오래 산 소수는 평평한 최대치'라는 최악의 조합이다.
+// 지수 접근으로 바꾼다: 초반에 빠르게 오르고 끝없이 완만히 오르되 절대 폭주하지 않는다.
+// 나선 낙하의 물리와도 맞는다 — 중심에는 점근적으로 가까워질 뿐 도달하지 않는다.
+//   30초 0.35 · 60초 0.58 · 114초 0.80 · 217초 0.96
+const HEAT_TAU=70
+function runHeat(){return S.alive?1-Math.exp(-(S.t||0)/HEAT_TAU):0}
 
 /* ===== spawn director ===== */
 function topUp(){const cap=S.formIdx===2?Math.max(30,46-Math.log10(Math.max(10,S.mass))*4):56 // 후반엔 천체가 커지므로 개수를 줄여 화면을 정리
