@@ -261,6 +261,10 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 #onb .ob-t{font-family:'Martian Mono',monospace;font-weight:500;font-size:9px;letter-spacing:.34em;color:#7E848C;margin-bottom:18px}
 #onb .ob-r{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:11px}
 #onb .ob-r b{font-family:'Martian Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.16em;color:#F4F7FA;min-width:96px}
+#onb .ob-r b.hc{font-size:19px;letter-spacing:0;line-height:1}   /* 링 색 범례 — 점만 크게 */
+@media (max-height:430px){#onb .ob-r{margin-bottom:6px}#onb .ob-t{margin-bottom:9px!important}
+ #onb .ob-r b{font-size:13px;min-width:78px}#onb .ob-r i{font-size:9px;letter-spacing:.16em}
+ #onb .ob-r span{font-size:8.5px;min-width:92px}#onb .ob-h{margin-top:12px;font-size:10px}}   /* 낮은 화면: 범례가 더해져 빠듯해졌다 */
 #onb .ob-r span{font-family:'Martian Mono',monospace;font-weight:300;font-size:9.5px;letter-spacing:.18em;color:#6C727A;min-width:112px;text-align:left}
 #onb .ob-r i{font-style:normal;font-family:'Martian Mono',monospace;font-weight:300;font-size:10px;letter-spacing:.24em;color:#FF6B3D;text-transform:uppercase}
 #onb .ob-h{font-family:'Martian Mono',monospace;font-weight:700;font-size:11px;letter-spacing:.26em;color:#FFCDB6;margin-top:20px;text-transform:uppercase;
@@ -275,7 +279,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="apex"></div>
 <div id="combo"></div>
 <div id="choice"><div class="ct">EVOLVE</div><div class="cs" id="choiceSub"></div><div class="cw" id="choiceWrap"></div></div>
-<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-h">press any key to begin</div></div>
+<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-t" style="margin:18px 0 12px">HALOS</div><div class="ob-r"><b class="hc" style="color:#7bed4a">●</b><span>&nbsp;</span><i style="color:#7bed4a">edible</i></div><div class="ob-r"><b class="hc" style="color:#ff4050">●</b><span>&nbsp;</span><i style="color:#ff4050">it eats you</i></div><div class="ob-r"><b class="hc" style="color:#ffa83c">●</b><span>&nbsp;</span><i style="color:#ffa83c">shatters you</i></div><div class="ob-h">press any key to begin</div></div>
 <div id="codex"></div>
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
@@ -284,7 +288,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.9</div>
+<div class="credit">ACCRETION · prototype 5.10</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -760,7 +764,8 @@ const gridTex=(()=>{const c=document.createElement('canvas');c.width=c.height=12
  x.clearRect(0,0,128,128)
  x.strokeStyle='rgba(150,180,235,0.85)';x.lineWidth=2.2
  x.beginPath();x.moveTo(0.5,0);x.lineTo(0.5,128);x.moveTo(0,0.5);x.lineTo(128,0.5);x.stroke()
- x.fillStyle='rgba(180,210,255,0.8)';x.fillRect(62,62,4,4)   // 교차점 표식
+ // 교차점 사각형은 뺐다 — 세는 데 도움이 되라고 넣었지만 오너에겐 '왜 있는지 모를 점'으로 읽혔다.
+ // 자(ruler) 구실은 선만으로 충분하고, 노이즈가 줄면 천체가 더 잘 보인다.
  const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(4000,4000)
  t.offset.set(0.5,0.5) // 플레이어 시작점(원점)이 교차점에 정확히 놓여 화면 정중앙 십자로 읽혔다 — 반 칸 어긋나게 둔다
  t.generateMipmaps=false;t.minFilter=THREE.LinearFilter;t.magFilter=THREE.LinearFilter // 밉맵이 켜지면 멀어질수록 선이 사라져 기준자 구실을 못한다
@@ -1697,6 +1702,7 @@ function update(dt){
   const waiting=bigFood&&S.feeds.length>=feedSlots()&&!feedOf(o)   // 슬롯이 다 찼을 때만 대기
   const h=o.g.userData.halo
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
+   if(d<mouth*4)S.sawEdible=true   // 힌트 조건 — 눈에 들어올 만큼 가까울 때
    const bnP=boonNow()
    const pull=mouth*F.pull*(bnP?bnP.pull:1)*boonMul('pull') // 흡입권 — 형태 × 콤보 단계 × 진화 선택
    const base=o.r*1.15
@@ -1726,8 +1732,8 @@ function update(dt){
       // 흐름 입자 — 천체에서 떨어져 나와 블랙홀로 흘러든다
       streamPart(o.g.position.x-(dx/d)*o.r*0.6,o.g.position.z-(dz/d)*o.r*0.6,-(dx/d),-(dz/d),o.type==='rival'?0xffb070:0x9fd8ff)}}
    } else if(!o.eaten&&o.g.scale.x!==base){o.g.rotation.y=0;o.g.scale.setScalar(base)}} // 영향권 밖 → 원래 형태로
-  else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24}
-  else if(crush){h.material.color.setHex(0xffa83c);h.material.opacity=0.5+Math.sin(S.t*7)*0.2} // 충돌 위험(부서짐)
+  else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24;if(d<omouth*3)S.sawThreat=true}
+  else if(crush){h.material.color.setHex(0xffa83c);h.material.opacity=0.5+Math.sin(S.t*7)*0.2;if(d<omouth*3)S.sawThreat=true} // 충돌 위험(부서짐)
   else h.material.opacity=Math.max(0,h.material.opacity-dt*3)
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
   if(o.type==='rival'){ // 크기로는 못 알아본다(반경=질량^⅓ → 1.5배 무거워도 1.14배) → 색으로 확실히
@@ -2423,14 +2429,18 @@ function nemesisConsumed(o){
  banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+' · a greater hunter will rise');codexToast('quasar')
 }
 let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e){return false}})() // let — 같은 세션의 두 번째 런에서 힌트가 반복되던 버그
+// 힌트는 시계가 아니라 '그 링이 실제로 화면에 있을 때' 떠야 한다.
+// 3.2초에 초록 링이 없으면 가르침이 허공에 뜬다 — 오너가 링 색 뜻을 모른 이유이기도 하다
+// (생애 첫 판에만 떴고, 그마저 타이밍이 안 맞았다). 조건이 있으면 그 조건을 기다린다.
 const HINTS=[{t:0.6,m:'◆ MOVE',s:'WASD · arrows · or drag'},
- {t:3.2,m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
- {t:6.4,m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
+ {t:2.0,need:'edible',m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
+ {t:4.0,need:'threat',m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
  {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'}]
 function onboardTick(){ // 첫 런에만 단계별 힌트
  if(S.hintIdx>=HINTS.length)return
  if(onboarded&&S.hintIdx>0)return // 이동 안내(첫 줄)는 매판 노출 — 나머지는 첫 플레이에만
  const h=HINTS[S.hintIdx]
+ if(h.need&&!(h.need==='edible'?S.sawEdible:S.sawThreat))return   // 그 링을 실제로 볼 때까지 기다린다
  if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
   if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
 }
@@ -2449,7 +2459,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
  evShock.visible=false
- Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
+ Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용

@@ -69,13 +69,21 @@ try {
   }).catch(()=>{})
   await page.waitForFunction(() => window.__acc && window.__acc.hintIdx, { timeout:15000 }).catch(()=>{})
   const hints = await page.evaluate(() => {
-    const A=window.__acc; A.begin()
-    // 힌트는 살아있는 동안만 진행된다(죽으면 다음 런에 이어서 표시) → 위협을 비워 생존시킨 뒤 측정
+    const A=window.__acc; A.begin(); A.setSpawn(false)
+    // 링 힌트는 시계가 아니라 '그 링이 실제로 가까이 있을 때' 뜬다(허공에 뜨던 문제 수리) →
+    // 조건을 만들어 준 뒤 측정한다. 예전 테스트는 매 반복 clearObjs()를 불러 조건이 영영 성립하지 않았다.
     const seen=[]
-    for (let i=0;i<32;i++){ A.setMass(3); A.clearObjs(); A.step(0.5); seen.push(A.hintIdx()) } // 굶어 죽지 않게 질량 유지
+    for (let i=0;i<40;i++){
+      A.setMass(3); A.clearField()                     // 굶어 죽지 않게 질량 유지 · 위협을 비워 생존
+      const c=A.pos(), hr=Math.cbrt(3)
+      if(i>=2)  A.spawn('rock', 3*0.4, c.x+hr*2.2, c.z)      // 초록 링 조건
+      if(i>=10) A.spawn('rock', 3*1.6, c.x-hr*3.4, c.z)      // 주황 링(충돌 위험) 조건 — 라이벌을 쓰면 원시별이 즉사한다
+      A.step(0.5); seen.push(A.hintIdx())
+    }
     return { first:seen[0], last:seen[seen.length-1], alive:A.state.alive }
   })
-  ok('first run shows all onboarding hints', hints.last>=4, `${hints.last} shown · alive=${hints.alive}`)
+  ok('first run shows all onboarding hints once their halo is on screen',
+     hints.last>=4, `${hints.last} shown · alive=${hints.alive}`)
 
   const second = await page.evaluate(() => { const A=window.__acc; A.begin(); for(let i=0;i<32;i++){A.setMass(3);A.clearObjs();A.step(0.5)} return A.hintIdx() })
   // 2026-07-28(오너 요청): 조작 안내는 매판 보여야 한다 → 첫 줄(◆ MOVE)만 반복,
