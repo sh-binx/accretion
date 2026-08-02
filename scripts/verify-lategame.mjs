@@ -187,6 +187,37 @@ try {
      Math.abs((roster.quasar.sstar||0)-(roster.ultra.sstar||0))>10 || (roster.ultra.nucleus||0)>10,
      `sstar ${roster.quasar.sstar}/${roster.ultra.sstar} · nucleus ${roster.quasar.nucleus||0}/${roster.ultra.nucleus}`)
 
+  // ── 승격이 '나'도 바꾸는가 ──
+  // 질량 20에서 블랙홀이 된 뒤로 8자릿수·5티어 동안 아바타가 한 번도 안 변했다(오너 지적).
+  // 물리 근거 둘: 원반 온도 T ∝ M^(-1/4) · 원반 바깥은 자기중력으로 잘려 고질량일수록 지평선에 붙는다.
+  const look = await page.evaluate(() => {
+    const A=window.__acc, out=[]
+    A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField()
+    for(const m of [25,400,4000,40000,3e5]){
+      A.setMass(m); for(let i=0;i<6;i++){ A.step(0.15); A.clearField(); A.setMass(m) }
+      out.push({ m, ...A.diskColor(), ...A.diskShape() })
+    }
+    return out
+  })
+  const T=look.map(x=>x.temp), OUT=look.map(x=>x.out)
+  ok('look: disk temperature steps with every tier', T.join()==='0,0.25,0.5,0.75,1', T.join(' → '))
+  ok('look: the disk visibly cools (blue drops)',
+     parseInt(look[0].a.slice(5,7),16) - parseInt(look[4].a.slice(5,7),16) > 60,
+     `${look[0].a} → ${look[4].a}`)
+  ok('look: the disk tightens onto the horizon as mass grows',
+     OUT.every((v,i)=>i===0||v<OUT[i-1]) && OUT[4] < OUT[0]*0.85,
+     OUT.join(' → '))
+  // 스킨은 정체성을 잃지 않는다 — 고정색 보간으로 했더니 AURORA가 올리브가 됐다
+  const skin = await page.evaluate(() => {
+    const A=window.__acc, o={}
+    A.begin(); A.hideOnboard(); A.setMass(3e5); A.step(0.2)
+    for(const id of ['void','solar','aurora']){ A.applySkin(id); o[id]=A.diskColor().a }
+    A.applySkin('void')
+    return o
+  })
+  ok('look: skins stay distinguishable at max mass',
+     new Set(Object.values(skin)).size===3, JSON.stringify(skin))
+
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
 } finally {

@@ -284,7 +284,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.6</div>
+<div class="credit">ACCRETION · prototype 5.7</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -704,6 +704,8 @@ function applyForm(fi){ // 형태 전환 = 메시 교체(변신 체감)
  const bh=fi===2
  for(const p of bhParts)p.visible=bh
  pRock.visible=fi===0;pStar.visible=fi===1
+ // 여기서 repaintDisk()를 부르면 모듈 초기화 시점의 applyFormInit()이 아직 선언 전인 SKINS를 건드려 TDZ로 죽는다.
+ // 원반은 begin()의 applySkin()과 티어 승격에서 칠해지므로 여기서는 부르지 않는다.
 }
 // 시차 먼지 — 이동 체감(월드 공간, 홀 주위로 랩 → 무한 시차 필드)
 const DUSTN=460,dustPos=new Float32Array(DUSTN*3),DUSTR=120
@@ -1459,7 +1461,48 @@ function paintDisk(cAh,cRh){ // 스킨 색 = 셰이더 유니폼(정점색 → �
  for(const m of [disk.material,diskArc.material]){m.uniforms.uCA.value.set(cAh);m.uniforms.uCR.value.set(cRh)}}
 function skinUnlocked(id){return CODEX.count()>=(SKINS[id]?SKINS[id].need:1e9)}
 function curSkin(){let id=null;try{id=localStorage.getItem('acc_skin')}catch(e){}return (id&&SKINS[id]&&skinUnlocked(id))?id:'void'}
-function applySkin(id){const s=SKINS[id]||SKINS.void;paintDisk(s.cA,s.cR);photon.material.color.set(s.ph)}
+// ── 원반 색온도 — 질량이 커질수록 원반이 식는다 ──
+// 얇은 원반 이론(Shakura–Sunyaev): 같은 에딩턴 비에서 T ∝ M^(-1/4).
+// 항성질량 블랙홀의 원반은 X선으로 타는 청백색(~10^7 K), 초대질량은 자외선·가시광의
+// 훨씬 차가운 원반(~10^5 K)이다. 질량이 5만 배 오르면 온도는 약 15배 떨어진다.
+// 지금까지 승격은 '세상'(안개·렌징)만 바꾸고 '나'는 안 바꿨다 — 이 색이 내 몸의 진화다.
+// 색온도를 '고정색으로의 보간'으로 하면 스킨 정체성이 무너진다(AURORA가 올리브가 됐다).
+// 온도가 내려간다 = 파란 성분이 준다 — 채널 이득으로 표현하면 어느 스킨이든 계열을 지킨 채 식는다.
+function diskTemp(tier){                  // 0 = 항성질량(가장 뜨겁다) → 1 = 극대질량(가장 식었다)
+ if(S.formIdx<2)return 0
+ const t=(tier==null?S.tierIdx:tier)
+ return Math.min(1,Math.max(0,t)/4)
+}
+function coolHex(hex,k){                  // 저온화 — 붉은쪽은 약간 올리고 푸른쪽을 크게 내린다
+ const c=new THREE.Color(hex)
+ c.r=Math.min(1,c.r*(1+0.10*k)); c.g=c.g*(1-0.06*k); c.b=c.b*(1-0.42*k)
+ return c.getHex()
+}
+// 색만으로는 부족했다 — 고질량에서 원반이 너무 밝아 색이 흰색으로 씻겨 나간다(실측).
+// 밝기와 무관하게 읽히는 '형태' 신호를 더한다. 물리 근거: 원반의 바깥은 자기중력으로 잘린다.
+// 항성질량 블랙홀의 원반은 지평선 반경의 ~10^5배까지 뻗지만, 초대질량 AGN의 원반은
+// ~10^3~10^4배에서 토미 불안정으로 끊긴다 → 질량이 클수록 원반이 '지평선에 바짝 붙는다'.
+const DISK_R0={in:0.84,out:2.0,uOut:1.98}, ARC_R0={in:0.9,out:2.16,uOut:2.16}
+let diskShapeT=-1
+function applyDiskShape(k){               // k: 0(항성질량) → 1(극대질량)
+ if(Math.abs(k-diskShapeT)<0.001)return
+ diskShapeT=k
+ const f=1-0.22*k                         // 바깥 반경만 줄인다 — 안쪽은 광자 고리에 걸리므로 고정
+ disk.geometry.dispose()
+ disk.geometry=new THREE.RingGeometry(DISK_R0.in,DISK_R0.out*f,220,1)
+ diskArc.geometry.dispose()
+ diskArc.geometry=new THREE.RingGeometry(ARC_R0.in,ARC_R0.out*f,220,1)
+ disk.material.uniforms.uOut.value=DISK_R0.uOut*f
+ diskArc.material.uniforms.uOut.value=ARC_R0.uOut*f
+}
+let curSkinId='void'
+function repaintDisk(tier){               // 스킨(정체) × 색온도(진화)
+ const s=SKINS[curSkinId]||SKINS.void, k=diskTemp(tier)
+ paintDisk(coolHex(s.cA,k),coolHex(s.cR,k))
+ applyDiskShape(k)
+ photon.material.color.set(coolHex(s.ph,k*0.8))
+}
+function applySkin(id){curSkinId=SKINS[id]?id:'void';repaintDisk()}
 let codexT=0
 // ── 메시지 우선순위 큐 ──
 // 배너·코덱스가 각자 독립 발화해 좁은 화면에서 겹쳤다. 이제 한 번에 하나만 띄우고 나머지는 줄 선다.
@@ -1770,6 +1813,8 @@ function update(dt){
  if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,TIERS[ti].d||'');AU.tierUp();S.shake=Math.min(S.shake+0.6,1.1);S.score+=Math.round(S.mass*0.6);$('zone').style.boxShadow=ZONES[zoneIdx()].fx
   codexToast(ti===1?'intermediate':(ti===2?'supermassive':(ti===3?'quasar':'ultramassive')))
   if(ti>=3)applyJets()
+  repaintDisk(ti)               // 승격은 세상뿐 아니라 '나'도 바꿔야 한다 — 원반이 한 단계 식는다
+                                // (S.tierIdx는 이 블록 뒤에 갱신되므로 새 티어를 직접 넘긴다)
   openChoice(TIERS[ti].n)}   // 티어를 올릴 때마다 3택 1 — 매 런 다른 조합이 '다시 하는 이유'가 된다
  S.tierIdx=ti;applyJets()
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
@@ -2517,6 +2562,9 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ applySkin:(id)=>{applySkin(id);return curSkinId},
+ diskShape:()=>({out:+disk.geometry.parameters.outerRadius.toFixed(3),arc:+diskArc.geometry.parameters.outerRadius.toFixed(3)}),
+ diskColor:()=>({a:'#'+disk.material.uniforms.uCA.value.getHexString(),r:'#'+disk.material.uniforms.uCR.value.getHexString(),ph:'#'+photon.material.color.getHexString(),temp:+diskTemp().toFixed(2)}),
  viewR:()=>{const h=rad(S.mass);return {V:Math.round(22+h*7),camDist:Math.round(cam.position.distanceTo(hole.position))}},
  fireEvent:(k)=>fireEvent(k),
  eventState:()=>({t:Math.round((S.evT||0)*10)/10,streams:S.streamCount||0,blasts:S.blastCount||0,ring:evShock.visible}),
