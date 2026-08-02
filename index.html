@@ -296,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.18</div>
+<div class="credit">ACCRETION · prototype 5.19</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -749,8 +749,15 @@ function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
- {id:'rock',n:'PROTOSTAR',   max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ OUTFLOWS — FEED OR FADE',   rival:0.06,acc:1.0},
- {id:'star',n:'MAIN SEQUENCE',max:20,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10,acc:0.68},
+ // 통제 급식으로 재니 블랙홀까지 6.4초였다 — 게임 제목이 'BECOME THE BLACK HOLE'인데
+ // 진화 아크가 6초짜리였다(오너: 30초면 블랙홀). 초반 효율을 낮춰 아크를 늘린다.
+ // 물리 근거: 원시별은 쌍극 유출로 유입 물질의 10~30%를 도로 뱉고, 무거운 주계열성은
+ // 복사압과 항성풍이 강해 순 증가가 크게 깎인다 — 실제로 별은 '먹은 만큼' 자라지 않는다.
+ // 원시별 구간은 거의 그대로 둔다 — 그 구간 드레인이 0.117/s라 늦추면 굶어 죽는다.
+ // 길어져야 할 곳은 '항성' 구간이다: 끝에 초신성이라는 보상이 있고 질량 여유도 있다.
+ // 임계도 20 → 40으로. 실제로 블랙홀을 남기는 별은 대략 20~40 M☉ 이상이다(그 아래는 중성자별).
+ {id:'rock',n:'PROTOSTAR',   max:3,   spd:0.86,mouth:1.55,pull:3.4,lens:0.14,shrink:0.62,drain:'◀ OUTFLOWS — FEED OR FADE',   rival:0.06,acc:0.80},
+ {id:'star',n:'MAIN SEQUENCE',max:40,  spd:1.0, mouth:1.8, pull:3.0,lens:0.42,shrink:0.80,drain:'◀ STELLAR WIND — FEED OR FADE',rival:0.10,acc:0.32},
  {id:'bh',  n:'BLACK HOLE',   max:1e9, spd:1.12,mouth:1.9, pull:3.8,lens:1.0, shrink:1.0, drain:'◀ EVAPORATING — FEED OR FADE', rival:0.17,acc:1.0}
 ]
 // 에딩턴 한계 — 블랙홀은 무한정 빨리 먹지 못한다(자기 복사압이 먹이를 밀어냄). 진화 구간(~40)은 온전, 이후 감쇠 → 성장이 지수→선형
@@ -2068,7 +2075,7 @@ function updateCamera(dt){
  // 오너가 그리드를 네 번 물었다(사각형 점 · 효용 · 중간에 나옴 · 왜 필요한가).
  // 네 번 설명이 필요한 장치는 실패한 장치다. 기능(유일한 절대 기준자)은 남기되
  // '눈에 걸리는 물건'이 되지 않도록 존재감을 절반 이하로 낮춘다 — 축척 전환 배너가 성장을 말해 준다.
- const gWant=hero?0:0.15
+ const gWant=0   // 그리드 제거(오너 4회 질의) — 축척 전환 배너가 성장을 말하는 역할을 대신한다
  // 그리드 눈금은 고정 26이었다 — 고질량(camDist 535)에서 셀이 화면에 너무 촘촘해
  // 선이 가늘어지고 불규칙해졌다(오너: 어느 순간부터 그리드가 끊긴다).
  // 지도처럼 10배씩 축척을 전환한다. 부수 효과가 본질이다 — 전환되는 순간 세상이 한 단계
@@ -2897,6 +2904,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ bhMass:()=>FORMS[1].max,   // 블랙홀 임계 — 테스트가 숫자를 하드코딩하지 않게(20→40 변경 때 8건이 깨졌다)
  setCapture:(v)=>{holdCap=!!v;return holdCap},
  diskState:()=>({n:(S.disk||[]).length,cap:diskCap(),mass:Math.round(diskMass()),caught:S.capCount||0}),
  ergo:()=>({vis:hole.userData.ergo.visible,op:+hole.userData.ergo.material.opacity.toFixed(2),sc:+hole.userData.ergo.scale.x.toFixed(2)}),

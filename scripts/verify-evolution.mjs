@@ -30,9 +30,9 @@ try {
   // SUPERNOVA: crossing 12 from star form must fire the event
   const nova = await page.evaluate(() => {
     const A = window.__acc
-    A.resetCodex(); A.begin(); A.setMass(11.5); A.step(0.06)   // settle as a star
+    A.resetCodex(); A.begin(); A.setMass(A.bhMass()*0.58); A.step(0.06)   // settle as a star
     const before = A.state.score
-    A.setMass(21); A.step(0.02)                                  // cross the collapse threshold
+    A.setMass(A.bhMass()*1.05); A.step(0.02)                                  // cross the collapse threshold
     return { shock:A.shockOn(), inv:A.form().inv, form:A.form().name, lens:A.form().lens,
              codex:A.codex().seen.includes('supernova'), gain:A.state.score-before, vis:A.formVis() }
   })

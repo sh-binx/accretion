@@ -27,7 +27,7 @@ try{
   ok('드레인 문구가 OUTFLOWS(쌍극류) — 침식이 아니다', /OUTFLOW/.test(s0.drain), s0.drain.trim())
 
   // ── 20 M☉ 미만은 블랙홀이 되지 않는다 ──
-  const under=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(19.4);A.step(0.05);A.step(0.05)
+  const under=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(A.bhMass()*0.97);A.step(0.05);A.step(0.05)
     return {name:A.form().name,idx:A.form().idx,mass:+A.state.mass.toFixed(1)}})
   ok('19.4 M☉ → 아직 MAIN SEQUENCE (블랙홀 아님)', under.name==='MAIN SEQUENCE'&&under.idx===1, `${under.name} @${under.mass}`)
 
@@ -36,15 +36,15 @@ try{
   ok('13 M☉도 MAIN SEQUENCE — 옛 임계값(12)에서 넘어가지 않는다', mid==='MAIN SEQUENCE', mid)
 
   // ── 20을 넘으면 초신성 1회 후 블랙홀 ──
-  const over=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(6);A.step(0.05);A.setMass(20.6);A.step(0.06)
+  const over=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(6);A.step(0.05);A.setMass(A.bhMass()*1.03);A.step(0.06)
     return {name:A.form().name,idx:A.form().idx,shock:A.shockOn(),nova:A.novaCount(),v:A.formVis()}})
-  ok('20.6 M☉ → BLACK HOLE 전이', over.name==='BLACK HOLE'&&over.idx===2, over.name)
+  ok('임계 초과 → BLACK HOLE 전이', over.name==='BLACK HOLE'&&over.idx===2, over.name)
   ok('전이 순간 초신성이 터진다', over.nova===1&&over.shock===true, `초신성 ${over.nova}회 · 충격파 ${over.shock}`)
   ok('블랙홀 파츠로 교체된다', over.v.bh===true&&over.v.rock===false&&over.v.star===false, JSON.stringify(over.v))
 
   // 초신성은 한 번뿐(질량이 오르내려도 되돌아가지 않는다)
-  const novas=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(6);A.step(0.05);A.setMass(20.6);A.step(0.06)
-    for(let i=0;i<10;i++){A.setMass(19.4);A.step(0.06);A.setMass(20.7);A.step(0.06)}
+  const novas=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(6);A.step(0.05);A.setMass(A.bhMass()*1.03);A.step(0.06)
+    for(let i=0;i<10;i++){A.setMass(A.bhMass()*0.97);A.step(0.06);A.setMass(A.bhMass()*1.04);A.step(0.06)}
     return {n:A.novaCount(),name:A.form().name}})
   ok('임계값을 오르내려도 초신성은 한 번뿐 · 형태 단조 증가', novas.n===1&&novas.name==='BLACK HOLE', `초신성 ${novas.n}회`)
 

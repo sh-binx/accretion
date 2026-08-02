@@ -54,12 +54,12 @@ try {
   // ── (2) form never regresses; supernova fires exactly once ──
   const mono = await page.evaluate(() => {
     const A=window.__acc; A.resetCodex(); A.begin()
-    A.setMass(20.5); A.step(0.05)                                   // cross into black hole (supernova #1)
+    A.setMass(A.bhMass()*1.03); A.step(0.05)                                   // cross into black hole (supernova #1)
     const f1=A.form().idx
     let minForm=f1
     for(let i=0;i<14;i++){                                          // hover across the 12 threshold repeatedly
-      A.setMass(19.4); A.step(0.06); minForm=Math.min(minForm,A.form().idx)
-      A.setMass(20.6); A.step(0.06)
+      A.setMass(A.bhMass()*0.97); A.step(0.06); minForm=Math.min(minForm,A.form().idx)
+      A.setMass(A.bhMass()*1.03); A.step(0.06)
     }
     return { f1, minForm, finalForm:A.form().idx, novas:A.novaCount() }
   })
@@ -68,7 +68,7 @@ try {
 
   // dropping mass hard keeps you a black hole (physically one-way)
   const oneWay = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(20); A.step(0.06); const a=A.form().name
+    const A=window.__acc; A.begin(); A.setMass(A.bhMass()*1.02); A.step(0.06); const a=A.form().name
     A.setMass(1.0); A.step(0.06); return { a, b:A.form().name }
   })
   ok('mass loss does not turn a black hole back into a rock', oneWay.a==='BLACK HOLE' && oneWay.b==='BLACK HOLE', `${oneWay.a} → ${oneWay.b}`)
@@ -77,7 +77,7 @@ try {
   const fwd = await page.evaluate(() => {
     const A=window.__acc; A.begin(); const seq=[A.form().name]
     A.setMass(5); A.step(0.05); seq.push(A.form().name)
-    A.setMass(21); A.step(0.05); seq.push(A.form().name)
+    A.setMass(A.bhMass()*1.05); A.step(0.05); seq.push(A.form().name)
     return { seq, shock:A.shockOn() }
   })
   ok('forward arc intact (protostar → star → black hole + nova)', fwd.seq.join('>')==='PROTOSTAR>MAIN SEQUENCE>BLACK HOLE' && fwd.shock===true, fwd.seq.join(' → '))
