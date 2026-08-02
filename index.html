@@ -296,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.14</div>
+<div class="credit">ACCRETION · prototype 5.15</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -673,6 +673,9 @@ function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<comb
 // 최대 회전 커 블랙홀(a = M)은 이론적 한계까지 회전한 상태다. 더는 스핀업이 불가능하고
 // 강착 효율이 42%에 이른다 — 문자 그대로 '완전한' 블랙홀. 강착으로 스핀업하고, 이후 스핀다운한다.
 // 콤보 단계는 먹기를 멈추면 바로 풀리므로, 최상단만은 '10초 래치'로 붙잡아 절정을 느끼게 한다.
+const SCALE_TIP={m:{en:'◇ SCALE ×10',ko:'◇ 축척 ×10'},
+ s:{en:'you outgrew the ruler — one grid square is now {n} units',
+    ko:'자를 넘어섰다 — 이제 격자 한 칸이 {n} 단위다'}}
 const HOLD_TIP={m:{en:'◍ NEW — HOLD TO BANK',ko:'◍ 새 동작 — 붙잡아 쌓기'},
  s:{en:'hold C (or ◍ HOLD) to catch bodies into orbit instead of eating — slower, but worth far more',
     ko:'C(또는 ◍ HOLD)를 누르고 있으면 먹는 대신 궤도에 붙잡는다 — 느리지만 훨씬 많이 번다'}}
@@ -1987,7 +1990,10 @@ function updateCamera(dt){
    const cell=GRID_CELL*Math.pow(10,k)
    const rep=(GRID_CELL*4000)/cell
    gridTex.repeat.set(rep,rep);gridTex.offset.set(0.5,0.5)
-   gridFlash=1}}
+   gridFlash=1
+   // 말없이 반짝이기만 하면 '왜 갑자기 격자가 나오지?'로 읽힌다(오너 리포트) —
+   // 이 전환이 곧 성장 신호이므로 그렇게 말해 준다.
+   if(k>0&&S.alive)banner(T(SCALE_TIP.m),T(SCALE_TIP.s).replace('{n}',fmtBig(cell)),3)}}   // 보이는 변화엔 설명이 따라야 한다
  if(gridFlash>0)gridFlash=Math.max(0,gridFlash-(dt||0.016)*2.2)   // 전환을 한 번 반짝여 '의도된 일'로 읽히게
  gridMesh.material.opacity+=(gWant-gridMesh.material.opacity)*Math.min(1,(dt||0.016)*3)
  gridMesh.material.opacity=Math.min(1,gridMesh.material.opacity*(1+1.6*gridFlash))
