@@ -147,6 +147,62 @@ try {
   ok('heat: bodies move faster deeper in', spd[210] > spd[0]*1.4,
      `${spd[0].toFixed(2)} → ${spd[210].toFixed(2)} (×${(spd[210]/Math.max(1e-6,spd[0])).toFixed(2)})`)
 
+  // ── 두 번째 동사: 삼킬까 쌓을까 ──
+  // 블랙홀이 된 뒤 동사가 '먹기' 하나뿐이라 중후반이 평평했다(오너: 매우 무료하다).
+  // 포획은 '즉시 질량'과 '더 큰 총량 + 제트 탄약'을 맞바꾸는 선택이어야 한다.
+  const disk = await page.evaluate(() => {
+    const A=window.__acc
+    const run=(cap)=>{
+      A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000); A.setCapture(cap)
+      const m0=A.state.mass, s0=A.state.score
+      for(let k=0;k<4;k++){
+        const c=A.pos(), hr=Math.cbrt(3000)
+        A.spawn('giant', 3000*0.35, c.x+hr*1.6, c.z)
+        for(let i=0;i<26;i++){ A.eatNearest(); A.step(0.05,20); if(i%6===0)A.clearField() }
+      }
+      const held=A.diskState()
+      A.setCapture(false)
+      for(let i=0;i<400;i++){ A.step(0.05,20); if(i%8===0)A.clearField() }   // 궤도가 다 내려올 시간
+      return { held, gain:A.state.mass-m0, score:A.state.score-s0, left:A.diskState() }
+    }
+    const eat=run(false), bank=run(true)
+    // 원시별 단계에선 쓸 수 없는 동사다
+    A.begin(); A.hideOnboard(); A.setMass(2); A.setCapture(true)
+    const proto={ cap:A.diskState().cap }
+    A.setCapture(false)
+    return { eat, bank, proto }
+  })
+  ok('verb: capture is a black-hole-only verb', disk.proto.cap===0, `원시별 슬롯 ${disk.proto.cap}`)
+  ok('verb: holding actually catches bodies into orbit',
+     disk.bank.held.caught>=2 && disk.bank.held.n>=2 && disk.eat.held.caught===0,
+     `쌓기 ${disk.bank.held.caught}개 · 삼키기 ${disk.eat.held.caught}개`)
+  ok('verb: banking pays more than swallowing', disk.bank.gain > disk.eat.gain*1.2,
+     `질량 +${Math.round(disk.eat.gain)} → +${Math.round(disk.bank.gain)} (×${(disk.bank.gain/disk.eat.gain).toFixed(2)})`)
+  ok('verb: and scores more', disk.bank.score > disk.eat.score*1.3,
+     `${disk.eat.score.toLocaleString()} → ${disk.bank.score.toLocaleString()}`)
+  ok('verb: the orbit drains fully in the end (no free parking)', disk.bank.left.n===0,
+     `남은 ${disk.bank.left.n}개`)
+
+  // 공짜가 아니다 — 궤도 질량이 나를 무겁게 한다
+  const drag = await page.evaluate(() => {
+    const A=window.__acc
+    const speed=(cap)=>{
+      A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000); A.setCapture(cap)
+      for(let k=0;k<3;k++){ const c=A.pos(), hr=Math.cbrt(3000)
+        A.spawn('giant', 3000*0.35, c.x+hr*1.6, c.z)
+        for(let i=0;i<26;i++){ A.eatNearest(); A.step(0.05,20); if(i%6===0)A.clearField() } }
+      A.setCapture(false); A.clearField()
+      const p0=A.pos(); A.setTarget(p0.x+4000, p0.z)
+      for(let i=0;i<24;i++)A.step(0.05,20)
+      const p1=A.pos()
+      return { d:Math.hypot(p1.x-p0.x,p1.z-p0.z), held:A.diskState().n }
+    }
+    return { light:speed(false), loaded:speed(true) }
+  })
+  ok('verb: a loaded disk slows you (angular momentum is not free)',
+     drag.loaded.held>0 && drag.loaded.d < drag.light.d*0.92,
+     `빈 몸 ${drag.light.d.toFixed(1)} → ${drag.loaded.held}개 실고 ${drag.loaded.d.toFixed(1)}`)
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])

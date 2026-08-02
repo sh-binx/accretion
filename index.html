@@ -38,6 +38,11 @@
  #right{position:fixed;top:14px;right:16px;z-index:5;text-align:right;pointer-events:none}
  #right .lab{font-size:10px;letter-spacing:2px;color:#7c88ad}
  #right .v{font-size:15px;font-weight:700;color:#eaf1ff}
+ /* DISK 행이 늘면서 우측 열이 낮은 화면의 하단 바를 침범했다(실측: pval⨯track · cval⨯actDash) */
+ @media (max-height:430px){#right .lab{font-size:8.5px;letter-spacing:1.4px;margin-top:3px!important}
+  #right .v{font-size:12px}#right #sval{font-size:15px!important}}
+ @media (max-height:380px){#right .lab{font-size:8px;margin-top:1px!important}
+  #right .v{font-size:10.5px}#right #sval{font-size:13px!important}}   /* 360px 높이: 5행이 하단 바에 8px 물렸다 */
  /* 게임 중에만 HUD 노출 — 메뉴/게임오버에서 비쳐 보이던 것 제거 */
  #hud,#massbar,#right{opacity:0;transition:opacity .35s}
  body.playing #hud,body.playing #massbar,body.playing #right{opacity:1}
@@ -275,7 +280,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
-<div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div><div id="coreRow" style="display:none"><div class="lab" style="margin-top:7px">CORE</div><div class="v" id="cval">–</div></div></div>
+<div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div><div id="diskRow" style="display:none"><div class="lab" style="margin-top:7px">DISK</div><div class="v" id="dval">–</div></div><div id="coreRow" style="display:none"><div class="lab" style="margin-top:7px">CORE</div><div class="v" id="cval">–</div></div></div>
 <div id="apex"></div>
 <div id="combo"></div>
 <div id="choice"><div class="ct">EVOLVE</div><div class="cs" id="choiceSub"></div><div class="cw" id="choiceWrap"></div></div>
@@ -286,9 +291,9 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="vig"></div>
 <div id="flash"></div>
 <div id="zone"></div>
-<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
+<div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.12</div>
+<div class="credit">ACCRETION · prototype 5.13</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -729,7 +734,8 @@ function applyJets(){const on=S.formIdx===2&&S.tierIdx>=3
  jetsReady=on
  // 평상시엔 보이지 않는다(오너). 정지 상태의 제트는 플레어보다 수십 배 어두워 실제로도 잘 안 보인다.
  if(!on)jets.visible=false
- const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'}
+ const fb=$('actFlare');if(fb)fb.style.display=on?'':'none'
+ const hb=$('actHold');if(hb)hb.style.display=S.formIdx===2?'':'none'}
 scene.add(hole)
 // 형태 정의: 질량 임계로 결정. SUPERNOVA는 STAR→BLACK HOLE 전이 '순간' 이벤트.
 const FORMS=[
@@ -1466,9 +1472,9 @@ let banT=0
 
 /* ===== 코덱스 — 처음 만난 천체의 실제 과학 한 줄(놀다 보면 배움) ===== */
 /* ===== 코덱스 — 영구 수집 목표 + 스킨 언락. 처음 발견한 천체·현상의 실제 과학 한 줄 → 놀며 배우고 '모으게' 됨(리텐션) ===== */
-const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster','gascloud','hypergiant','sstar','nucleus','stream','blast','extremal']
+const CODEX_ORDER=['rock','planet','star','neutron','pulsar','rival','surge','tidal','intermediate','supermassive','evaporate','devoured','quasar','mainsequence','supernova','eddington','nebula','wormhole','remnant','collision','ultramassive','tde','protostar','gwave','framedrag','comet','giant','redgiant','whitedwarf','binary','cluster','gascloud','hypergiant','sstar','nucleus','stream','blast','extremal','disk']
 const NAMES={rock:'ASTEROID',planet:'PLANET',star:'STAR',neutron:'NEUTRON STAR',pulsar:'PULSAR',rival:'BLACK HOLE',
- surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER',gascloud:'MOLECULAR CLOUD',hypergiant:'HYPERGIANT',sstar:'S-STAR',nucleus:'GALACTIC NUCLEUS',stream:'STELLAR STREAM',blast:'SHOCK BREAKOUT',extremal:'EXTREMAL KERR'}
+ surge:'GRAVITY ASSIST',tidal:'TIDAL FORCES',intermediate:'INTERMEDIATE BH',supermassive:'SUPERMASSIVE BH',evaporate:'HAWKING RADIATION',devoured:'EVENT HORIZON',quasar:'QUASAR',mainsequence:'MAIN SEQUENCE',supernova:'SUPERNOVA',eddington:'EDDINGTON LIMIT',nebula:'NEBULA',wormhole:'WORMHOLE',remnant:'SUPERNOVA REMNANT',collision:'PLANETARY COLLISION',ultramassive:'ULTRAMASSIVE BH',tde:'TIDAL DISRUPTION',protostar:'PROTOSTAR',gwave:'GRAVITATIONAL WAVES',framedrag:'FRAME DRAGGING',comet:'COMET',giant:'GAS GIANT',redgiant:'RED GIANT',whitedwarf:'WHITE DWARF',binary:'BINARY SYSTEM',cluster:'STAR CLUSTER',gascloud:'MOLECULAR CLOUD',hypergiant:'HYPERGIANT',sstar:'S-STAR',nucleus:'GALACTIC NUCLEUS',stream:'STELLAR STREAM',blast:'SHOCK BREAKOUT',extremal:'EXTREMAL KERR',disk:'ACCRETION DISK'}
 const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  planet:"Planets don't shine — they only reflect their star's light.",
  star:'Fuses hydrogen into helium — the Sun burns 600M tons a second.',
@@ -1506,7 +1512,8 @@ const FACTS={rock:'Leftover rubble from planet formation — rock & metal.',
  nucleus:'When a small galaxy is swallowed, its dense nuclear star cluster sinks to the centre and delivers its own black hole. Big holes grow by eating small galaxies whole.',
  stream:'A star cluster torn apart by tides does not scatter — it stretches into a stream along its orbit. The Sagittarius stream still wraps our galaxy.',
  blast:'When a massive star dies, the shock reaches the surface and breaks out in a flash of hours, then the blast wave sweeps the neighbourhood for centuries.',
- extremal:'Spin a black hole up and its innermost stable orbit falls toward the horizon, until at the theoretical limit (a = M) accretion converts 42% of infalling mass to energy. It cannot be spun any further.'}
+ extremal:'Spin a black hole up and its innermost stable orbit falls toward the horizon, until at the theoretical limit (a = M) accretion converts 42% of infalling mass to energy. It cannot be spun any further.',
+ disk:'Matter does not fall straight into a black hole — it must shed angular momentum first, so it circles in a disk for a long time before it descends. That waiting disk is what makes quasars the brightest things in the universe.'}
 const CODEX={seen:new Set((()=>{try{return (localStorage.getItem('acc_codex')||'').split(',').filter(Boolean)}catch(e){return[]}})()),
  discover(t){if(!NAMES[t]||this.seen.has(t))return false;this.seen.add(t);try{localStorage.setItem('acc_codex',[...this.seen].join(','))}catch(e){}return true},
  count(){return CODEX_ORDER.filter(k=>this.seen.has(k)).length},total(){return CODEX_ORDER.length}}
@@ -1663,12 +1670,14 @@ function update(dt){
  if(!S.feeds.length)S.mass=Math.max(0,S.mass-shrink*dt) // 흡수 중엔 감소가 멈춘다 — 실제로 물질이 유입되는 중이다
  updateEvents(dt)   // 런 리듬 — 주기적으로 맵 전체를 흔든다
  updateExtremal(dt)   // 완전체 10초 래치
+ updateDisk(dt)       // 궤도에 쌓아 둔 것이 안쪽으로 내려온다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  checkMassMarks()
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
  if(S.surgeT>0)S.surgeT-=dt
  const surging=S.surgeT>0
- const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0))*boonMul('spd') // 흡수 중 감속 · 포식 가속 · 진화 선택
+ const dkm=diskMass()
+ const st=steer(),maxSpd=(16+rad(S.mass)*5)*F.spd*(surging?2.3:1)*(S.feeds.length?(S.formIdx===2?0.78:0.9):1)*(1+(S.boost||0))*boonMul('spd')/(1+dkm/Math.max(1e-6,S.mass)*0.9)   // 궤도 질량만큼 둔해진다(각운동량) // 흡수 중 감속 · 포식 가속 · 진화 선택
  S.vx+=(st.x*maxSpd*st.mag-S.vx)*Math.min(1,dt*5);S.vz+=(st.z*maxSpd*st.mag-S.vz)*Math.min(1,dt*5)
  hole.position.x+=S.vx*dt;hole.position.z+=S.vz*dt
  // 시각 스케일 = 질량^(1/3)
@@ -1798,6 +1807,7 @@ function update(dt){
    const bn=boonNow()
    const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1)*boonMul('acc') // 형태 × 콤보 단계 × 진화 선택
    const gain=o.mass*(isMerge?0.45:0.62)*eff
+   if(holdCap&&!isMerge&&S.formIdx===2&&captureBody(o))continue   // 포획 모드 — 삼키지 않고 궤도에 붙잡는다
    S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
    if(isMerge&&!S.mergedOnce){S.mergedOnce=true;banner('◈ MERGER','black holes grow by merging — hunt them to keep growing')}
@@ -1995,6 +2005,10 @@ function hud(){
   $('feedfill').style.filter=fast?'brightness(1.5)':''}
  else fw.classList.remove('on')
  const frac=clamp((S.mass-S.evapFloor)/(6),0,1);$('mfill').style.width=(6+frac*94)+'%'
+ {const dr=$('diskRow'),ds=(S.disk||[]).length   // 궤도에 들고 있는 것 — 내 질량이 아니라는 걸 보여야 저울질이 된다
+  dr.style.display=(S.alive&&(ds||holdCap))?'':'none'
+  if(dr.style.display===''){$('dval').innerHTML=ds+'/'+diskCap()+' <b style="font-size:11px;color:#8fd0ff">'+fmtBig(diskMass())+'</b>'
+   $('dval').style.color=ds>=diskCap()?'#ff9a5a':'#7bed4a'}}
  // 은하 중심 나침반 — 목적지는 보여야 끌어당긴다(초대질량부터). 방위 8칸 + 남은 거리.
  {const cw=$('coreRow')   // coreState()는 DEV 훅이라 프로덕션에 없다 — 실제 상태를 직접 읽는다
   const on=S.alive&&S.tierIdx>=2&&galCore.visible&&!coreEaten
@@ -2101,7 +2115,8 @@ function doFlare(){
  // ── 축 양쪽을 한 번에 청소 ──
  {const hr0=rad(S.mass)
   const ax=Math.cos(jets.rotation.y),az=-Math.sin(jets.rotation.y)
-  const reach=hr0*(JET_LEN+0.1)*fm,wide=hr0*JET_TIP*1.35*fm
+  const fired=launchDisk(ax,az)   // 쌓아 둔 원반을 탄약으로 — 제트는 안쪽 원반에서 쏘아 올려진다
+ const reach=hr0*(JET_LEN+0.1)*fm,wide=hr0*JET_TIP*1.35*fm
   let swept=0
   for(let k=objects.length-1;k>=0;k--){const o=objects[k]
    if(o.eaten||feedOf(o))continue
@@ -2376,6 +2391,65 @@ function updateShock(dt){
  if(shockT>=1)shock.visible=false
 }
 
+/* ===== 강착 원반 — 삼킬까, 쌓을까 =====
+   블랙홀이 된 뒤로 동사가 '먹기' 하나뿐이라 중후반이 평평했다(오너: 매우 무료하다).
+   두 번째 동사를 준다: 삼키지 않고 궤도에 붙잡아 원반으로 쌓는다.
+   물리 — 실제 강착원반은 물질을 곧장 삼키지 않는다. 각운동량을 버려야만 안쪽으로 내려가고,
+   그 사이 물질은 오래 궤도에 머문다. 그리고 제트는 바로 그 안쪽 원반에서 쏘아 올려진다.
+   저울질: 삼키면 즉시 질량 · 쌓으면 (1) 시간당 더 많은 질량 (2) 제트 탄약
+           대신 (3) 궤도 질량이 나를 무겁게 해 느려지고 (4) 쌓는 동안엔 내 질량이 아니다. */
+let holdCap=false                                   // 포획 모드(누르고 있는 동안)
+const DISK_RATE=0.55                                // 초당 궤도 질량의 몇 %가 나에게 내려오는가
+function diskMass(){let m=0;for(const d of S.disk||[])m+=d.mass;return m}
+function diskCap(){return S.formIdx<2?0:(3+Math.max(0,S.tierIdx))}   // 티어가 오를수록 더 많이 붙잡는다
+function captureBody(o){
+ if(!S.disk)S.disk=[]
+ if(S.disk.length>=diskCap())return false
+ const hr=rad(S.mass)
+ S.disk.push({mass:o.mass,ang:Math.atan2(o.g.position.z-hole.position.z,o.g.position.x-hole.position.x),
+              r:hr*2.6+rad(o.mass)*1.2,spin:rnd(1.2,2.0),g:o.g})
+ // 소유권을 원반으로 넘긴다: objects에서만 빼고 씬에는 남긴다.
+ // eaten 플래그를 쓰면 정리 경로가 다음 프레임에 메시를 지워 궤도가 비어 버린다.
+ {const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
+ popup(o.g.position,'CAPTURED','#8fd0ff');codexToast('disk')
+ AU.swallow();S.capCount=(S.capCount||0)+1
+ return true
+}
+function updateDisk(dt){
+ const D=S.disk;if(!D||!D.length)return
+ const hr=rad(S.mass)
+ for(let i=D.length-1;i>=0;i--){const d=D[i]
+  d.ang+=d.spin*dt
+  const want=hr*2.6+rad(d.mass)*1.2
+  d.r+=(want-d.r)*Math.min(1,dt*2)
+  if(d.g){d.g.position.set(hole.position.x+Math.cos(d.ang)*d.r,0,hole.position.z+Math.sin(d.ang)*d.r)
+   d.g.rotation.y+=dt*1.6}
+  // 각운동량을 버리며 안쪽으로 — 궤도 질량이 나에게 내려온다(삼키는 것보다 총량이 크다)
+  const give=d.mass*DISK_RATE*dt
+  d.mass-=give;S.mass+=give*accEff()*(FORMS[S.formIdx].acc||1)
+  S.score+=Math.round(give*11)
+  if(d.mass<=Math.max(0.05,S.mass*0.004)){if(d.g)scene.remove(d.g);D.splice(i,1)}
+ }
+}
+function clearDisk(){for(const d of (S.disk||[]))if(d.g)scene.remove(d.g);if(S.disk)S.disk.length=0}
+// 제트는 안쪽 원반에서 쏘아 올려진다 — 쌓아 둔 것을 탄약으로 쓴다
+function launchDisk(ax,az){
+ const D=S.disk;if(!D||!D.length)return 0
+ let n=0
+ for(const d of D){
+  if(d.g){d.g.position.set(hole.position.x+Math.cos(d.ang)*d.r,0,hole.position.z+Math.sin(d.ang)*d.r)
+   spawnObj('rock',Math.max(0.3,d.mass),d.g.position.x,d.g.position.z)
+   const o=objects[objects.length-1]
+   const sp=42+rad(S.mass)*2.2
+   o.vx=ax*sp+rnd(-6,6);o.vz=az*sp+rnd(-6,6)
+   eatBurst(d.g.position.x,d.g.position.z,0xbfe4ff,8)
+   scene.remove(d.g)}
+  n++
+ }
+ D.length=0
+ return n
+}
+
 /* ===== 런 리듬 이벤트 — 같은 밀도로 계속 먹기만 하면 시간이 평평해진다.
    맵 전체를 흔드는 사건을 주기적으로 넣어 '지금 무슨 일이 일어났다'를 만든다. 둘 다 실제 현상. ===== */
 const evShock=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xffd0a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
@@ -2461,12 +2535,14 @@ let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e
 const HINTS=[{t:0.6,m:'◆ MOVE',s:'WASD · arrows · or drag'},
  {t:2.0,need:'edible',m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
  {t:4.0,need:'threat',m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
- {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'}]
+ {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'},
+ {t:0,need:'bh',m:'◍ HOLD TO BANK',s:'hold C (or ◍) to catch bodies into orbit instead of eating — slower, but worth more'}]
 function onboardTick(){ // 첫 런에만 단계별 힌트
  if(S.hintIdx>=HINTS.length)return
  if(onboarded&&S.hintIdx>0)return // 이동 안내(첫 줄)는 매판 노출 — 나머지는 첫 플레이에만
  const h=HINTS[S.hintIdx]
- if(h.need&&!(h.need==='edible'?S.sawEdible:S.sawThreat))return   // 그 링을 실제로 볼 때까지 기다린다
+ if(h.need==='bh'&&S.formIdx<2)return                         // 블랙홀이 되어야 쓸 수 있는 동사다
+ if(h.need&&h.need!=='bh'&&!(h.need==='edible'?S.sawEdible:S.sawThreat))return   // 그 링을 실제로 볼 때까지 기다린다
  if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
   if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
 }
@@ -2485,7 +2561,8 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
  evShock.visible=false
- Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
+ clearDisk()
+ Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,disk:[],capCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
@@ -2542,14 +2619,21 @@ function refreshDailyBtn(){const m=todayMod(),el=$('ribbonTxt');if(el)el.innerHT
 refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
+{const hb=$('actHold')   // 누르고 있는 동안 포획(키보드 C와 동일)
+ const dn=e=>{e.preventDefault();e.stopPropagation();holdCap=true;hb.classList.add('on')}
+ const up=e=>{e.stopPropagation();holdCap=false;hb.classList.remove('on')}
+ hb.addEventListener('pointerdown',dn);hb.addEventListener('pointerup',up)
+ hb.addEventListener('pointerleave',up);hb.addEventListener('pointercancel',up)}
 $('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 setLang(LANG)   // 토글 라벨을 현재 언어로 맞춘다
 $('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko')}
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
+addEventListener('keydown',e=>{if(e.code==='KeyC'&&!typing(e))holdCap=true})   // 누르고 있는 동안 포획
 addEventListener('keydown',e=>{if(typing(e))return;if(choiceOpen&&!/^Digit[123]$/.test(e.code))return  // 진화 선택 중엔 능력 키를 잠근다(정지 상태에서 에너지·쿨다운을 잃지 않게)
  if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()
  if(choiceOpen&&/^Digit[123]$/.test(e.code)){const i=+e.code.slice(5)-1;const pk=window.__choicePick;if(pk&&pk[i])takeBoon(pk[i])}})
+addEventListener('keyup',e=>{if(e.code==='KeyC')holdCap=false})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -2660,6 +2744,8 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ setCapture:(v)=>{holdCap=!!v;return holdCap},
+ diskState:()=>({n:(S.disk||[]).length,cap:diskCap(),mass:Math.round(diskMass()),caught:S.capCount||0}),
  ergo:()=>({vis:hole.userData.ergo.visible,op:+hole.userData.ergo.material.opacity.toFixed(2),sc:+hole.userData.ergo.scale.x.toFixed(2)}),
  beamLen:()=>{const o=objects.find(x=>x.type==='pulsar'&&x.g.userData.beams);if(!o)return null
   return +(3.2*o.g.scale.x).toFixed(1)},   // 월드 단위 빔 길이
