@@ -267,6 +267,9 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 #onb .ob-r{display:flex;align-items:baseline;justify-content:center;gap:12px;margin-bottom:11px}
 #onb .ob-r b{font-family:'Martian Mono',monospace;font-weight:700;font-size:15px;letter-spacing:.16em;color:#F4F7FA;min-width:96px}
 #onb .ob-r b.hc{font-size:19px;letter-spacing:0;line-height:1}   /* 링 색 범례 — 점만 크게 */
+@media (max-height:400px){#onb .ob-r{margin-bottom:3px!important}#onb .ob-t{margin-bottom:6px!important}
+ #onb .ob-r b{font-size:11px!important}#onb .ob-r i{font-size:8px!important}
+ #onb .ob-h{margin-top:8px!important;font-size:9px!important}}   /* C 행이 늘어 390px에서 6px 넘쳤다 */
 @media (max-height:430px){#onb .ob-r{margin-bottom:6px}#onb .ob-t{margin-bottom:9px!important}
  #onb .ob-r b{font-size:13px;min-width:78px}#onb .ob-r i{font-size:9px;letter-spacing:.16em}
  #onb .ob-r span{font-size:8.5px;min-width:92px}#onb .ob-h{margin-top:12px;font-size:10px}}   /* 낮은 화면: 범례가 더해져 빠듯해졌다 */
@@ -284,7 +287,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="apex"></div>
 <div id="combo"></div>
 <div id="choice"><div class="ct">EVOLVE</div><div class="cs" id="choiceSub"></div><div class="cw" id="choiceWrap"></div></div>
-<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-t" style="margin:18px 0 12px">HALOS</div><div class="ob-r"><b class="hc" style="color:#7bed4a">●</b><span>&nbsp;</span><i style="color:#7bed4a">edible</i></div><div class="ob-r"><b class="hc" style="color:#ff4050">●</b><span>&nbsp;</span><i style="color:#ff4050">it eats you</i></div><div class="ob-r"><b class="hc" style="color:#ffa83c">●</b><span>&nbsp;</span><i style="color:#ffa83c">shatters you</i></div><div class="ob-h">press any key to begin</div></div>
+<div id="onb"><div class="ob-t">CONTROLS</div><div class="ob-r"><b id="obMove">W A S D</b><span id="obMove2">or ARROW KEYS</span><i>move</i></div><div class="ob-r"><b>SPACE</b><span>&nbsp;</span><i>recoil kick</i></div><div class="ob-r"><b>SHIFT</b><span>&nbsp;</span><i>frame drag</i></div><div class="ob-r"><b>E</b><span>&nbsp;</span><i>grav. wave</i></div><div class="ob-r"><b>C</b><span>hold</span><i style="color:#8fd0ff">bank into orbit</i></div><div class="ob-t" style="margin:18px 0 12px">HALOS</div><div class="ob-r"><b class="hc" style="color:#7bed4a">●</b><span>&nbsp;</span><i style="color:#7bed4a">edible</i></div><div class="ob-r"><b class="hc" style="color:#ff4050">●</b><span>&nbsp;</span><i style="color:#ff4050">it eats you</i></div><div class="ob-r"><b class="hc" style="color:#ffa83c">●</b><span>&nbsp;</span><i style="color:#ffa83c">shatters you</i></div><div class="ob-h">press any key to begin</div></div>
 <div id="codex"></div>
 <div id="mute">🔊</div>
 <div id="banner"><div class="b" id="bmain"></div><div class="s" id="bsub"></div></div>
@@ -293,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.13</div>
+<div class="credit">ACCRETION · prototype 5.14</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -670,6 +673,9 @@ function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<comb
 // 최대 회전 커 블랙홀(a = M)은 이론적 한계까지 회전한 상태다. 더는 스핀업이 불가능하고
 // 강착 효율이 42%에 이른다 — 문자 그대로 '완전한' 블랙홀. 강착으로 스핀업하고, 이후 스핀다운한다.
 // 콤보 단계는 먹기를 멈추면 바로 풀리므로, 최상단만은 '10초 래치'로 붙잡아 절정을 느끼게 한다.
+const HOLD_TIP={m:{en:'◍ NEW — HOLD TO BANK',ko:'◍ 새 동작 — 붙잡아 쌓기'},
+ s:{en:'hold C (or ◍ HOLD) to catch bodies into orbit instead of eating — slower, but worth far more',
+    ko:'C(또는 ◍ HOLD)를 누르고 있으면 먹는 대신 궤도에 붙잡는다 — 느리지만 훨씬 많이 번다'}}
 const EXTREMAL=COMBO_BOONS[0], EXT_DUR=10
 function extremalOn(){return (S.extT||0)>0}
 function fireExtremal(){
@@ -769,6 +775,7 @@ scene.add(dust)
 // ── 우주 자(cosmic ruler) — 월드 좌표에 고정된 격자.
 // 성장 체감이 없던 근본 원인: 크기를 판단할 기준이 '같이 커지는 먹이'뿐이었다(실측 먹이/나 비율 0.40→0.54).
 // 절대 스케일이 고정된 배경을 두면 카메라가 물러날수록 칸이 촘촘해져 성장이 눈으로 읽힌다.
+let gridStep=0,gridFlash=0
 const GRID_CELL=26                                   // 한 칸 = 26 월드 단위(초반 화면 반높이가 ~13이라 한 칸이 화면을 넘는다)
 const gridTex=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d')
  x.clearRect(0,0,128,128)
@@ -1603,7 +1610,37 @@ function pumpMsg(now){
   AU.ui()
  }
 }
-function banner(main,sub,pri){pushMsg({kind:'b',pri:pri||2,main,sub,key:'b:'+main})}
+// ── 배너·힌트 한국어 사전 ──
+// 오너: "한국어를 선택해도 전체적으로 반영돼 있지 않다." 맞다 — 5.4의 다국어는 진화 카드 12줄뿐이었다.
+// 호출부(banner 20여 곳)를 다 뜯는 대신 banner() 안에서 사전을 조회한다 — 안전하고 되돌리기 쉽다.
+const KO={
+ '★ EXTREMAL KERR':'★ 극한 커 블랙홀',
+ 'spun to the theoretical limit — 10 seconds of a perfect black hole':'이론적 한계까지 회전했다 — 10초간 완전한 블랙홀',
+ '◇ SPIN-DOWN':'◇ 스핀다운','the horizon relaxes':'지평선이 풀린다',
+ '★ GALACTIC CORE':'★ 은하 중심','you swallowed the heart of a galaxy':'은하의 심장을 삼켰다',
+ '◎ WORMHOLE':'◎ 웜홀','a shortcut through spacetime':'시공간의 지름길',
+ '✦ SUPERNOVA REMNANT':'✦ 초신성 잔해','heavy elements — absorbed':'무거운 원소 — 흡수',
+ '☀ IGNITION':'☀ 점화','fusion begins — you are a STAR':'핵융합이 시작됐다 — 당신은 항성이다',
+ '◈ MERGER':'◈ 병합','black holes grow by merging — hunt them to keep growing':'블랙홀은 병합으로 자란다 — 계속 크려면 사냥하라',
+ '☠ TIDAL ZONE':'☠ 조석 영역','being stripped — break away before you run out':'뜯기고 있다 — 바닥나기 전에 벗어나라',
+ '◈ GRAZE':'◈ 스침','skim a bigger hole — closer pass, more energy':'더 큰 블랙홀을 스친다 — 가까울수록 에너지가 크다',
+ '★ TIDAL ESCAPE':'★ 조석 탈출',
+ '⚡ RECOIL KICK':'⚡ 반동 킥','anisotropic gravitational waves kick you':'비대칭 중력파가 당신을 걷어찬다',
+ '☄ DISK STRIPPED':'☄ 원반 박탈','your jet blew its gas away — it cannot feed':'제트가 상대의 가스를 날렸다 — 더는 못 먹는다',
+ '☄ JET FLARE':'☄ 제트 분출','both poles blast — the axis is swept and you are kicked clear':'양극이 터진다 — 축이 쓸리고 당신은 튕겨 나간다',
+ '◎ GRAVITATIONAL WAVE':'◎ 중력파','spacetime rings — orbits scatter':'시공간이 울린다 — 궤도가 흩어진다',
+ '◉ COLLAPSE PULSE':'◉ 붕괴 펄스','draw the harvest in — shove the hunters out':'수확은 끌어당기고 사냥꾼은 밀어낸다',
+ '★ SUPERNOVA':'★ 초신성','the core collapses — you are a BLACK HOLE':'중심핵이 붕괴한다 — 당신은 블랙홀이다',
+ '✧ STELLAR STREAM':'✧ 항성류','a shredded cluster strung along its orbit — harvest the chain':'찢긴 성단이 궤도를 따라 늘어섰다 — 사슬을 수확하라',
+ '✦ SHOCK BREAKOUT':'✦ 충격파 돌파','a neighbour went supernova — the blast is passing':'이웃 별이 터졌다 — 폭풍이 지나간다',
+ '☠ APEX PREDATOR':'☠ 최상위 포식자','a greater black hole hunts you — outgrow it, then consume it':'더 큰 블랙홀이 당신을 쫓는다 — 넘어선 뒤 삼켜라',
+ '★ APEX CONSUMED':'★ 포식자 포식',
+ '◆ MOVE':'◆ 이동','WASD · arrows · or drag':'WASD · 방향키 · 드래그',
+ '◆ EAT THE GREEN':'◆ 초록을 먹어라','a green halo means you can swallow it':'초록 링은 삼킬 수 있다는 뜻이다',
+ '◆ AVOID RED & AMBER':'◆ 빨강·주황을 피하라','red kills you · amber shatters you':'빨강은 죽인다 · 주황은 부순다',
+ '◆ GROW TO EVOLVE':'◆ 자라서 진화하라','feed enough and you ignite into a star':'충분히 먹으면 항성으로 점화한다'}
+const L=v=>{const t=T(v);return (LANG==='ko'&&KO[t])?KO[t]:t}   // 문자열이면 사전, {en,ko}면 그쪽 우선
+function banner(main,sub,pri){pushMsg({kind:'b',pri:pri||2,main:L(main),sub:L(sub),key:'b:'+main})}
 function codexToast(type){
  if(!CODEX.discover(type))return                  // 발견은 항상 기록한다(표시는 큐가 결정)
  pushMsg({kind:'c',pri:1,type,key:'c:'+type})
@@ -1658,6 +1695,9 @@ function update(dt){
  if(nf!==S.formIdx){
   const prev=S.formIdx
   S.formIdx=nf;applyForm(nf)
+  // 새 동사는 '생애 첫 판'이 아니라 '쓸 수 있게 된 순간'에 가르쳐야 한다.
+  // HINTS에 넣었더니 onboarded 플래그 때문에 재방문 플레이어는 영영 못 봤다(오너: 뭐가 달라진지 모르겠다).
+  if(nf===2&&prev<2)setTimeout(()=>{if(S.alive)banner(T(HOLD_TIP.m),T(HOLD_TIP.s),4)},1500)   // 죽은 뒤 결과 화면에 잔류하던 문제
   // 블랙홀은 반드시 항성 붕괴를 거쳐야 한다 — 한 번에 뛰어넘어도(거대 천체 흡수) 초신성은 터진다.
   // 실제로도 별 단계를 건너뛰고 항성질량 블랙홀이 되는 경로는 없다.
   if(nf===2&&prev<2){if(prev===0){codexToast('mainsequence')}supernova()}
@@ -1937,7 +1977,20 @@ function updateCamera(dt){
  // 격자는 게임플레이 전용 기준자다. 히어로 구도는 카메라가 격자 평면 높이에 놓여
  // 평면의 지평선(가로선)과 시선축 격자선(세로선)이 '십자 아티팩트'로 보인다 — 구도 전환과 같은 속도로 페이드.
  const gWant=hero?0:0.34
+ // 그리드 눈금은 고정 26이었다 — 고질량(camDist 535)에서 셀이 화면에 너무 촘촘해
+ // 선이 가늘어지고 불규칙해졌다(오너: 어느 순간부터 그리드가 끊긴다).
+ // 지도처럼 10배씩 축척을 전환한다. 부수 효과가 본질이다 — 전환되는 순간 세상이 한 단계
+ // 물러나며 '내가 그만큼 커졌다'가 눈에 보인다. 고정 눈금은 그걸 못 보여줬다.
+ {const camD=cam.position.distanceTo(hole.position)
+  const k=Math.max(0,Math.round(Math.log10(Math.max(1,camD/54))))
+  if(k!==gridStep){gridStep=k
+   const cell=GRID_CELL*Math.pow(10,k)
+   const rep=(GRID_CELL*4000)/cell
+   gridTex.repeat.set(rep,rep);gridTex.offset.set(0.5,0.5)
+   gridFlash=1}}
+ if(gridFlash>0)gridFlash=Math.max(0,gridFlash-(dt||0.016)*2.2)   // 전환을 한 번 반짝여 '의도된 일'로 읽히게
  gridMesh.material.opacity+=(gWant-gridMesh.material.opacity)*Math.min(1,(dt||0.016)*3)
+ gridMesh.material.opacity=Math.min(1,gridMesh.material.opacity*(1+1.6*gridFlash))
  gridMesh.visible=gridMesh.material.opacity>0.004
  const tx=hole.position.x,tz=hole.position.z+menuShift // z+ = 화면상 홀이 위로
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
@@ -2535,14 +2588,12 @@ let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e
 const HINTS=[{t:0.6,m:'◆ MOVE',s:'WASD · arrows · or drag'},
  {t:2.0,need:'edible',m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
  {t:4.0,need:'threat',m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
- {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'},
- {t:0,need:'bh',m:'◍ HOLD TO BANK',s:'hold C (or ◍) to catch bodies into orbit instead of eating — slower, but worth more'}]
+ {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'}]
 function onboardTick(){ // 첫 런에만 단계별 힌트
  if(S.hintIdx>=HINTS.length)return
  if(onboarded&&S.hintIdx>0)return // 이동 안내(첫 줄)는 매판 노출 — 나머지는 첫 플레이에만
  const h=HINTS[S.hintIdx]
- if(h.need==='bh'&&S.formIdx<2)return                         // 블랙홀이 되어야 쓸 수 있는 동사다
- if(h.need&&h.need!=='bh'&&!(h.need==='edible'?S.sawEdible:S.sawThreat))return   // 그 링을 실제로 볼 때까지 기다린다
+ if(h.need&&!(h.need==='edible'?S.sawEdible:S.sawThreat))return   // 그 링을 실제로 볼 때까지 기다린다
  if(S.t>=h.t){banner(h.m,h.s);S.hintIdx++
   if(S.hintIdx>=HINTS.length){onboarded=true;try{localStorage.setItem('acc_onboard','1')}catch(e){}}}
 }
@@ -2661,7 +2712,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   const v=new THREE.Vector3(1,0,0).applyQuaternion(tl.getWorldQuaternion(new THREE.Quaternion())) // 꼬리가 실제로 향하는 월드 방향
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)||1
   return {err:+Math.hypot(v.x-dx/d,v.z-dz/d).toFixed(3)}}),  // 0에 가까울수록 '나로부터 바깥' 정렬
- gridState:()=>({vis:gridMesh.visible,op:+gridMesh.material.opacity.toFixed(3)}),
+ gridState:()=>({vis:gridMesh.visible,op:+gridMesh.material.opacity.toFixed(3),step:gridStep,cell:GRID_CELL*Math.pow(10,gridStep)}),
  _probe:()=>{const out=[];scene.traverse(o=>{if(!o.visible||o.type==="Scene")return
   const box=o.geometry?(o.geometry.boundingSphere||(o.geometry.computeBoundingSphere(),o.geometry.boundingSphere)):null
   out.push({t:o.type,n:o.name||"",g:o.geometry?o.geometry.type:"",r:box?+box.radius.toFixed(1):null,

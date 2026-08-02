@@ -88,6 +88,25 @@ try {
        miss.map(b=>b.id).join(',')||`${pool.length}종 × (요약+근거) × 2언어`)
     const hanInEn = pool.filter(b=>HAN.test(b.sum.en)||HAN.test(b.w.en))
     ok('English strings contain no Korean', hanInEn.length===0, hanInEn.map(b=>b.id).join(',')||'없음')
+
+  // 배너·힌트도 번역되는가 — 5.4의 다국어는 진화 카드 12줄뿐이라
+  // "한국어를 선택해도 전체적으로 반영돼 있지 않다"는 리포트가 나왔다
+  const ban = await p.evaluate(async () => {
+    const A=window.__acc, f=n=>new Promise(r=>{const t=()=>--n<=0?r():requestAnimationFrame(t);requestAnimationFrame(t)})
+    const read=async(lang)=>{ A.setLang(lang)
+      A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000)
+      A.fireEvent('stream'); await f(3)
+      const a=document.getElementById('bmain').textContent+' '+document.getElementById('bsub').textContent
+      A.fireExtremal(); await f(3)
+      const b=document.getElementById('bmain').textContent+' '+document.getElementById('bsub').textContent
+      return a+' | '+b }
+    const ko=await read('ko'), en=await read('en')
+    A.setLang('en')
+    return { ko, en }
+  })
+  const HAN2=/[가-힣]/
+  ok('banners speak Korean when Korean is chosen', HAN2.test(ban.ko), ban.ko.slice(0,44))
+  ok('and English when English is chosen', !HAN2.test(ban.en), ban.en.slice(0,44))
     await p.close()
   }
   ok('no JS errors', errors.length===0, errors.slice(0,2).join(' | '))
