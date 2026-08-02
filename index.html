@@ -296,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.15</div>
+<div class="credit">ACCRETION · prototype 5.16</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1651,6 +1651,32 @@ function codexToast(type){
  for(const id of SKIN_ORDER)if(SKINS[id].need>0&&nu===SKINS[id].need)banner('◆ SKIN UNLOCKED',SKINS[id].name+' — choose it in CODEX',3)
 }
 
+// ── 은하 깊이 — 필드를 비균일하게 ──
+// 이 게임엔 '공간 판단'이 없었다: topUp()이 플레이어 주위에 균일하게 스폰하니
+// 모든 방향이 같고, '어디로 갈까'라는 결정이 존재하지 않았다. 그래서 이벤트·지형·종착점을
+// 넣어도 스쳐 지나가는 점에 그쳤고, 나침반과 그리드도 갈 곳이 없어 쓸모가 안 생겼다.
+// 기울기는 '외곽 페널티'가 아니라 '중심 보너스'로 잡는다 — 외곽을 깎으면
+// 이미 가장 약한 초반이 더 나빠진다(실측: 외곽 계수 0.85는 초반 먹이를 15% 줄였다).
+// 물리: 은하의 별 밀도는 중심으로 갈수록 가파르게 오른다 — Sgr A* 주변 핵성단은
+// 태양 근방보다 별 밀도가 10^8배 높다. 그 기울기를 그대로 필드에 옮긴다.
+//   외곽 = 희박·안전·작은 천체   중심 = 밀집·위협·큰 천체
+function galDepth(){                                  // 0 = 외곽 · 1 = 중심
+ const R0=rad(CORE_MASS)*9                            // 시작 시 코어까지의 거리
+ const d=Math.hypot(hole.position.x-galCore.position.x,hole.position.z-galCore.position.z)
+ return Math.max(0,Math.min(1,1-d/R0))
+}
+const DEPTH_BANDS=[{at:0.34,m:{en:'◇ INNER DISK',ko:'◇ 내부 원반'},
+                    s:{en:'the field thickens — more to eat, more that eats you',ko:'필드가 두꺼워진다 — 먹을 것도, 나를 먹을 것도 많아진다'}},
+                   {at:0.68,m:{en:'◇ NUCLEAR BULGE',ko:'◇ 핵 팽대부'},
+                    s:{en:'star density climbs steeply — the richest and the deadliest ground',ko:'별 밀도가 가파르게 오른다 — 가장 살지고 가장 위험한 땅'}}]
+function noteDepth(){
+ const d=galDepth();let b=-1
+ for(let i=0;i<DEPTH_BANDS.length;i++)if(d>=DEPTH_BANDS[i].at)b=i
+ if(b>(S.bandSeen==null?-1:S.bandSeen)){S.bandSeen=b
+  const B=DEPTH_BANDS[b];banner(T(B.m),T(B.s),3)}
+ else if(b<(S.bandSeen==null?-1:S.bandSeen))S.bandSeen=b   // 되돌아가면 다시 알릴 수 있게
+}
+
 // ── 런 열기(run heat) — 시간이 흐르면 어려워진다 ──
 // 실측: S.t가 난이도 파라미터에 한 번도 쓰이지 않았다. 성장은 로그로 느려지는데 위협은 비례로만
 // 따라와, 후반이 '더 어려운 도전'이 아니라 '같은 난이도의 반복'이었다(오너: 무료하다).
@@ -1668,25 +1694,27 @@ function runHeat(){return S.alive?1-Math.exp(-(S.t||0)/HEAT_TAU):0}
 
 /* ===== spawn director ===== */
 function topUp(){const cap=S.formIdx===2?Math.max(30,46-Math.log10(Math.max(10,S.mass))*4):56 // 후반엔 천체가 커지므로 개수를 줄여 화면을 정리
- const heat=runHeat()
- const want=Math.round(Math.min(cap,34+Math.floor(S.mass*0.4))*(S.modDensity||1)*(1+0.30*heat)) // 데일리 SWARM: 밀도↑ · 시간이 갈수록 붐빈다
+ const heat=runHeat(), depth=galDepth()   // 시간(열기) × 위치(깊이) — 두 축이 필드를 정한다
+ const want=Math.round(Math.min(cap,34+Math.floor(S.mass*0.4))*(S.modDensity||1)*(1+0.30*heat)*(0.95+0.55*depth)) // 데일리 SWARM: 밀도↑ · 시간이 갈수록 붐빈다
  // 위협 비중 = 형태 기본 + 블랙홀 티어 가산. 진화 전엔 낮고, 고질량 과밀도 완화(실측 45% → ~34%)
  const tt=S.formIdx===2?Math.max(0,S.tierIdx):0
  // 위협 비중은 질량에 따라 '연속적으로' 증가 — 티어 경계에서 갑자기 두 배가 되던 절벽 제거(오너 피드백)
  const bhProg=S.formIdx===2?Math.min(1,Math.log(Math.max(1,S.mass/12))/Math.log(400/12)):0
- const rivalP=Math.min(0.18*(1+0.55*heat),(FORMS[S.formIdx].rival-0.02+bhProg*0.05+0.045*heat)*(S.modRivals||1)) // 중심에 가까울수록 라이벌이 많다
+ const rivalP=Math.min(0.18*(1+0.55*heat)*(0.9+0.50*depth),(FORMS[S.formIdx].rival-0.02+bhProg*0.05+0.045*heat)*(S.modRivals||1)*(0.9+0.50*depth)) // 중심에 가까울수록 라이벌이 많다
  lastMix={want,rivalP:+rivalP.toFixed(4),heat:+heat.toFixed(3)}   // 검증이 표본 대신 실제 파라미터를 볼 수 있게(비율 표본은 노이즈가 커 흔들렸다)
  if(NO_SPAWN)return   // 검증용 — 먹이 유입을 끊는다
  while(objects.length<want){
   const roll=Math.random()
   // 비-라이벌은 전부 '먹이'(크기별) · 위협축=라이벌 블랙홀 — 성장할수록 더 많고 더 커짐
-  let mass,type
+  let mass,type,big=false   // big = 나보다 큰 천체(충돌 위험·큰 식사) — 깊이로 줄이면 외곽에 위험이 사라진다
   if(roll<rivalP){mass=S.mass*rnd(0.55,1.5+tt*0.18);type='rival'}                                      // 라이벌 — 범위 압축(먹을 수 있는 비율↑·화면을 덮는 거대함↓)
   else if(roll<rivalP+0.16){mass=S.mass*rnd(0.3,0.8);type=Math.random()<0.4?'pulsar':'neutron'}        // 밀집 천체(먹이·시각 다양성)
-  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?2.8:2.4);mass=S.mass*rel;type=pickFood()}  // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
+  else if(roll<rivalP+0.30){const rel=rnd(1.15,S.formIdx===2?2.8:2.4);mass=S.mass*rel;type=pickFood();big=true}  // 큰 천체 — 행성/별 단계엔 '충돌 위험', 블랙홀이 되면 '큰 식사'
   else{mass=S.mass*rnd(0.12,0.82);type=pickFood()}                                                      // 식량 — 종류는 '티어별 주민 표'에서 뽑는다
                                                                                                         // (예전엔 상대 크기로 rock/planet/star만 골라, 6만 배를 자라도 얼굴이 안 바뀌었다)
-  spawnObj(type,Math.max(0.2,mass))}}
+  // 크기 기울기는 '먹이'에만 건다 — 라이벌까지 줄이면 외곽이 통째로 안전해져 긴장이 사라진다
+  // (실측: 외곽에서 위협 비율이 과반 아래로 떨어졌다). 위협의 크기는 언제나 나를 기준으로 한다.
+  spawnObj(type,Math.max(0.2,(type==='rival'||big)?mass:mass*(0.95+0.65*depth)))}}
 
 /* ===== core update ===== */
 function update(dt){
@@ -1714,6 +1742,7 @@ function update(dt){
  updateEvents(dt)   // 런 리듬 — 주기적으로 맵 전체를 흔든다
  updateExtremal(dt)   // 완전체 10초 래치
  updateDisk(dt)       // 궤도에 쌓아 둔 것이 안쪽으로 내려온다
+ if(S.formIdx===2)noteDepth()   // 은하 깊이 — 지대를 넘으면 알린다
  if(S.mass<=S.evapFloor){codexToast('evaporate');return gameOver('evaporated')}
  checkMassMarks()
  // 이동(관성 활공) — 형태별 기동성(암석 둔함 → 블랙홀 민첩)
@@ -2619,7 +2648,7 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  choiceSkip=false
  evShock.visible=false
  clearDisk()
- Object.assign(S,{evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,disk:[],capCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
+ Object.assign(S,{bandSeen:-1,evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,disk:[],capCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
@@ -2813,6 +2842,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  extremal:()=>({on:extremalOn(),t:+(S.extT||0).toFixed(1),count:S.extCount||0}),
  fireExtremal:()=>{fireExtremal();return extremalOn()},
  heat:()=>+runHeat().toFixed(3),
+ depth:()=>+galDepth().toFixed(3),
  spawnMix:()=>lastMix,
  diskShape:()=>({out:+disk.geometry.parameters.outerRadius.toFixed(3),arc:+diskArc.geometry.parameters.outerRadius.toFixed(3)}),
  diskColor:()=>({a:'#'+disk.material.uniforms.uCA.value.getHexString(),r:'#'+disk.material.uniforms.uCR.value.getHexString(),ph:'#'+photon.material.color.getHexString(),temp:+diskTemp().toFixed(2)}),

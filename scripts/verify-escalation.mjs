@@ -203,6 +203,38 @@ try {
      drag.loaded.held>0 && drag.loaded.d < drag.light.d*0.92,
      `빈 몸 ${drag.light.d.toFixed(1)} → ${drag.loaded.held}개 실고 ${drag.loaded.d.toFixed(1)}`)
 
+  // ── 공간 판단: 필드가 비균일한가 ──
+  // topUp()이 균일하게 스폰하던 시절엔 '모든 방향이 같아' 어디로 갈지가 결정이 아니었다.
+  // 은하 중심으로 갈수록 밀도·위협·개체 크기가 올라야 '지금 저기로 갈까'가 성립한다.
+  const field = await page.evaluate(() => {
+    const A=window.__acc, out=[]
+    for(const frac of [0.05, 0.70]){
+      A.begin(); A.hideOnboard(); A.setMass(3000)
+      const cp=A.corePos(); A.setTarget(cp.x, cp.z)
+      let g=0
+      // 안쪽은 실제로 위험해서 이동 중 죽으면 표본이 0이 된다 — 여정이 아니라 '필드'를 재는 중이므로 비워 준다
+      while(A.depth()<frac-0.02 && g++<3000){ A.step(0.05,20); if(g%12===0){A.clearField(); A.setMass(3000)} }
+      A.setMass(3000)
+      let riv=0, tot=0, sum=0
+      for(let r=0;r<14;r++){ A.clearObjs(); A.setMass(3000); A.step(0.12)
+        for(const o of A.objInfo()){ tot++; if(o.t==='rival')riv++; sum+=o.mass } }
+      out.push({ depth:A.depth(), n:tot/14, riv:riv/Math.max(1,tot), avg:sum/Math.max(1,tot),
+                 mix:A.spawnMix() })
+    }
+    return out
+  })
+  const [out0, inn] = field
+  ok('field: the outskirts and the core are different places',
+     inn.depth > out0.depth + 0.4, `깊이 ${out0.depth} → ${inn.depth}`)
+  ok('field: it gets crowded toward the centre', inn.n > out0.n*1.2,
+     `${Math.round(out0.n)} → ${Math.round(inn.n)}개`)
+  ok('field: and more dangerous', inn.mix.rivalP > out0.mix.rivalP*1.25,
+     `스폰 확률 ${out0.mix.rivalP} → ${inn.mix.rivalP}`)
+  // 크기 기울기는 '먹이' 대역에만 건다 — 라이벌과 '나보다 큰 천체'까지 줄이면
+  // 외곽이 통째로 안전해져 긴장이 사라진다(실측으로 두 번 확인). 그래서 상한이 ×1.15 언저리다.
+  ok('field: with bigger bodies', inn.avg > out0.avg*1.12,
+     `평균 질량 ${Math.round(out0.avg)} → ${Math.round(inn.avg)} (×${(inn.avg/out0.avg).toFixed(2)})`)
+
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
   console.error('FATAL', e); results.push([false,'fatal',String(e)])
