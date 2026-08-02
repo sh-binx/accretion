@@ -100,9 +100,11 @@ try {
     ok('메뉴: 격자 비가시(십자 아티팩트 없음)', menu.vis===false && menu.op<0.01, JSON.stringify(menu))
     await g.evaluate(() => { window.__acc.begin(); window.__acc.hideOnboard() })
     // SwiftShader는 게임시간이 0.3배로 흘러 페이드가 늦다 — 벽시계 대기 대신 수렴을 기다린다
-    await g.waitForFunction(() => window.__acc.gridState().op > 0.3, { timeout:20000 }).catch(()=>{})
+    // 오너가 그리드를 네 번 물어 존재감을 0.34 → 0.15로 낮췄다(5.17). 문턱도 따라 내린다 —
+    // 검사의 뜻은 '메뉴엔 없고 플레이 중엔 돌아온다'이지 특정 불투명도가 아니다.
+    await g.waitForFunction(() => window.__acc.gridState().op > 0.10, { timeout:20000 }).catch(()=>{})
     const play = await g.evaluate(() => window.__acc.gridState())
-    ok('플레이: 격자 복귀(성장 기준자 유지)', play.vis===true && play.op>0.3, JSON.stringify(play))
+    ok('플레이: 격자 복귀(성장 기준자 유지)', play.vis===true && play.op>0.10, JSON.stringify(play))
     await g.close()
   }
 

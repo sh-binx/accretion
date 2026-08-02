@@ -296,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.16</div>
+<div class="credit">ACCRETION · prototype 5.17</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -367,6 +367,7 @@ let LANG=(()=>{const q=new URLSearchParams(location.search).get('lang')
  return /^ko/i.test(navigator.language||'')?'ko':'en'})()
 const T=o=>typeof o==='string'?o:(o&&(o[LANG]||o.en))||''
 function setLang(l){LANG=(l==='ko')?'ko':'en';try{localStorage.setItem('acc_lang',LANG)}catch(e){}
+ try{localizeStatic()}catch(e){}
  const b=document.getElementById('startLang');if(b)b.textContent=LANG==='ko'?'🌐 한국어':'🌐 ENGLISH'}
 const QA_DAY='2000-01-01'   // DEV 제출·조회가 격리되는 QA 전용 날짜 보드
 const $=id=>document.getElementById(id)
@@ -1642,7 +1643,51 @@ const KO={
  '◆ EAT THE GREEN':'◆ 초록을 먹어라','a green halo means you can swallow it':'초록 링은 삼킬 수 있다는 뜻이다',
  '◆ AVOID RED & AMBER':'◆ 빨강·주황을 피하라','red kills you · amber shatters you':'빨강은 죽인다 · 주황은 부순다',
  '◆ GROW TO EVOLVE':'◆ 자라서 진화하라','feed enough and you ignite into a star':'충분히 먹으면 항성으로 점화한다'}
-const L=v=>{const t=T(v);return (LANG==='ko'&&KO[t])?KO[t]:t}   // 문자열이면 사전, {en,ko}면 그쪽 우선
+const L=v=>{const t=T(v);return (LANG==='ko'&&(KO[t]||KO2[t]))?(KO[t]||KO2[t]):t}   // 배너 사전 + 정적 사전 둘 다
+// ── 정적 UI 사전 + 일괄 치환 ──
+// 5.14에서 배너 46줄을 옮겼는데도 "전체적으로 반영 안 됐다"는 리포트가 또 왔다. 실측하니
+// 한국어 모드에서 영문이 73건 남아 있었다 — HUD 라벨·조작 카드·버튼·메뉴·결과 화면 전부.
+// 마크업 73곳을 뜯는 대신, 사전에 있는 문자열만 골라 DOM에서 바꿔 끼운다(원문은 data-en에 보관해 되돌릴 수 있게).
+const KO2={
+ 'MASS · M☉':'질량 · M☉','SCORE':'점수','TIME':'시간','PEAK':'최고','DISK':'원반','CORE':'중심',
+ 'eat smaller · avoid larger':'작은 것은 먹고 · 큰 것은 피하라',
+ '◀ OUTFLOWS — FEED OR FADE':'◀ 유출 — 먹거나 사라지거나',
+ '◀ STELLAR WIND — FEED OR FADE':'◀ 항성풍 — 먹거나 사라지거나',
+ '◀ EVAPORATING — FEED OR FADE':'◀ 증발 중 — 먹거나 사라지거나',
+ 'PROTOSTAR':'원시별','MAIN SEQUENCE':'주계열성','BLACK HOLE':'블랙홀',
+ 'STELLAR-MASS':'항성질량','INTERMEDIATE':'중간질량','SUPERMASSIVE':'초대질량',
+ 'QUASAR':'퀘이사','ULTRAMASSIVE':'극대질량',
+ 'EVOLVE':'진화','CONTROLS':'조작','HALOS':'링 색',
+ 'or ARROW KEYS':'또는 방향키','move':'이동','recoil kick':'반동 킥','frame drag':'프레임 드래깅',
+ 'grav. wave':'중력파','hold':'누른 채','bank into orbit':'궤도에 쌓기',
+ 'edible':'먹을 수 있다','it eats you':'나를 먹는다','shatters you':'부딪히면 부서진다',
+ 'press any key to begin':'아무 키나 눌러 시작','tap to begin':'탭해서 시작',
+ '⚡ DASH':'⚡ 대시','◉ SPIN':'◉ 스핀','◎ WAVE':'◎ 중력파','☄ JET':'☄ 제트','◍ HOLD':'◍ 붙잡기',
+ '⚡ CHARGING':'⚡ 충전 중','⚡ SURGE':'⚡ 서지','TAP AN ABILITY':'능력을 탭하라',
+ 'DEVOURING':'흡수 중','FAMINE':'기근',
+ 'ROTATE YOUR DEVICE':'기기를 돌려 주세요','landscape mode for the best view':'가로 모드에서 가장 잘 보입니다',
+ 'BOARD':'보드','DEX':'덱스','ALL TIME · TOP 100':'역대 · 상위 100',
+ 'Discover cosmic bodies & phenomena as you play':'플레이하며 천체와 현상을 발견하세요',
+ '◆ BLACK HOLE SKIN':'◆ 블랙홀 스킨','DAILY BOARD':'오늘의 보드','GLOBAL BOARD':'전체 보드',
+ 'SPACE':'스페이스','SHIFT':'시프트','WASD · ← ↑ → ↓ · DRAG':'WASD · 방향키 · 드래그',
+ '🏆 LEADERBOARD':'🏆 리더보드','◆ CODEX':'◆ 코덱스','PILOT':'조종사','BECOME THE BLACK HOLE':'블랙홀이 되어라','BEGIN':'시작',
+ 'LEADERBOARD':'리더보드','CLOSE':'닫기','AGAIN':'다시','▶ AGAIN':'▶ 다시','▶ PLAY':'▶ 플레이',
+ 'BEST':'최고','RANK':'순위','CODEX':'코덱스','AWARDS':'업적',
+ 'COLLAPSED':'붕괴','DEVOURED':'포식당함','GLOBAL':'전체','DAILY':'오늘',
+ 'score not ranked':'점수 미등록','MAX COMBO':'최고 콤보',
+ 'A larger black hole tidally disrupted you.':'더 큰 블랙홀이 당신을 조석 파괴했다.',
+ 'Spaghettification: tidal forces near a bigger mass stretch you apart.':'스파게티화 — 더 큰 질량 근처의 조석력이 당신을 늘려 찢는다.'}
+const SKIPTAG={SCRIPT:1,STYLE:1,NOSCRIPT:1,TEMPLATE:1,INPUT:1,CANVAS:1}
+function localizeStatic(){   // 사전에 있는 문자열만 건드린다 — 점수·시간 같은 동적 값은 건너뛴다
+ for(const e of document.querySelectorAll('body *')){
+  if(SKIPTAG[e.tagName]||e.children.length)continue
+  const src=e.dataset.en!=null?e.dataset.en:(e.textContent||'').trim()
+  const ko=KO2[src]||KO[src]
+  if(!ko)continue
+  e.dataset.en=src
+  e.textContent=(LANG==='ko')?ko:src
+ }
+}   // 문자열이면 사전, {en,ko}면 그쪽 우선
 function banner(main,sub,pri){pushMsg({kind:'b',pri:pri||2,main:L(main),sub:L(sub),key:'b:'+main})}
 function codexToast(type){
  if(!CODEX.discover(type))return                  // 발견은 항상 기록한다(표시는 큐가 결정)
@@ -1872,6 +1917,9 @@ function update(dt){
    // 블랙홀끼리의 병합은 실제로도 밀리초 만에 끝난다(중력파 링다운) → 즉시.
    // 시간이 걸리는 건 '천체를 뜯어먹는' 경우 — 실제 조석파괴사건도 수개월이 걸린다.
    if(bigFood)continue // 큰 천체는 로슈 한계에서 붙잡힌다 — 여기까지 오지 않는다
+   // 포획은 먹기 경로 '전에' 갈라져야 한다 — 뒤에 두었더니 여기서 한 번, captureBody에서 또 한 번
+   // 올라 포획 1회에 콤보가 2씩 붙었다(실측: 포획 3회에 콤보 6).
+   if(holdCap&&o.type!=='rival'&&S.formIdx===2&&captureBody(o))continue
    S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now();S.comboMax=Math.max(S.comboMax,S.combo) // FRENZY·MAD로 콤보창 연장
    noteBoon()
    // 병합 vs 강착: 블랙홀끼리의 합체는 복사압 한계를 크게 받지 않는다(실제 초대질량 블랙홀의 주 성장 경로)
@@ -1879,7 +1927,6 @@ function update(dt){
    const bn=boonNow()
    const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1)*boonMul('acc') // 형태 × 콤보 단계 × 진화 선택
    const gain=o.mass*(isMerge?0.45:0.62)*eff
-   if(holdCap&&!isMerge&&S.formIdx===2&&captureBody(o))continue   // 포획 모드 — 삼키지 않고 궤도에 붙잡는다
    S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
    if(accEff()<0.5)codexToast('eddington')
    if(isMerge&&!S.mergedOnce){S.mergedOnce=true;banner('◈ MERGER','black holes grow by merging — hunt them to keep growing')}
@@ -2008,7 +2055,10 @@ function updateCamera(dt){
  menuShift+=(wantShift-menuShift)*Math.min(1,dt*3)
  // 격자는 게임플레이 전용 기준자다. 히어로 구도는 카메라가 격자 평면 높이에 놓여
  // 평면의 지평선(가로선)과 시선축 격자선(세로선)이 '십자 아티팩트'로 보인다 — 구도 전환과 같은 속도로 페이드.
- const gWant=hero?0:0.34
+ // 오너가 그리드를 네 번 물었다(사각형 점 · 효용 · 중간에 나옴 · 왜 필요한가).
+ // 네 번 설명이 필요한 장치는 실패한 장치다. 기능(유일한 절대 기준자)은 남기되
+ // '눈에 걸리는 물건'이 되지 않도록 존재감을 절반 이하로 낮춘다 — 축척 전환 배너가 성장을 말해 준다.
+ const gWant=hero?0:0.15
  // 그리드 눈금은 고정 26이었다 — 고질량(camDist 535)에서 셀이 화면에 너무 촘촘해
  // 선이 가늘어지고 불규칙해졌다(오너: 어느 순간부터 그리드가 끊긴다).
  // 지도처럼 10배씩 축척을 전환한다. 부수 효과가 본질이다 — 전환되는 순간 세상이 한 단계
@@ -2025,7 +2075,7 @@ function updateCamera(dt){
    if(k>0&&S.alive)banner(T(SCALE_TIP.m),T(SCALE_TIP.s).replace('{n}',fmtBig(cell)),3)}}   // 보이는 변화엔 설명이 따라야 한다
  if(gridFlash>0)gridFlash=Math.max(0,gridFlash-(dt||0.016)*2.2)   // 전환을 한 번 반짝여 '의도된 일'로 읽히게
  gridMesh.material.opacity+=(gWant-gridMesh.material.opacity)*Math.min(1,(dt||0.016)*3)
- gridMesh.material.opacity=Math.min(1,gridMesh.material.opacity*(1+1.6*gridFlash))
+ gridMesh.material.opacity=Math.min(1,gridMesh.material.opacity*(1+1.1*gridFlash))
  gridMesh.visible=gridMesh.material.opacity>0.004
  const tx=hole.position.x,tz=hole.position.z+menuShift // z+ = 화면상 홀이 위로
  const sx=(Math.random()-0.5)*S.shake*2.2,sz=(Math.random()-0.5)*S.shake*2.2
@@ -2075,8 +2125,8 @@ function render(){
 /* ===== HUD ===== */
 function hud(){
  $('mval').textContent=fmtBig(S.mass)
- $('tier').textContent=S.formIdx<2?FORMS[S.formIdx].n:TIERS[Math.max(0,S.tierIdx)].n
- $('drain').textContent=FORMS[S.formIdx].drain
+ $('tier').textContent=L(S.formIdx<2?FORMS[S.formIdx].n:TIERS[Math.max(0,S.tierIdx)].n)
+ $('drain').textContent=L(FORMS[S.formIdx].drain)
  $('tval').textContent=S.t.toFixed(1)+'s'
  $('sval').textContent=S.score.toLocaleString()
  $('pval').textContent=fmtBig(S.peak)
@@ -2119,7 +2169,7 @@ function hud(){
  const su=$('surge');su.classList.toggle('on',S.alive)
  $('surgeFill').style.width=(S.energy*100)+'%'
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
- $('surgeLab').textContent=ready?(COARSE?'TAP AN ABILITY':(jetsReady?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING'
+ $('surgeLab').textContent=L(ready?(COARSE?'TAP AN ABILITY':(jetsReady?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING')
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
  if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
   ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?' — CONSUME IT':'')}
@@ -2499,6 +2549,11 @@ function captureBody(o){
  // 소유권을 원반으로 넘긴다: objects에서만 빼고 씬에는 남긴다.
  // eaten 플래그를 쓰면 정리 경로가 다음 프레임에 메시를 지워 궤도가 비어 버린다.
  {const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
+ // 포획도 '잡은 것'이다. 콤보를 안 올리면 '쌓기는 느리다 + 느리면 콤보가 끊긴다'가
+ // 서로를 무효로 만든다(오너 리포트: 천천히 먹으면 콤보가 끊긴다).
+ S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now()
+ S.comboMax=Math.max(S.comboMax,S.combo);noteBoon()
+ S.energy=Math.min(1,S.energy+0.10)
  popup(o.g.position,'CAPTURED','#8fd0ff');codexToast('disk')
  AU.swallow();S.capCount=(S.capCount||0)+1
  return true
@@ -2513,6 +2568,8 @@ function updateDisk(dt){
   if(d.g){d.g.position.set(hole.position.x+Math.cos(d.ang)*d.r,0,hole.position.z+Math.sin(d.ang)*d.r)
    d.g.rotation.y+=dt*1.6}
   // 각운동량을 버리며 안쪽으로 — 궤도 질량이 나에게 내려온다(삼키는 것보다 총량이 크다)
+  // 궤도가 살아 있는 동안은 계속 흡수 중이다 — 콤보 시계를 끊지 않는다
+  if(S.combo>=2)S.comboAt=Math.max(S.comboAt,performance.now()-comboWin()*0.55)
   const give=d.mass*DISK_RATE*dt
   d.mass-=give;S.mass+=give*accEff()*(FORMS[S.formIdx].acc||1)
   S.score+=Math.round(give*11)
