@@ -288,7 +288,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.10</div>
+<div class="credit">ACCRETION · prototype 5.11</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -890,8 +890,15 @@ function mkVisual(type,mass){
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
  else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
- else if(type==='pulsar'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9)) // 펄서 — 회전 빔(등대)
-  for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.45,6.5,10);bg.translate(0,3.2,0);const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}));bm.rotation.z=sx*0.45;g.add(bm)}}
+ else if(type==='pulsar'){ // 펄서 — 자기극에서 나오는 등대 빔. 그 빔이 지구를 스칠 때마다 깜빡여 보여 '펄스'다.
+  // 빔 길이가 6.5였는데 몸 스케일(r*0.72)에 그대로 곱해져, 질량 2.9K에서 62유닛 — 화면 반높이(~65)를 통째로 덮었다.
+  // 오너가 '저 원뿔은 뭐냐'고 물은 이유다. 짧게 줄이고, 대신 '깜빡임'을 넣어 펄서로 읽히게 한다.
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9))
+  const beams=[]
+  for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.30,3.2,10);bg.translate(0,1.6,0)
+   const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}))
+   bm.rotation.z=sx*0.45;g.add(bm);beams.push(bm)}
+  g.userData.beams=beams}
  // ── 티어별 주민 — 실루엣을 갈라야 색이 비슷해도 구분된다(오너: "천체가 뻔하다") ──
  else if(type==='comet'){ // 혜성 — 핵 + 코마 + 두 갈래 꼬리. 복사압·항성풍에 밀려 광원 '반대쪽'을 향한다.
   // 예전엔 맨 구체 + 경계가 뚜렷한 원뿔 하나여서 '탐조등'처럼 읽혔다(오너: "플래시 같은 게 뭐냐").
@@ -1190,6 +1197,8 @@ function mkFeat(type,x,z){
 function releaseFeat(f){scene.remove(f.g);const i=feats.indexOf(f);if(i>=0)feats.splice(i,1)}
 function clearFeats(){for(const f of feats.slice())releaseFeat(f)}
 function topUpFeats(){
+ if(NO_SPAWN)return   // 검증용 스폰 차단은 지형에도 걸린다 — 성운은 초당 +3.5%를 '먹인다'.
+                      // 안 걸어 뒀더니 호킹 축소 테스트에서 질량이 오히려 늘어 간헐 실패했다(6→6.49).
  if(S.formIdx<1)return // 미행성 단계는 기본기에 집중 — 항성부터 등장
  const want=S.formIdx<2?1:(S.tierIdx>=2?3:2)   // 초대질량부터 지형이 하나 늘어난다(후반 맵이 계속 같아 보이던 문제)
  while(feats.length<want){
@@ -1676,6 +1685,9 @@ function update(dt){
    const dst=(o.eatBy&&!o.eatBy.eaten&&objects.indexOf(o.eatBy)>=0)?o.eatBy.g.position:hole.position
    o.g.position.lerp(dst,Math.min(1,dt*(o.eatFast?16:9)));o.g.scale.multiplyScalar(Math.pow(0.001,dt));o.eatT-=dt;if(o.eatT<=0)releaseObj(o);continue}
   o.g.position.x+=o.vx*dt;o.g.position.z+=o.vz*dt;o.g.rotation.y+=(o.type==='pulsar'?o.spin*4:o.spin)*dt // 펄서는 빠르게 회전(빔 스윕)
+  if(o.g.userData.beams){const ph=Math.max(0,Math.sin(o.g.rotation.y*2))
+   const op=0.10+0.42*Math.pow(ph,7)   // 스칠 때만 날카롭게 — 그 번쩍임이 곧 '펄스'다
+   for(const bm of o.g.userData.beams)bm.material.opacity=op}
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
   if(o.nemesis){o.mass+=(S.mass*1.35-o.mass)*Math.min(1,dt*0.35);o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)} // 네메시스=내 1.35× 지연추종(급성장 시 잠깐 추월→되먹을 창)
@@ -2634,6 +2646,10 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
    objs:objects.filter(o=>!o.eaten).map(o=>{const ox=o.g.position.x-hole.position.x,oz=o.g.position.z-hole.position.z
     return {t:o.type,along:+(ox*ax+oz*az).toFixed(1),perp:+Math.abs(ox*az-oz*ax).toFixed(1)}})}},
  featCount:()=>feats.length,
+ beamLen:()=>{const o=objects.find(x=>x.type==='pulsar'&&x.g.userData.beams);if(!o)return null
+  return +(3.2*o.g.scale.x).toFixed(1)},   // 월드 단위 빔 길이
+ beamOp:()=>{const o=objects.find(x=>x.type==='pulsar'&&x.g.userData.beams);if(!o)return null
+  return +o.g.userData.beams[0].material.opacity.toFixed(3)},
  applySkin:(id)=>{applySkin(id);return curSkinId},
  comboCurve:(c)=>({mul:+comboMul(c).toFixed(2),tier:(comboBoon(c)||{}).name||null}),
  extremal:()=>({on:extremalOn(),t:+(S.extT||0).toFixed(1),count:S.extCount||0}),
