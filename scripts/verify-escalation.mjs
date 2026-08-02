@@ -71,6 +71,27 @@ try {
   ok('extremal: it ends (no permanent god mode)', ext.after.on===false, `11초 뒤 ${ext.after.on}`)
   ok('extremal: the disk goes white-hot while it holds', ext.disk.a==='#ffffff', ext.disk.a)
 
+  // 피버 타임 — 콤보 ×320의 대가가 '숫자가 조금 오른다'로 끝나선 안 된다(오너 제안)
+  const fever = await page.evaluate(() => {
+    const A=window.__acc
+    const run=(on)=>{
+      A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(3000)
+      const c=A.pos(), hr=Math.cbrt(3000)
+      for(const rel of [0.4,0.7,0.9,1.2,1.5,1.8]) A.spawn('giant', 3000*rel, c.x+hr*(3+rel*2), c.z+hr*2)
+      if(on)A.fireExtremal()
+      A.step(0.05)
+      const oi=A.objInfo()
+      const m0=A.state.mass
+      for(let i=0;i<70;i++){ A.eatNearest(); A.step(0.05,20) }
+      return { edible:oi.filter(o=>o.edible).length, n:oi.length, gain:A.state.mass-m0 }
+    }
+    return { off:run(false), on:run(true) }
+  })
+  ok('fever: everything within reach becomes edible', fever.on.edible > fever.off.edible,
+     `가식 ${fever.off.edible}/${fever.off.n} → ${fever.on.edible}/${fever.on.n}`)
+  ok('fever: and it actually pays off', fever.on.gain > fever.off.gain*1.8,
+     `+${Math.round(fever.off.gain)} → +${Math.round(fever.on.gain)} (×${(fever.on.gain/fever.off.gain).toFixed(2)})`)
+
   // 최종 형태는 '시공간이 휘는' 게 보여야 한다 — 예전엔 원반 색만 희게 바꿔
   // 고질량에서 이미 포화된 흰색과 구분되지 않았다(오너: 최종 형태가 안 보인다)
   const warp = await page.evaluate(async () => {

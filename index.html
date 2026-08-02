@@ -296,7 +296,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.17</div>
+<div class="credit">ACCRETION · prototype 5.18</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -1030,6 +1030,10 @@ function pickFood(){const t=foodTable();return t[Math.floor(Math.random()*t.leng
 function spawnObj(type,mass,x,z){
  const g=mkVisual(type,mass);const r=rad(mass)
  g.scale.setScalar(r*((type==='neutron'||type==='pulsar')?0.72:1.15)) // 중성자별·펄서는 초고밀도라 작게(먹기 판정은 질량 기준 동일)
+ // 글로우 스프라이트도 함께 커지는데, 가산 합성이라 면적이 커지면 흰색으로 포화된다
+ // (오너: 후반부로 갈수록 행성이 하얘진다). 커질수록 불투명도를 낮춰 색을 지킨다.
+ if(r>4){const dim=1/(1+Math.log10(r/4)*1.15)
+  g.traverse(o=>{if(o.isSprite&&o.material)o.material.opacity*=dim})}
  if(x==null){const a=rnd(0,6.283),dist=(22+rad(S.mass)*7)*rnd(1.15,1.9);x=hole.position.x+Math.cos(a)*dist;z=hole.position.z+Math.sin(a)*dist} // 뷰(camDist) 바로 밖에 스폰 — 커져도 필드가 화면 근처에 밀집(고질량 공백 방지)
  g.position.set(x,0,z==null?0:z)
  scene.add(g)
@@ -1221,7 +1225,9 @@ function topUpFeats(){
  if(NO_SPAWN)return   // 검증용 스폰 차단은 지형에도 걸린다 — 성운은 초당 +3.5%를 '먹인다'.
                       // 안 걸어 뒀더니 호킹 축소 테스트에서 질량이 오히려 늘어 간헐 실패했다(6→6.49).
  if(S.formIdx<1)return // 미행성 단계는 기본기에 집중 — 항성부터 등장
- const want=S.formIdx<2?1:(S.tierIdx>=2?3:2)   // 초대질량부터 지형이 하나 늘어난다(후반 맵이 계속 같아 보이던 문제)
+ // 블랙홀이 된 뒤 2개로 고정이라 '어느 시점부터 아이템이 2개만 나온다'는 리포트가 나왔다.
+ // 맵이 커지는 만큼 지형도 늘어야 한다 — 티어마다 하나씩.
+ const want=S.formIdx<2?1:(2+Math.max(0,S.tierIdx))   // 블랙홀 2 → 극대질량 6
  while(feats.length<want){
   const a=rnd(0,6.283),dist=(22+rad(S.mass)*7)*rnd(1.3,2.2)
   const roll=Math.random(),type=roll<0.45?'nebula':(roll<0.78?'wormhole':'remnant')
@@ -1832,8 +1838,12 @@ function update(dt){
   // 블랙홀은 질량과 무관하게 비-블랙홀(암석·별)에겐 언제나 죽음 — 반대로 삼키는 건 물리적으로 불가능
   const bhThreat=o.type==='rival'&&S.formIdx<2, isBH=S.formIdx===2
   // 블랙홀은 무엇이든(비-라이벌) 삼킨다 · 행성·별 단계에선 나보다 큰 천체는 삼킬 수 없고 부딪히면 부서진다
-  const edible=!bhThreat&&(o.type!=='rival'?(isBH||o.mass<S.mass):o.mass<S.mass)
-  const threat=(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
+  // 완전체(EXTREMAL) 10초 = 피버 타임. 최대 회전 커 블랙홀은 최내안정궤도가 지평선까지
+  // 내려와 포획 단면적이 최대가 된다 — 그 10초 동안은 나보다 큰 것도 삼킨다(2배까지).
+  // 콤보 ×320을 만든 대가가 '숫자가 조금 오른다'로 끝나선 안 된다.
+  const fever=extremalOn()&&o.mass<S.mass*2
+  const edible=fever||(!bhThreat&&(o.type!=='rival'?(isBH||o.mass<S.mass):o.mass<S.mass))
+  const threat=!fever&&(o.type==='rival')&&(bhThreat||o.mass>=S.mass)
   const crush=!isBH&&o.type!=='rival'&&o.mass>=S.mass // 충돌 위험 천체
   // 아래 흡입 로직이 '대기 중인 큰 천체'를 알아야 해서 선언을 여기로 올렸다(예전 배치는 TDZ 오류).
   const relNow=o.mass/Math.max(1e-6,S.mass)
@@ -1846,7 +1856,7 @@ function update(dt){
   if(edible){h.material.color.setHex(0x7bed4a);h.material.opacity=0.5+Math.sin(S.t*6)*0.18
    if(d<mouth*4)S.sawEdible=true   // 힌트 조건 — 눈에 들어올 만큼 가까울 때
    const bnP=boonNow()
-   const pull=mouth*F.pull*(bnP?bnP.pull:1)*boonMul('pull') // 흡입권 — 형태 × 콤보 단계 × 진화 선택
+   const pull=mouth*F.pull*(bnP?bnP.pull:1)*boonMul('pull')*(extremalOn()?2.6:1) // 흡입권 — 형태 × 콤보 단계 × 진화 선택 × 완전체(피버)
    const base=o.r*1.15
    // waiting: 차례를 기다리는 큰 천체는 더 끌어당기지 않는다(아직 강착이 시작되지 않았다)
    if(d>0.01&&d<pull&&!feedOf(o)&&!waiting){
@@ -2829,7 +2839,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   x:+o.g.position.x.toFixed(1),z:+o.g.position.z.toFixed(1),
   v:+Math.hypot(o.vx,o.vz).toFixed(2),
   d:+Math.hypot(o.g.position.x-hole.position.x,o.g.position.z-hole.position.z).toFixed(1),
-  edible:!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass)})), // 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
+  edible:(extremalOn()&&o.mass<S.mass*2)||(!(o.type==='rival'&&S.formIdx<2)&&(o.type!=='rival'?(S.formIdx===2||o.mass<S.mass):o.mass<S.mass))})),   // 피버 반영 · 실제 판정과 동일(블랙홀은 비-BH에게 절대 먹이 아님)
  clearObjs:()=>{for(const o of objects.slice())releaseObj(o)},
  codex:()=>({count:CODEX.count(),total:CODEX.total(),seen:[...CODEX.seen]}),
  awards:()=>({count:AWARDS.count(),total:ACH.length,got:[...AWARDS.got]}),
