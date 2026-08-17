@@ -20,7 +20,7 @@ Karpathy LLM-wiki 패턴. "위키 = 코드베이스, LLM = 프로그래머". 프
 ## v2.1 델타
 
 - **Confidence 태그**: 불확실·시효성 사실에 `(추정)` 또는 `(재확인 필요·YYYY-MM)`. 확인된 사실은 무표기.
-- **Typed link(옵션)**: 관계가 의미를 가질 때만 `supersedes::` `depends::` `uses::` `contradicts::` [[link]]. 기본은 `[[link]]`.
+- **Typed link(옵션)**: 관계가 의미를 가질 때만 `supersedes::` `depends::` `uses::` `contradicts::` + `[[link]]`. 기본은 `[[link]]`.
 
 ## 배제 (부품 최소 — 재고 방지)
 
