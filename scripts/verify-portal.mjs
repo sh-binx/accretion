@@ -49,6 +49,61 @@ try{
   const life=await page.evaluate(()=>{try{__acc.begin();__acc.setScore(1234);__acc.gameOver();return 'ok'}catch(e){return String(e)}})
   ok('시작/종료 경로가 포털 호출로 깨지지 않는다', life==='ok', life)
 
+  // ── DEV 게이트: 정확히 dev=1만 치트 훅을 연다(2026-09-26 — `?device=`·`?dev=0`에도 열리던 것 수리) ──
+  const gate={}
+  for(const q of ['?device=mobile','?developer=1','?devmode','?dev=0','?dev=10','?x=1&dev=1']){
+    const p2=await browser.newPage();await p2.goto('http://localhost:3040/'+q,{waitUntil:'load'});await p2.waitForTimeout(300)
+    gate[q]=await p2.evaluate(()=>typeof window.__acc);await p2.close()}
+  ok('DEV 게이트: dev=1이 아닌 파라미터는 훅을 열지 않는다', ['?device=mobile','?developer=1','?devmode','?dev=0','?dev=10'].every(q=>gate[q]==='undefined'), JSON.stringify(gate))
+  ok('DEV 게이트: &dev=1은 연다', gate['?x=1&dev=1']==='object')
+
+  // ── 사이트락 ──
+  const sl=await page.evaluate(()=>['localhost','127.0.0.1','sh-binx.github.io','www.crazygames.com','games.crazygames.com','crazygames.fr','www.crazygames.com.br','app.crazygames.com','abc.game-files.crazygames.com','games.poki.com','a1b2.poki-gdn.com','inspector.poki.dev',
+    'evil.com','crazygames.evil.com','notcrazygames.com','evilpoki.com','poki.com.evil.net','sh-binx.github.io.evil.com','other.github.io'].map(h=>[h,__acc.siteAllowed(h)]))
+  const allowWant=12
+  ok('사이트락: 포털·자체 호스트는 허용', sl.slice(0,allowWant).every(x=>x[1]), JSON.stringify(sl.slice(0,allowWant).filter(x=>!x[1])))
+  ok('사이트락: 그 외 호스트는 차단', sl.slice(allowWant).every(x=>!x[1]), JSON.stringify(sl.slice(allowWant).filter(x=>x[1])))
+  {const fs=await import('fs');const html=fs.readFileSync('/Users/chodaehee/dev/accretion/index.html','utf8');const three=fs.readFileSync('/Users/chodaehee/dev/accretion/three.min.js','utf8')
+   const ctx=await browser.newContext();await ctx.route('http://stolen-copy.test/**',r=>r.fulfill({status:200,contentType:r.request().url().endsWith('.js')?'application/javascript':'text/html',body:r.request().url().endsWith('.js')?three:html}))
+   const p3=await ctx.newPage();await p3.goto('http://stolen-copy.test/',{waitUntil:'load'});await p3.waitForTimeout(500)
+   const st=await p3.evaluate(()=>({txt:document.body.innerText,btn:!!document.getElementById('startBtn'),canvas:document.querySelectorAll('canvas').length}))
+   ok('사이트락: 무단 호스트에선 게임이 부팅되지 않는다', /not authorized/.test(st.txt)&&!st.btn&&st.canvas===0, JSON.stringify(st).slice(0,120))
+   await ctx.close()}
+
+  // ── CG SDK 모의 — 일시정지·locale·광고 뮤트 시점 ──
+  {const ctx=await browser.newContext({viewport:{width:1280,height:720}})
+   await ctx.route('https://sdk.crazygames.com/**',r=>r.fulfill({status:200,contentType:'application/javascript',body:`
+    window.__cg=[];var __cgL=n=>()=>__cg.push(n)
+    window.CrazyGames={SDK:{init:async()=>{},
+     game:{loadingStart:__cgL('loadingStart'),loadingStop:__cgL('loadingStop'),gameplayStart:__cgL('gameplayStart'),gameplayStop:__cgL('gameplayStop'),happytime:__cgL('happytime')},
+     ad:{requestAd:(t,cb)=>{__cg.push('request:'+t);__cg.push('gain@request:'+Math.round(window.__acc.audioGain()*100)/100);setTimeout(()=>{cb.adStarted();__cg.push('gain@started:'+Math.round(window.__acc.audioGain()*100)/100);setTimeout(()=>{cb.adFinished();__cg.push('gain@finished:'+Math.round(window.__acc.audioGain()*100)/100)},60)},60)}},
+     user:{systemInfo:{locale:'ko-KR',countryCode:'KR'}},
+     data:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}}`}))
+   const p4=await ctx.newPage();const e4=[];p4.on('pageerror',e=>e4.push(e.message))
+   await p4.goto('http://localhost:3040/?dev=1&portal=cg',{waitUntil:'networkidle'})
+   await p4.waitForFunction(()=>window.__acc&&window.__acc.portal().sdk,{timeout:15000})
+   ok('CG: SDK locale(ko-KR)을 따른다', await p4.evaluate(()=>__acc.lang())==='ko')
+   await p4.evaluate(()=>{__acc.begin();__acc.hideOnboard()})
+   const setHidden=v=>p4.evaluate(v=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>v});Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>v?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},v)
+   await p4.waitForFunction(()=>__acc.state.t>=0.3,{timeout:15000}) // SwiftShader는 실시간보다 느리다
+   await setHidden(true);await p4.waitForTimeout(300)
+   const hid=await p4.evaluate(()=>({t:__acc.state.t,ps:__acc.pauseState()}))
+   await p4.waitForTimeout(1500);const t1=await p4.evaluate(()=>__acc.state.t)
+   ok('탭 숨김 → 게임 시간 정지', hid.t>0&&Math.abs(t1-hid.t)<0.05&&hid.ps.hidden&&!hid.ps.gp, `${hid.t} → ${t1} ${JSON.stringify(hid.ps)}`)
+   await setHidden(false);await p4.waitForFunction(t=>__acc.state.t>t+0.2,t1,{timeout:15000}).catch(()=>{})
+   const t2=await p4.evaluate(()=>__acc.state.t)
+   ok('탭 복귀 → 게임 재개', t2>t1, `${t1} → ${t2}`)
+   await setHidden(false);await p4.waitForTimeout(100) // 같은 상태 재통지 — 이벤트 중복 금지
+   await p4.evaluate(()=>__acc.gameOver());await p4.waitForTimeout(300)
+   const seq=(await p4.evaluate(()=>__cg.filter(x=>/^gameplay/.test(x)))).join(',')
+   ok('gameplayStart/Stop가 짝을 이루고 연속 중복이 없다', seq==='gameplayStart,gameplayStop,gameplayStart,gameplayStop', seq)
+   // 광고: 요청 시점엔 소리 유지, 시작되면 뮤트, 끝나면 복원
+   await p4.evaluate(()=>new Promise(r=>__acc.testAd(r)))
+   const ad=(await p4.evaluate(()=>__cg.filter(x=>/^gain@/.test(x)))).join(',')
+   ok('광고 뮤트는 adStarted에서 걸리고 끝나면 풀린다', ad==='gain@request:0.85,gain@started:0,gain@finished:0.85', ad)
+   ok('CG 모의 경로 JS 에러 0', e4.length===0, e4.slice(0,2).join(' | '))
+   await ctx.close()}
+
   ok('no JS/console errors',errors.length===0,errors.slice(0,3).join(' | '))
 }catch(e){console.error('FATAL',e);results.push([false,'fatal',String(e)])}
 finally{await browser.close()}

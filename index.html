@@ -45,6 +45,9 @@
   #right .v{font-size:10.5px}#right #sval{font-size:13px!important}}   /* 360px 높이: 5행이 하단 바에 8px 물렸다 */
  /* 게임 중에만 HUD 노출 — 메뉴/게임오버에서 비쳐 보이던 것 제거 */
  #hud,#massbar,#right{opacity:0;transition:opacity .35s}
+ /* 리더보드 OFF(출시 빌드) — 보드로 가는 모든 입구와 제출 UI를 숨긴다 */
+ body.adbreak .center{pointer-events:none}
+ html.nolb #startBoard,html.nolb #overBoard,html.nolb #rankline,html.nolb .namerow,html.nolb #startDailyBoard,html.nolb #board{display:none!important}
  body.playing #hud,body.playing #massbar,body.playing #right{opacity:1}
  .center{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(8,6,20,.5),rgba(3,4,10,.86));backdrop-filter:blur(2px)}
  .center.off{display:none}
@@ -83,7 +86,8 @@
  #codex.on{opacity:1;transform:translate(-50%,0)}
  #codex b{display:block;font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:1.5px;color:#8fd0ff;margin-bottom:3px}
  #codex span{font-size:12.5px;color:#c4cfe8}
- .credit{position:fixed;bottom:10px;left:16px;z-index:5;font-size:10px;color:#4a5474;letter-spacing:1px;pointer-events:none}
+ .credit{position:fixed;bottom:10px;right:16px;z-index:21;font-size:9px;color:#3a4462;letter-spacing:1px;pointer-events:none}
+ body.playing .credit{display:none} /* 버전 표기는 메뉴에서만 — 플레이 화면·스크린샷에 '프로토타입'이 찍히지 않게 */
  #joy{position:fixed;z-index:6;width:112px;height:112px;margin:-56px 0 0 -56px;border-radius:50%;border:2px solid rgba(140,180,255,.35);background:radial-gradient(circle,rgba(40,60,110,.28),rgba(20,30,60,.12));pointer-events:none}
  #joy.off{display:none}
  #joyThumb{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(143,208,255,.5);box-shadow:0 0 16px rgba(53,180,255,.55);transform:translate(-50%,-50%)}
@@ -296,7 +300,7 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ SPIN</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit">ACCRETION · prototype 5.19</div>
+<div class="credit" id="credit">v1.0.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -358,7 +362,24 @@ body.intro #hud,body.intro #massbar,body.intro #right,body.intro #surge{opacity:
 
 <script src="three.min.js"></script>
 <script>
-const DEV=/[?&]dev/.test(location.search)
+/* ===== 사이트락 — 허용된 호스트에서만 부팅한다(파일 도용 방지 · CG 기술 요건 권장).
+ * CrazyGames는 여러 도메인(crazygames.com·crazygames.fr·crazygames.com.br …)과 앱 origin(app.crazygames.com)으로 서비스한다
+ * → CG 공식 판정식(호스트 라벨 끝 3칸 안에 'crazygames')을 그대로 쓴다. */
+function siteAllowed(host){host=String(host||'').toLowerCase()
+ if(host==='localhost'||host==='127.0.0.1'||host==='[::1]')return true
+ if(host==='sh-binx.github.io')return true
+ const parts=host.split('.'),i=parts.indexOf('crazygames')
+ if(i!==-1&&i>=parts.length-3&&parts.slice(i+1).every(t=>/^(com|co|[a-z]{2})$/.test(t)))return true   // 뒤는 TLD만(com·fr·com.br·co.kr) — crazygames.evil.com 차단
+ if(/(^|\.)poki-gdn\.com$/.test(host)||/(^|\.)poki\.com$/.test(host)||/(^|\.)poki\.dev$/.test(host))return true
+ return false}
+if(!siteAllowed(location.hostname)){
+ document.body.innerHTML='<div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#03040a;color:#eaf1ff;font:14px ui-monospace,Menlo,monospace;letter-spacing:2px;text-align:center;padding:24px"><div style="font-size:28px;letter-spacing:10px;margin-bottom:14px">ACCRETION</div><div style="color:#93a0c4">This copy is not authorized to run on this site.</div></div>'
+ throw new Error('ACCRETION sitelock: '+location.hostname)}
+const VERSION='1.0.0'   // 출시 버전(메뉴 우하단·콘솔). 옛 'prototype 5.19'의 후속
+const DEV=/[?&]dev=1(&|$)/.test(location.search)   // 정확히 dev=1만 — `?device=`·`?dev=0`에도 열리던 치트 훅을 닫는다(2026-09-26 실측)
+// 글로벌 리더보드 — 출시 빌드에선 끈다(2026-09-26 오너 결정). 코드는 부활용으로 남기되 외부 요청은 0건.
+const LB_ENABLED=false
+if(!LB_ENABLED)document.documentElement.classList.add('nolb')
 // ── 언어 — 포털 요건은 '영어로 플레이 가능할 것'이지 '영어만 있을 것'이 아니다.
 // 기본은 브라우저 언어(한국어 브라우저면 한국어), ?lang= 또는 메뉴 토글로 바꾼다.
 let LANG=(()=>{const q=new URLSearchParams(location.search).get('lang')
@@ -366,7 +387,7 @@ let LANG=(()=>{const q=new URLSearchParams(location.search).get('lang')
  try{const v=localStorage.getItem('acc_lang');if(v==='en'||v==='ko')return v}catch(e){}
  return /^ko/i.test(navigator.language||'')?'ko':'en'})()
 const T=o=>typeof o==='string'?o:(o&&(o[LANG]||o.en))||''
-function setLang(l){LANG=(l==='ko')?'ko':'en';try{localStorage.setItem('acc_lang',LANG)}catch(e){}
+function setLang(l,save){LANG=(l==='ko')?'ko':'en';if(save)try{localStorage.setItem('acc_lang',LANG)}catch(e){}   // 저장은 '사용자가 고른 것'만 — 자동값을 저장하면 포털 locale이 영영 못 이긴다
  try{localizeStatic()}catch(e){}
  const b=document.getElementById('startLang');if(b)b.textContent=LANG==='ko'?'🌐 한국어':'🌐 ENGLISH'}
 const QA_DAY='2000-01-01'   // DEV 제출·조회가 격리되는 QA 전용 날짜 보드
@@ -1325,11 +1346,20 @@ const PORTAL={
     const el=document.createElement('script');el.src=url
     el.onload=()=>{clearTimeout(t);res()};el.onerror=()=>{clearTimeout(t);rej(new Error('load'))}
     document.head.appendChild(el)})
-   if(this.kind==='cg'){await window.CrazyGames.SDK.init();this.sdk=window.CrazyGames.SDK;this.wireSave()}
+   if(this.kind==='cg'){await window.CrazyGames.SDK.init();this.sdk=window.CrazyGames.SDK;this.wireSave();this.applyLocale()}
    else{await window.PokiSDK.init();this.sdk=window.PokiSDK}
    if(this.loadingDone)this.loadingStop() // init보다 부팅이 빨랐던 경우 재생
   }catch(e){this.sdk=null;console.warn('[portal] SDK unavailable — local fallback',e)}
  },
+ // CG 요건: 언어는 SDK의 사용자 locale을 따른다(없으면 영어). ?lang= 또는 사용자가 메뉴에서 직접 고른 언어가 우선.
+ applyLocale(){try{
+  if(new URLSearchParams(location.search).get('lang'))return
+  let saved=null;try{saved=localStorage.getItem('acc_lang')}catch(e){}
+  if(saved==='en'||saved==='ko')return
+  const si=this.sdk&&this.sdk.user&&this.sdk.user.systemInfo
+  const loc=(si&&si.locale)||''
+  setLang(/^ko/i.test(loc)?'ko':'en')
+ }catch(e){}},
  // CG Progress Save(Data Module) — 쓰기는 SDK+로컬 이중화, 읽기는 SDK 우선.
  // 비로그인/프리뷰에서 SDK 쓰기가 무효인 사례가 있어 로컬 미러가 진행을 지킨다(nova-surge 실측).
  wireSave(){
@@ -1348,20 +1378,21 @@ const PORTAL={
  gameplayStart(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStart();else this.sdk&&this.sdk.gameplayStart()}catch(e){}},
  gameplayStop(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStop();else this.sdk&&this.sdk.gameplayStop()}catch(e){}},
  happytime(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.happytime();else this.sdk&&this.sdk.happyTime()}catch(e){}},
- _mute(on){ // 광고 중 강제 뮤트 — 원래 뮤트 상태를 보존해 복원한다
-  if(on){this.adMuted=AU.muted;if(!AU.muted&&AU.master)AU.master.gain.value=0}
-  else if(AU.master)AU.master.gain.value=this.adMuted?0:0.85
+ _mute(on){ // 광고 중 강제 뮤트 — 원래 뮤트 상태를 보존해 복원한다. 광고가 '실제로 시작될 때'만 건다(CG 요건).
+  if(on){if(this.adMuting)return;this.adMuting=true;this.adMuted=AU.muted;if(!AU.muted&&AU.master)AU.master.gain.value=0}
+  else{if(!this.adMuting)return;this.adMuting=false;if(AU.master)AU.master.gain.value=this.adMuted?0:0.85}
  },
  midgameAd(onDone){
-  const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false);onDone&&onDone()}})()
+  const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false);document.body.classList.remove('adbreak');onDone&&onDone()}})()
   const now=Date.now()
   if(!this.sdk||now-this.lastAd<AD_COOLDOWN)return done()
-  this.lastAd=now;this._mute(true)
+  this.lastAd=now;document.body.classList.add('adbreak') // 광고가 끝날 때까지 메뉴 버튼 잠금(CG 요건 — 중복 클릭으로 광고·시작이 겹치지 않게)
   const wd=setTimeout(done,15000) // 워치독 — SDK가 콜백을 안 줘도 게임이 멈추지 않는다
   const fin=()=>{clearTimeout(wd);done()}
+  const started=()=>this._mute(true) // 요청이 아니라 시작 시점에 뮤트 — 광고가 안 채워지면 소리를 끊지 않는다
   try{
-   if(this.kind==='cg')this.sdk.ad.requestAd('midgame',{adFinished:fin,adError:fin,adStarted:()=>{}})
-   else this.sdk.commercialBreak().then(fin).catch(fin)
+   if(this.kind==='cg')this.sdk.ad.requestAd('midgame',{adFinished:fin,adError:fin,adStarted:started})
+   else this.sdk.commercialBreak(started).then(fin).catch(fin)
   }catch(e){fin()}
  },
  rewardedAd(onReward,onDone){
@@ -1369,12 +1400,12 @@ const PORTAL={
   const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false)
    if(rewarded&&onReward)onReward();onDone&&onDone()}})()
   if(!this.sdk)return done()
-  this._mute(true)
   const wd=setTimeout(done,20000)
   const fin=()=>{clearTimeout(wd);done()}
+  const started=()=>this._mute(true)
   try{
-   if(this.kind==='cg')this.sdk.ad.requestAd('rewarded',{adFinished:()=>{rewarded=true;fin()},adError:fin,adStarted:()=>{}})
-   else this.sdk.rewardedBreak().then(ok=>{rewarded=!!ok;fin()}).catch(fin)
+   if(this.kind==='cg')this.sdk.ad.requestAd('rewarded',{adFinished:()=>{rewarded=true;fin()},adError:fin,adStarted:started})
+   else this.sdk.rewardedBreak(started).then(ok=>{rewarded=!!ok;fin()}).catch(fin)
   }catch(e){fin()}
  }
 }
@@ -2203,11 +2234,21 @@ function updateFX(dt){fxT+=dt;fxN++
   if(!fxLow&&fxFps<42)fxLow=true          // 이력(hysteresis) — 경계에서 깜빡이지 않게
   else if(fxLow&&fxFps>54)fxLow=false}}
 const partCap=()=>fxLow?45:140
+/* ===== 일시정지 — 탭 숨김 · 세로 회전 차단 · 광고. 한 곳에서 판정하고 포털 이벤트를 짝 맞춰 보낸다 =====
+ * Poki/CG: 중단마다 gameplayStop, 복귀 때 gameplayStart. 같은 이벤트를 연달아 보내지 않는다. */
+const PAUSE={hidden:false,orient:false,get on(){return this.hidden||this.orient}}
+let gpActive=false
+function syncGameplay(){const want=S.alive&&!PAUSE.on
+ if(want&&!gpActive){gpActive=true;PORTAL.gameplayStart()}
+ else if(!want&&gpActive){gpActive=false;PORTAL.gameplayStop()}}
+function audioHold(on){const ac=AU.ac;if(!ac)return;try{if(on){if(ac.state==='running')ac.suspend()}else if(ac.state==='suspended')ac.resume()}catch(e){}}
+document.addEventListener('visibilitychange',()=>{PAUSE.hidden=document.hidden;audioHold(PAUSE.hidden);syncGameplay()})
+addEventListener('touchend',()=>{if(!PAUSE.hidden)audioHold(false)}) // iOS: 전화·알림으로 끊긴 오디오는 다음 터치에서 되살린다(CG 요건)
 function frame(now){requestAnimationFrame(frame)
 requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- updateFX(dt);const hold=onbT||choiceOpen
+ updateFX(dt);const hold=onbT||choiceOpen||(S.alive&&PAUSE.on)
  if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt);hud();render()}
 requestAnimationFrame(frame)
 
@@ -2346,6 +2387,7 @@ const LB={
  get name(){return (localStorage.getItem('acc_name')||'').replace(/[^\x20-\x7e]/g,'').trim().slice(0,16)},
  set name(v){try{localStorage.setItem('acc_name',String(v).slice(0,16))}catch(e){}},
  async submit(score,mass,tier,dur,day,modifier){
+  if(!LB_ENABLED)return {ok:false,reason:'disabled'}   // 네트워크 요청 없음
   // DEV 모드(?dev=1)의 모든 제출은 QA 전용 날짜 보드로 강제한다.
   // 자동 검증이 매 실행마다 실제 리더보드에 행을 쌓아 왔다(2026-07-28 감사에서 적발).
   // 2026-07-29 재적발: `day||QA_DAY`는 day가 이미 있으면 덮어쓰지 않아, 데일리 제출이
@@ -2361,7 +2403,7 @@ const LB={
  async top(limit){return this._q('&day=is.null',limit)},          // 글로벌 = 일반런만
  async topWeek(limit){return this._q('&day=is.null&created_at=gte.'+weekStart(),limit)}, // 이번 주
  async topDaily(day,limit){return this._q('&day=eq.'+(DEV?QA_DAY:day),limit)}, // 데일리 = 그날(DEV는 QA 보드를 읽어 왕복 검증이 유효하게)
- async _q(filter,limit){try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur,modifier'+filter+'&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
+ async _q(filter,limit){if(!LB_ENABLED)return [];try{const r=await fetch(this.URL+'/rest/v1/accretion_runs?select=name,score,tier,dur,modifier'+filter+'&order=score.desc&limit='+(limit||100),{headers:{apikey:this.KEY,Authorization:'Bearer '+this.KEY}});return r.ok?await r.json():[]}catch(e){return []}}
 }
 /* ===== 데일리 챌린지 — 날짜별 모디파이어(그날은 모두 같은 규칙) + 데일리 리더보드 ===== */
 function weekStart(){const d=new Date();const day=(d.getUTCDay()+6)%7 // 월요일=0
@@ -2381,6 +2423,7 @@ const esc=s=>String(s==null?'':s).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','
 let lastRun=null
 let boardMode='global'
 async function openBoard(daily){
+ if(!LB_ENABLED)return   // 출시 빌드: 보드 없음
  boardMode=daily===true?'daily':(typeof daily==='string'?daily:'global')
  $('board').classList.remove('off');renderBoardTabs()
  const M=boardMode
@@ -2717,7 +2760,7 @@ function showOnboard(){const el=$('onb')
  el.classList.add('on');document.body.classList.add('intro');onbT=performance.now()+9000}
 function hideOnboard(){if(onbT){$('onb').classList.remove('on');document.body.classList.remove('intro');onbT=0}}
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
-function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
+function begin(){AU.unlock();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
  evShock.visible=false
@@ -2738,10 +2781,10 @@ function begin(){AU.unlock();PORTAL.gameplayStart();showOnboard()
  if(S.daily){S.daily.fx(S);banner('◆ DAILY · '+S.daily.name,S.daily.desc)} // 데일리 모디파이어 적용 + 안내
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
- topUp();AU.startAmbient()
+ topUp();AU.startAmbient();syncGameplay() // 포털 gameplayStart — 중복 없이(이미 진행 중이면 보내지 않는다)
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
-function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();PORTAL.gameplayStop()
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();syncGameplay()
  MSGQ.length=0;msgUntil=0;msgPri=0;hideMsgs() // 런이 끝났다 — 남은 배너·코덱스가 결과 패널과 겹친다(실측: 마일스톤이 EVAPORATED 제목 위로)
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
@@ -2757,7 +2800,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
  $('over').classList.remove('off');refreshCodexBtn() // 이번 런 발견 반영
  // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
  lastRun=null;$('rankline').textContent=''
- if(S.score>=100){
+ if(LB_ENABLED&&S.score>=100){
   const isD=!!S.daily,lbl=isD?('DAILY · '+S.daily.name):'GLOBAL'
   $('rankline').innerHTML='<span style="color:#7c88ad">submitting to '+(isD?'daily':'global')+' board…</span>'
   const tier=TIERS[Math.max(0,tierOf(S.peak))].n
@@ -2787,7 +2830,7 @@ refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오�
 $('actDash').onclick=e=>{e.stopPropagation();doSurge()};$('actPulse').onclick=e=>{e.stopPropagation();doPulse()};$('actWave').onclick=e=>{e.stopPropagation();doWave()};$('actFlare').onclick=e=>{e.stopPropagation();doFlare()} // 모바일/클릭
 ;(()=>{const pn=$('pname');pn.value=LB.name;pn.addEventListener('input',()=>{LB.name=pn.value})})()
 setLang(LANG)   // 토글 라벨을 현재 언어로 맞춘다
-$('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko')}
+$('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko',true)}
 $('mute').onclick=()=>{AU.unlock();const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}
 addEventListener('keydown',e=>{if(e.code==='KeyC'&&!typing(e))holdCap=true})   // 누르고 있는 동안 포획
 addEventListener('keydown',e=>{if(typing(e))return;if(choiceOpen&&!/^Digit[123]$/.test(e.code))return  // 진화 선택 중엔 능력 키를 잠근다(정지 상태에서 에너지·쿨다운을 잃지 않게)
@@ -2798,7 +2841,7 @@ addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspe
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
 function checkOrient(){const coarse=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window);const need=coarse&&innerHeight>innerWidth
- $('rotate').classList.toggle('on',need);orientPaused=need}
+ $('rotate').classList.toggle('on',need);orientPaused=need;PAUSE.orient=need;syncGameplay()}
 addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrient()
 
 /* ===== DEV hooks (?dev=1) ===== */
@@ -2965,7 +3008,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   shown:(()=>{const e=$('combo')
    return parseFloat(e.style.opacity!==''?e.style.opacity:getComputedStyle(e).opacity)>0.5})()}),
  boonPool:()=>EVO_BOONS.map(b=>({id:b.id,ico:b.ico,sum:b.sum,w:b.w,fx:b.fx})),
- lang:()=>LANG,setLang:l=>{setLang(l);return LANG},   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
+ lang:()=>LANG,setLang:l=>{setLang(l,true);return LANG},   // true = setMass로 티어를 넘겨도 선택창을 실제로 띄운다
  tierMass:(i)=>i<=0?2:TIERS[Math.min(TIERS.length-1,i-1)].max*1.02,   // 그 티어로 승격되는 질량
  giveBoon:(id)=>{const b=EVO_BOONS.find(x=>x.id===id);if(b&&!S.boons.includes(b))S.boons.push(b);return S.boons.map(x=>x.id)},
  pullRadius:()=>{const F=FORMS[S.formIdx],bnP=boonNow()
@@ -2996,6 +3039,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  submitRun:(s,m,t,d,day)=>LB.submit(s,m,t,d,day), // day 지정 시 그 날짜 보드로만 — QA가 글로벌을 오염시키지 않게
  rowHTML:r=>'<span class="bn">'+esc(r.name)+'</span><span class="bt">'+esc(r.tier||'')+'</span>', // QA: 라이브 보드에 쓰지 않고 이스케이프만 검사
  setName:v=>{LB.name=v;$('pname').value=LB.name;return LB.name},
+ lbEnabled:()=>LB_ENABLED,siteAllowed:h=>siteAllowed(h),pauseState:()=>({hidden:PAUSE.hidden,orient:PAUSE.orient,gp:gpActive}),
  rankText:()=>$('rankline').textContent
 }}
 </script>

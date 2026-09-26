@@ -1,4 +1,4 @@
-// Daily challenge verification (P#3) — modifiers, daily board scoping, day/global separation.
+// Daily challenge verification (P#3) — modifiers. 출시 빌드는 리더보드 OFF라 데일리는 오프라인 모드로만 검증한다.
 import { createRequire } from 'module'
 const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
 const { chromium } = require('playwright')
@@ -45,22 +45,19 @@ try {
   const huntedApex = await page.evaluate(() => { const A=window.__acc; A.forceDaily('HUNTED'); A.setMass(2); A.step(0.3); return A.nemesis() })
   ok('HUNTED: apex hunts from stellar tier', huntedApex!==null, JSON.stringify(huntedApex))
 
-  // daily submit lands on the DAILY board, and is scoped out of the GLOBAL board
-  await page.evaluate(() => window.__acc.setName('DAILY_QA'))
-  // 점수 4242로는 QA 데이에 테스트 행이 쌓이면 top-100 밖으로 밀린다(실측: 699행 누적 → 140위).
-  // 반복 실행에 흔들리지 않게 허용 상한 바로 아래로 제출하고, 조회 범위도 넓힌다.
-  const sub = await page.evaluate(() => window.__acc.submitDaily(500000, 9, 'INTERMEDIATE', 55))
-  ok('daily submit ok + rank', !!(sub && sub.ok && sub.rank>=1), JSON.stringify(sub))
-  await sleep(700)
-  const boards = await page.evaluate(async () => {
-    const A = window.__acc
-    const daily = await A.topDaily(500)
-    const global = await A.LB.top(100)
-    return { inDaily: daily.some(r=>r.name==='DAILY_QA'), inGlobal: global.some(r=>r.name==='DAILY_QA'), dailyMod: (daily.find(r=>r.name==='DAILY_QA')||{}).modifier }
+  // 데일리 = 오프라인 모드(출시 빌드는 리더보드 OFF). 모디파이어 판은 그대로 돌고, 끝나도 서버로 아무것도 안 나간다.
+  const ext = []
+  page.on('request', r => { const u=r.url(); if (!/^(data:|blob:|http:\/\/localhost:3040\/)/.test(u)) ext.push(u) })
+  const dend = await page.evaluate(async () => {
+    const A = window.__acc; A.startDaily(); A.setScore(2500); A.gameOver()
+    const sub = await A.submitDaily(500000, 9, 'INTERMEDIATE', 55)
+    const rows = await A.topDaily(500)
+    return { sub, rows: rows.length, rank: A.rankText() }
   })
-  ok('daily run appears on DAILY board', boards.inDaily===true)
-  ok('daily run NOT on GLOBAL board (scoped)', boards.inGlobal===false)
-  ok('daily run carries its modifier tag', !!boards.dailyMod, boards.dailyMod)
+  await sleep(600)
+  ok('daily run ends offline — submit inert', dend.sub && dend.sub.reason==='disabled', JSON.stringify(dend.sub))
+  ok('daily board query returns nothing (no backend)', dend.rows===0, `rows=${dend.rows}`)
+  ok('daily run makes zero external requests', ext.length===0, ext.slice(0,2).join(' | '))
 
   // regression: normal growth still works
   const grew = await page.evaluate(async () => { const A=window.__acc; A.setDaily(false); A.begin(); const m0=A.state.mass; for(let k=0;k<12;k++){A.eatNearest();A.step(0.4)} return {m0,m1:A.state.mass} })

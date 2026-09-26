@@ -1,4 +1,4 @@
-// STEP 3 — achievements (second collection axis) + weekly leaderboard.
+// STEP 3 — achievements (second collection axis). 주간 리더보드는 출시 빌드에서 OFF — 꺼져 있음을 단언한다.
 import { createRequire } from 'module'
 const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
 const { chromium } = require('playwright')
@@ -76,32 +76,15 @@ try {
   const wk = await page.evaluate(() => window.__acc.weekStart())
   ok('week start is a Monday (UTC)', new Date(wk).getUTCDay()===1, wk)
 
+  // 주간 보드는 출시 빌드에서 꺼져 있다(LB_ENABLED=false) — 열리지 않고, 조회는 빈 결과, 요청은 0건.
+  const ext = []
+  page.on('request', r => { const u=r.url(); if (!/^(data:|blob:|http:\/\/localhost:3040\/)/.test(u)) ext.push(u) })
   await page.evaluate(() => window.__acc.openBoardMode('weekly'))
-  await sleep(1400)
-  const wb = await page.evaluate(() => ({
-    mode: window.__acc.boardMode(),
-    tabs: document.querySelectorAll('#boardTabs .tab').length,
-    title: document.getElementById('boardTitle').textContent,
-    sub: document.getElementById('boardSub').textContent,
-  }))
-  ok('board has 3 modes', wb.tabs===3, `${wb.tabs} tabs`)
-  ok('weekly mode selected', wb.mode==='weekly')
-  ok('weekly board titled', /WEEKLY/.test(wb.title) && /THIS WEEK/.test(wb.sub), `${wb.title} / ${wb.sub}`)
-
-  // 주간 보드 경로 검증. 2026-07-28부터 DEV 제출은 QA 보드(2000-01-01)로 강제되므로
-  // '내 행이 주간 보드에 뜬다'로는 확인할 수 없다(그렇게 하려면 프로덕션에 써야 한다).
-  // 대신 ① 제출 경로가 살아있고 ② 주간 보드가 실제 데이터를 최신순으로 돌려주는지를 본다.
-  await page.evaluate(() => window.__acc.setName('WEEK_QA'))
-  const sub = await page.evaluate(() => window.__acc.LB.submit(4321, 9, 'INTERMEDIATE', 44, null, null))
-  ok('submit ok', !!(sub && sub.ok), JSON.stringify(sub))
-  await sleep(800)
-  const wkBoard = await page.evaluate(async () => {
-    const rows = await window.__acc.LB.topWeek(100)
-    return { n: rows.length, sorted: rows.every((r,i)=>i===0||rows[i-1].score>=r.score), qaLeak: rows.some(r=>/QA/.test(r.name||'')) }
-  })
-  ok('weekly board returns rows', wkBoard.n>0, `${wkBoard.n} rows`)
-  ok('weekly board is score-sorted', wkBoard.sorted===true)
-  ok('QA 제출이 주간 보드에 새지 않는다', wkBoard.qaLeak===false)
+  await sleep(300)
+  ok('weekly board does not open (leaderboard off)', await page.evaluate(() => !window.__acc.boardOpen()))
+  const wkRows = await page.evaluate(async () => (await window.__acc.LB.topWeek(100)).length)
+  ok('weekly query returns nothing', wkRows===0, `${wkRows} rows`)
+  ok('weekly path makes zero external requests', ext.length===0, ext.slice(0,2).join(' | '))
 
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) {
