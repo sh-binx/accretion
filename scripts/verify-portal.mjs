@@ -71,6 +71,7 @@ try{
    await ctx.close()}
 
   // ── CG SDK 모의 — 일시정지·locale·광고 뮤트 시점 ──
+  await page.close()   // SwiftShader 렌더러 두 개가 GPU 프로세스를 나눠 쓰면 모의 SDK 로드가 늦어진다
   {const ctx=await browser.newContext({viewport:{width:1280,height:720}})
    await ctx.route('https://sdk.crazygames.com/**',r=>r.fulfill({status:200,contentType:'application/javascript',body:`
     window.__cg=[];var __cgL=n=>()=>__cg.push(n)
@@ -81,7 +82,7 @@ try{
      data:{getItem:()=>null,setItem:()=>{},removeItem:()=>{}}}}`}))
    const p4=await ctx.newPage();const e4=[];p4.on('pageerror',e=>e4.push(e.message))
    await p4.goto('http://localhost:3040/?dev=1&portal=cg',{waitUntil:'networkidle'})
-   await p4.waitForFunction(()=>window.__acc&&window.__acc.portal().sdk,{timeout:15000})
+   await p4.waitForFunction(()=>window.__acc&&window.__acc.portal().sdk,null,{timeout:25000})
    ok('CG: SDK locale(ko-KR)을 따른다', await p4.evaluate(()=>__acc.lang())==='ko')
    await p4.evaluate(()=>{__acc.begin();__acc.hideOnboard()})
    const setHidden=v=>p4.evaluate(v=>{Object.defineProperty(document,'hidden',{configurable:true,get:()=>v});Object.defineProperty(document,'visibilityState',{configurable:true,get:()=>v?'hidden':'visible'});document.dispatchEvent(new Event('visibilitychange'))},v)

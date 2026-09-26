@@ -703,8 +703,8 @@ function comboOn(){return S.combo>=2&&S.alive&&(performance.now()-S.comboAt<comb
 // 강착 효율이 42%에 이른다 — 문자 그대로 '완전한' 블랙홀. 강착으로 스핀업하고, 이후 스핀다운한다.
 // 콤보 단계는 먹기를 멈추면 바로 풀리므로, 최상단만은 '10초 래치'로 붙잡아 절정을 느끼게 한다.
 const SCALE_TIP={m:{en:'◇ SCALE ×10',ko:'◇ 축척 ×10'},
- s:{en:'you outgrew the ruler — one grid square is now {n} units',
-    ko:'자를 넘어섰다 — 이제 격자 한 칸이 {n} 단위다'}}
+ s:{en:'the view pulls back ten-fold — you have outgrown this neighbourhood',
+    ko:'시야가 열 배 물러났다 — 이 동네를 넘어섰다'}}   // 5.19에서 그리드를 없앴는데 문구가 '격자 한 칸'을 말하고 있었다(2026-09-26 수리)
 const HOLD_TIP={m:{en:'◍ NEW — HOLD TO BANK',ko:'◍ 새 동작 — 붙잡아 쌓기'},
  s:{en:'hold C (or ◍ HOLD) to catch bodies into orbit instead of eating — slower, but worth far more',
     ko:'C(또는 ◍ 붙잡기)를 누르고 있으면 먹는 대신 궤도에 붙잡는다 — 느리지만 훨씬 많이 번다'},
@@ -1344,7 +1344,7 @@ function pickPortal(host,search){
  if(f==='cg'||f==='poki'||f==='local')return f
  return 'local'
 }
-const AD_COOLDOWN=120000, SDK_TIMEOUT=6000
+const AD_COOLDOWN=120000, SDK_TIMEOUT=20000   // 게임은 SDK를 기다리지 않는다(init 비동기) — 6s는 느린 기기에서 SDK를 통째로 버렸다(검증 중 SwiftShader 부하로 재현, 2026-09-26)
 const PORTAL={
  kind:'local', sdk:null, lastAd:0, loadingDone:false, adMuted:false,
  async init(){
