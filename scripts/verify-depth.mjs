@@ -24,7 +24,7 @@ try {
   const hud = await page.evaluate(() => ({ dash:!!document.getElementById('actDash'), pulse:!!document.getElementById('actPulse') }))
   ok('HUD offers two abilities', hud.dash && hud.pulse)
 
-  // PULSE: pulls food in and shoves threats away, costs energy, no dash speed
+  // PULL (SHIFT, frame dragging): pulls food in, costs energy, no dash speed
   const pulse = await page.evaluate(() => {
     const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats()
     const q=A.pos()
@@ -33,9 +33,9 @@ try {
     A.setEnergy(1); A.doPulse()
     return { moved: before!==null, energy:A.state.energy, surging:A.state.surging, pulses:A.pulseCount() }
   })
-  ok('PULSE consumes the charge', pulse.energy<0.1, `energy=${pulse.energy}`)
-  ok('PULSE is not a dash (no speed boost)', pulse.surging===false)
-  ok('PULSE counted', pulse.pulses===1, `${pulse.pulses}`)
+  ok('PULL (SHIFT) consumes the charge', pulse.energy<0.1, `energy=${pulse.energy}`)
+  ok('PULL (SHIFT) is not a dash (no speed boost)', pulse.surging===false)
+  ok('PULL (SHIFT) counted', pulse.pulses===1, `${pulse.pulses}`)
 
   // pulse actually drags edible bodies toward the player
   const drag = await page.evaluate(() => {
@@ -45,11 +45,11 @@ try {
     A.setEnergy(1); A.doPulse()
     return { d0, d1:A.tagDist() }
   })
-  ok('PULSE drags food toward you', drag.d1 < drag.d0*0.5, `${drag.d0} → ${drag.d1}`)
+  ok('PULL (SHIFT) drags food toward you', drag.d1 < drag.d0*0.5, `${drag.d0} → ${drag.d1}`)
 
   // gated like the dash
   const gate = await page.evaluate(() => { const A=window.__acc; A.begin(); A.setEnergy(0.4); const n0=A.pulseCount(); A.doPulse(); return A.pulseCount()-n0 })
-  ok('PULSE gated below full charge', gate===0)
+  ok('PULL (SHIFT) gated below full charge', gate===0)
 
   // ── graze chain ──
   const chain = await page.evaluate(() => {
