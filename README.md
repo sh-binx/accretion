@@ -18,7 +18,12 @@ sh scripts/serve.sh            # 로컬 정적 서버 (http://localhost:3040)
 node scripts/verify-p4.mjs     # 헤드리스 검증(서지·존) — 그 외 verify-*.mjs
 ```
 - 배포 = **`git push` (별도 복사·데모 리포 없음 — Pages가 root를 직접 서빙)**
-- DEV 훅: URL에 `?dev=1` → `window.__acc` (검증·측정용)
+- DEV 훅: URL에 정확히 `?dev=1` → `window.__acc` (검증·측정용 · 그 외 파라미터/프로덕션에선 undefined)
 
-## 상태 (2026-07-23)
-플레이 가능. **P1** 사운드·주스 · **P2** 콘텐츠 다양성(중성자별·펄서·라이벌 AI)+과학 코덱스 · **P3** 글로벌 리더보드(Supabase·안티치트) · **P4** 서지 대시+티어별 비주얼 존. 진행 로그·다음 계획 = [`accretion-wiki/log.md`](accretion-wiki/log.md).
+## 상태 (2026-09-26) — v1.0.0 출시 후보
+포털 제출 준비 완료(계정 단계만 남음) — **[`SUBMISSION.md`](SUBMISSION.md)**. 진화 아크(원시별→주계열성→초신성→블랙홀 5티어) · 동사 5종(대시·당기기·중력파·붙잡기·제트) · 과학 코덱스 39 · 업적 20 · 데일리 · 한/영 전 화면 · CrazyGames/Poki SDK 어댑터 · 사이트락. **글로벌 리더보드는 출시 빌드에서 OFF**(`LB_ENABLED`, 결정: [`accretion-wiki/decisions/2026-09-26-release-build.md`](accretion-wiki/decisions/2026-09-26-release-build.md)). 진행 로그 = [`accretion-wiki/log.md`](accretion-wiki/log.md).
+
+## 제출 패키지
+```bash
+sh scripts/package.sh          # dist/accretion-submission.zip (index.html + three.min.js) + 압축 해제 스모크 테스트
+```
