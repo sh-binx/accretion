@@ -1,5 +1,10 @@
 # Activity Log (역시간순 — 최신 위)
 
+## 2026-09-27 · CrazyGames 제출(Basic Launch · Awaiting review)
+- v1.0.0 을 Pages 에 push 하고 CG 에 폴더 업로드(`dist/portal/`). QA 점등: Loading Stop · Gameplay Start/Stop · Get/Set Item · 초기 로드 0.3MB.
+- 모바일 실측: WebKit iPhone 16e(KO)·17 Pro·iPad Pro 11 터치 — 59–60fps, p95 18ms, 에러 0, 세로 회전 시 정지·복귀, 첫 탭에 오디오 running. Android 에뮬레이터 Chrome 에서 조이스틱·DASH/PULL/WAVE 확인.
+- Arcade · 태그 3D/Grow/Physics/Science/Survival. 제출 흐름·함정은 `~/dev/daehee-wiki/games/portals.md`.
+
 ## 2026-09-26 · 출시 점검 → v1.0.0 출시 후보(포털 요건 · 한국어 완성 · 제출 패키지 · 새 에셋)
 - 오너: **"출시하려 한다. 더 개선할 부분을 점검해 달라"** → 점검 후 **"권장대로 전부 수정"**. 결정 = [decisions/2026-09-26-release-build.md](decisions/2026-09-26-release-build.md).
 - **점검에서 나온 차단 3건(실측)**
