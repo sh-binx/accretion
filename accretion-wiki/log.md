@@ -1,5 +1,11 @@
 # Activity Log (역시간순 — 최신 위)
 
+## 2026-10-05 · Basic Launch 실측 / 저장소 차단 부팅 결함
+- CrazyGames 대시보드: 09-28~10-03 2,146 plays, Desktop 9/15, Pending manual review. Performance 화면: 평균 4m57s, 전환 55.02%, D1 2.60%, 평균 로딩 2.2s, load crash 0.05%, gameplay crash 3.10%. 출처: https://developer.crazygames.com/games/65da597c-d61a-4443-a2c2-8970e89069fa (10-05 실측).
+- 10-04 Android Chrome 로딩 신고 메일. 실제 포털에서 세로 회전 안내→가로 메뉴→플레이 진입 확인. 신고 단말의 오류 원인은 미확정.
+- 별도로 저장소 getter SecurityError를 주입하자 부팅 중단 재현. v1.0.1은 최고점·순위·이름 읽기를 보호하고 쓰기 실패 시 세션 기록 유지. 신고 해결로 단정하지 않음.
+- 검증: 신규 storage 3환경, 제출 zip 11/11, meta 19/19, menu 19/19, lb 19/19 통과. 전체 밸런스 스위트 재실행 아님.
+
 ## 2026-09-27 · CrazyGames 제출(Basic Launch · Awaiting review)
 - v1.0.0 을 Pages 에 push 하고 CG 에 폴더 업로드(`dist/portal/`). QA 점등: Loading Stop · Gameplay Start/Stop · Get/Set Item · 초기 로드 0.3MB.
 - 모바일 실측: WebKit iPhone 16e(KO)·17 Pro·iPad Pro 11 터치 — 59–60fps, p95 18ms, 에러 0, 세로 회전 시 정지·복귀, 첫 탭에 오디오 running. Android 에뮬레이터 Chrome 에서 조이스틱·DASH/PULL/WAVE 확인.
