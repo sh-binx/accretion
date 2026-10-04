@@ -1,7 +1,7 @@
 ## 2026-10-05 — 수익화 사전 광고 점검
 
 - 15초 미드롤/20초 보상광고 폴백이 시작 후에도 살아 있어 30초 광고 중 재개됨을 결정적 시계 테스트로 재현.
-- 시작 콜백에서 요청 타이머를 지우고 90초 광고 워치독으로 교체. `verify-ad-duration.mjs`: 30초 광고·종료1회·실패 무보상·시작 신호 누락 복구 통과. 제출 zip 스모크11/11. 커밋67f1ecb, 공개 배포 미반영.
+- 시작 콜백에서 요청 타이머를 지우고 90초 광고 워치독으로 교체. `verify-ad-duration.mjs`: 30초 광고·종료1회·실패 무보상·시작 신호 누락 복구 통과. 제출 zip 스모크11/11. 커밋67f1ecb. 10-05 후속: main push 완료(b1f35dc까지), CrazyGames build `8be96e13-c4b2-4ed1-9e27-8512efb42e65` 제출 후 “automatically approved and is now live” 확인. 실제 Edge·실물 모바일 미검증 항목은 QA에서 No로 표시하고 Chromium/터치 에뮬레이션 검증 범위를 메모에 명시.
 - CrazyGames 정산 설정 완료 확인. 현재 Basic Launch는 수익화 비활성. 비공개 정산 기록은 daehee-wiki/games/portals.md 참조.
 
 # Activity Log (역시간순 — 최신 위)
