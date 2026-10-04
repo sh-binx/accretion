@@ -1398,9 +1398,9 @@ const PORTAL={
   const now=Date.now()
   if(!this.sdk||now-this.lastAd<AD_COOLDOWN)return done()
   this.lastAd=now;document.body.classList.add('adbreak') // 광고가 끝날 때까지 메뉴 버튼 잠금(CG 요건 — 중복 클릭으로 광고·시작이 겹치지 않게)
-  const wd=setTimeout(done,15000) // 워치독 — SDK가 콜백을 안 줘도 게임이 멈추지 않는다
+  let wd=setTimeout(done,15000) // 시작 신호가 없는 요청만 짧게 복구한다
   const fin=()=>{clearTimeout(wd);done()}
-  const started=()=>this._mute(true) // 요청이 아니라 시작 시점에 뮤트 — 광고가 안 채워지면 소리를 끊지 않는다
+  const started=()=>{clearTimeout(wd);wd=setTimeout(done,90000);this._mute(true)} // 긴 광고 중 15초 폴백으로 재개하지 않는다
   try{
    if(this.kind==='cg')this.sdk.ad.requestAd('midgame',{adFinished:fin,adError:fin,adStarted:started})
    else this.sdk.commercialBreak(started).then(fin).catch(fin)
@@ -1411,9 +1411,9 @@ const PORTAL={
   const done=(()=>{let c=false;return()=>{if(c)return;c=true;this._mute(false)
    if(rewarded&&onReward)onReward();onDone&&onDone()}})()
   if(!this.sdk)return done()
-  const wd=setTimeout(done,20000)
+  let wd=setTimeout(done,20000)
   const fin=()=>{clearTimeout(wd);done()}
-  const started=()=>this._mute(true)
+  const started=()=>{clearTimeout(wd);wd=setTimeout(done,90000);this._mute(true)}
   try{
    if(this.kind==='cg')this.sdk.ad.requestAd('rewarded',{adFinished:()=>{rewarded=true;fin()},adError:fin,adStarted:started})
    else this.sdk.rewardedBreak(started).then(ok=>{rewarded=!!ok;fin()}).catch(fin)
