@@ -1,6 +1,8 @@
 # Activity Log (역시간순 — 최신 위)
 
 ## 2026-10-05 · Basic Launch 실측 / 저장소 차단 부팅 결함
+- 수정본 build `efc24de2-61fa-4c37-a4af-84bb370d0541`: CrazyGames QA 프리뷰 실행 후 제출, 자동 승인 알림과 Version History Active 확인.
+- 세부 점수: Desktop 9/15(5m19s·D1 2.57%·전환 75.14%), Mobile/Tablet 6/15(4m24s·D1 2.49%·전환 39.50%). 모바일은 현재 기준 `<9`로 활성화 불가 표시.
 - CrazyGames 대시보드: 09-28~10-03 2,146 plays, Desktop 9/15, Pending manual review. Performance 화면: 평균 4m57s, 전환 55.02%, D1 2.60%, 평균 로딩 2.2s, load crash 0.05%, gameplay crash 3.10%. 출처: https://developer.crazygames.com/games/65da597c-d61a-4443-a2c2-8970e89069fa (10-05 실측).
 - 10-04 Android Chrome 로딩 신고 메일. 실제 포털에서 세로 회전 안내→가로 메뉴→플레이 진입 확인. 신고 단말의 오류 원인은 미확정.
 - 별도로 저장소 getter SecurityError를 주입하자 부팅 중단 재현. v1.0.1은 최고점·순위·이름 읽기를 보호하고 쓰기 실패 시 세션 기록 유지. 신고 해결로 단정하지 않음.
