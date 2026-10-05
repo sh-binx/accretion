@@ -1,3 +1,10 @@
+## 2026-10-05 — 반복 로딩 신호 수정 · CrazyGames 라이브
+
+- 매 프레임 `loadingStop` 전송을 재현(1.6초 10회), 첫 렌더/SDK 지연 도착 모두 1회만 전송하도록 수정. 교훈은 [design/portal-loading.md](design/portal-loading.md).
+- 즉시/1500ms SDK 회귀2환경, portal23/23, package11/11, 저장소3환경, 긴 광고 계약 통과. 전체 밸런스 회귀 재실행 아님.
+- QA 프리뷰 실제 SDK 신호 확인 후 제출. build `c0a67576-af23-4d06-9b50-a7521c428513` Active, currently live 확인. 실물 모바일/Edge는 No로 표시. Android 신고 단말 해결 여부는 미확정.
+- 같은 날 현재 지표: 09-28~10-04 2,576 plays, Desktop9/15 Pending manual review. 전체 평균4m50s·전환55%·D1 **2.72%**·평점9.2(73)·로딩2.2s·load crash0.04%·gameplay crash3.06%. 수익화 미승인 Basic Launch.
+
 ## 2026-10-05 — 수익화 사전 광고 점검
 
 - 15초 미드롤/20초 보상광고 폴백이 시작 후에도 살아 있어 30초 광고 중 재개됨을 결정적 시계 테스트로 재현.

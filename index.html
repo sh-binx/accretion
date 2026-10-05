@@ -1346,7 +1346,7 @@ function pickPortal(host,search){
 }
 const AD_COOLDOWN=120000, SDK_TIMEOUT=20000   // 게임은 SDK를 기다리지 않는다(init 비동기) — 6s는 느린 기기에서 SDK를 통째로 버렸다(검증 중 SwiftShader 부하로 재현, 2026-09-26)
 const PORTAL={
- kind:'local', sdk:null, lastAd:0, loadingDone:false, adMuted:false,
+ kind:'local', sdk:null, lastAd:0, loadingDone:false, loadingSent:false, adMuted:false,
  async init(){
   this.kind=pickPortal(location.hostname,location.search)
   if(this.kind==='local')return
@@ -1385,7 +1385,8 @@ const PORTAL={
  },
  loadingStart(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.loadingStart();else this.sdk&&this.sdk.gameLoadingStart()}catch(e){}},
  loadingStop(){this.loadingDone=true
-  try{if(this.kind==='cg')this.sdk&&this.sdk.game.loadingStop();else this.sdk&&this.sdk.gameLoadingFinished()}catch(e){}},
+  if(!this.sdk||this.loadingSent)return
+  try{if(this.kind==='cg')this.sdk.game.loadingStop();else this.sdk.gameLoadingFinished();this.loadingSent=true}catch(e){}},
  gameplayStart(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStart();else this.sdk&&this.sdk.gameplayStart()}catch(e){}},
  gameplayStop(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.gameplayStop();else this.sdk&&this.sdk.gameplayStop()}catch(e){}},
  happytime(){try{if(this.kind==='cg')this.sdk&&this.sdk.game.happytime();else this.sdk&&this.sdk.happyTime()}catch(e){}},
@@ -2360,11 +2361,11 @@ function audioHold(on){const ac=AU.ac;if(!ac)return;try{if(on){if(ac.state==='ru
 document.addEventListener('visibilitychange',()=>{PAUSE.hidden=document.hidden;audioHold(PAUSE.hidden);syncGameplay()})
 addEventListener('touchend',()=>{if(!PAUSE.hidden)audioHold(false)}) // iOS: 전화·알림으로 끊긴 오디오는 다음 터치에서 되살린다(CG 요건)
 function frame(now){requestAnimationFrame(frame)
-requestAnimationFrame(()=>PORTAL.loadingStop()) // 첫 프레임 후 = 플레이 준비 완료
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
  updateFX(dt);const hold=onbT||choiceOpen||(S.alive&&PAUSE.on)
- if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt);hud();render()}
+ if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt);hud();render()
+ if(!PORTAL.loadingDone)PORTAL.loadingStop()} // 첫 렌더 후 한 번만. 늦게 도착한 SDK에는 init에서 전달한다.
 requestAnimationFrame(frame)
 
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
