@@ -39,6 +39,15 @@ async function suite(label, ctxOpts, touch) {
   const title = await p.title(), badge = await p.textContent('#badge')
   ok(`[${label}] 라벨 「로컬 엔진 시안 · Meta 생성 아님」(제목·배지)`, title.includes('로컬 엔진 시안 · Meta 생성 아님') && badge.includes('로컬 엔진 시안 · Meta 생성 아님'))
   const tap = async sel => touch ? p.tap(sel) : p.click(sel)
+  // 0) 레이아웃: 타임라인 마커 라벨이 아래 조작 줄(버튼·시간·단계)과 겹치지 않는가 — 2026-10-05 폰 캡처에서 겹침 적발
+  const overlaps = await p.evaluate(() => {
+    const R = e => e.getBoundingClientRect(), hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
+    const marks = [...document.querySelectorAll('#marks button')], ctl = [...document.querySelectorAll('.ctl > *, .ctl .sp > *')].filter(e => e.offsetWidth)
+    const out = []
+    for (const m of marks) for (const c of ctl) if (hit(R(m), R(c))) out.push(`${m.textContent}×${(c.id || c.textContent || c.className).trim().slice(0, 12)}`)
+    return out
+  })
+  ok(`[${label}] 마커 라벨 ↔ 조작 줄 겹침 없음`, overlaps.length === 0, overlaps.join(', '))
 
   // 1) 재생/일시정지
   const t0 = await p.evaluate(() => __proto.t); await sleep(600); const t1 = await p.evaluate(() => __proto.t)
