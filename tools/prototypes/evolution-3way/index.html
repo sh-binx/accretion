@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ACCRETION 진화 3안 비교 — 로컬 엔진 시안 · Meta 생성 아님</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
+<style>
+:root{--bg:#03040a;--panel:#0a0f1e;--line:rgba(120,150,220,.22);--tx:#eaf1ff;--mut:#93a0c4;--gold:#ffcf4a;--cy:#8fd0ff;--warm:#ffb070}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.4 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;overflow:hidden;-webkit-tap-highlight-color:transparent}
+#app{display:flex;flex-direction:column;height:100%;height:100dvh}
+header{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:var(--panel)}
+h1{margin:0;font-size:14px;letter-spacing:1.5px;font-weight:800;white-space:nowrap}
+h1 small{font-weight:500;color:var(--mut);letter-spacing:0;margin-left:6px}
+.badge{font-size:12px;font-weight:800;color:#1a1200;background:var(--gold);padding:3px 9px;border-radius:5px;letter-spacing:.5px;white-space:nowrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-left:auto}
+.seg button,.ctl button{appearance:none;border:0;background:transparent;color:var(--tx);font:inherit;font-weight:700;padding:6px 11px;cursor:pointer;white-space:nowrap;min-height:30px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:#1b2a52;color:var(--cy)}
+#stage{position:relative;flex:1;min-height:0;background:#000}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.vov{position:absolute;pointer-events:none;overflow:hidden}
+.vov .zone,.vov .flash,.vov .vig{position:absolute;inset:0}
+.vov .flash{background:#fff;opacity:0}
+.vov .lab{position:absolute;left:8px;top:7px;font-weight:800;font-size:13px;letter-spacing:.5px;padding:2px 8px;border-radius:5px;background:rgba(5,8,18,.72);border:1px solid var(--line)}
+.vov[data-id=A] .lab{color:#c4cfe8}.vov[data-id=B] .lab{color:var(--cy)}.vov[data-id=C] .lab{color:var(--warm)}
+.vov .tstamp{position:absolute;right:8px;top:8px;font:11px ui-monospace,Menlo,monospace;color:var(--mut);background:rgba(5,8,18,.6);padding:1px 6px;border-radius:4px}
+.vov .ban{position:absolute;left:50%;transform:translateX(-50%);width:min(560px,86%);text-align:center;opacity:0}
+.vov .ban .b{display:inline-block;font-weight:800;letter-spacing:3px;color:#ffcf4a;text-shadow:0 0 24px rgba(255,207,74,.6)}
+.vov .ban .s{color:#c4cfe8;letter-spacing:1px;margin-top:4px}
+.vov .note{position:absolute;left:8px;right:8px;bottom:8px;font-size:11.5px;line-height:1.45;color:#c4cfe8;background:rgba(5,8,18,.74);border:1px solid var(--line);border-radius:7px;padding:6px 9px}
+body.nonote .vov .note{display:none}
+.vov .chip{position:absolute;left:50%;transform:translateX(-50%);display:flex;gap:4px;align-items:center;font-size:11.5px;font-weight:700;white-space:nowrap}
+.vov .chip span{padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--mut);background:rgba(5,8,18,.6)}
+.vov .chip span.on{color:#03040a;background:var(--cy);border-color:var(--cy)}
+.vov .chip i{font-style:normal;color:var(--gold);margin-left:4px}
+footer{background:var(--panel);border-top:1px solid var(--line);padding:6px 12px 8px;display:flex;flex-direction:column;gap:4px}
+.ctl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ctl button{border:1px solid var(--line);border-radius:7px;background:#101830}
+.ctl button[aria-pressed=true]{background:#1b2a52;color:var(--cy);border-color:var(--cy)}
+.ctl .read{font:12px ui-monospace,Menlo,monospace;color:var(--mut);margin-left:4px}
+.ctl .read b{color:var(--tx)}
+.ctl .stg{font-weight:800;color:var(--gold);margin-left:4px}
+.ctl .sp{margin-left:auto;display:flex;gap:6px}
+#tl{position:relative;height:34px;margin:0 6px}
+#tl input{position:absolute;left:-6px;right:-6px;width:calc(100% + 12px);top:2px;margin:0;height:20px;accent-color:var(--cy);cursor:pointer}
+#marks{position:absolute;left:0;right:0;top:20px;height:14px}
+#marks button{position:absolute;transform:translateX(-50%);appearance:none;border:0;background:none;color:var(--mut);font:600 11px/1 inherit;padding:2px 3px;cursor:pointer;white-space:nowrap}
+#marks button::before{content:"";position:absolute;left:50%;top:-8px;width:1px;height:7px;background:var(--gold)}
+#marks button.cur{color:var(--gold)}
+@media (max-height:500px){
+ header{padding:4px 8px;gap:6px}h1{font-size:12px}h1 small{display:none}.badge{font-size:11px;padding:2px 7px}
+ .seg button,.ctl button{padding:3px 8px;min-height:28px;font-size:12px}
+ footer{padding:3px 8px 5px;gap:1px}#tl{height:30px}
+ .vov .note{font-size:10px;padding:4px 6px;line-height:1.35}
+ .vov .lab{font-size:11px}.vov .chip{font-size:10px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <h1>ACCRETION 진화 3안 비교<small>원시별 → 항성 → 블랙홀</small></h1>
+ <span class="badge" id="badge">로컬 엔진 시안 · Meta 생성 아님</span>
+ <div class="seg" role="group" aria-label="보기">
+  <button data-mode="A">A 현행</button><button data-mode="B">B 가독성</button><button data-mode="C">C 연출 강화</button><button data-mode="ALL">3안 동시</button>
+ </div>
+</header>
+<div id="stage"><canvas id="cv"></canvas></div>
+<footer>
+ <div id="tl"><input id="scrub" type="range" min="0" max="18" step="0.01" value="0" aria-label="타임라인"><div id="marks"></div></div>
+ <div class="ctl">
+  <button id="play" aria-label="재생/일시정지">❚❚ 일시정지</button>
+  <button id="restart">↺ 처음부터</button>
+  <span class="read"><b id="tnow">0.00</b> / 18.00s</span><span class="stg" id="stg">원시별</span>
+  <span class="sp">
+   <button data-speed="0.5">0.5×</button><button data-speed="1">1×</button>
+   <button id="notes" aria-pressed="true">설명</button>
+  </span>
+ </div>
+</footer>
+</div>
+<script src="../../../three.min.js"></script>
+<script src="engine.js"></script>
+<script src="variants.js"></script>
+<script>
+'use strict'
+const E=window.ACC_ENGINE,{TL,VARIANTS,ORDER}=window.EVO
+const $=id=>document.getElementById(id)
+const stage=$('stage'),cv=$('cv')
+const renderer=E.createRenderer(cv)
+const BG=E.createBg(),POST=E.createPost()
+
+/* 뷰 3개 — 각자 씬(메시·재질 독립)·카메라·렌더타깃. 배경 씬과 렌징 재질은 공유. */
+const views=ORDER.map(id=>{const S=E.createScene(),v=VARIANTS[id]
+ const V={id,v,scene:S.scene,hemiLight:S.hemiLight,H:S.H,shock:S.shock,cam:S.cam,parts:S.parts,rt:null,rect:null,renderedT:-1,frame:0}
+ if(v.setup)v.setup(V)
+ const ov=document.createElement('div');ov.className='vov';ov.dataset.id=id
+ ov.innerHTML='<div class="zone"></div><div class="vig"></div><div class="flash"></div><div class="lab">'+v.name+'</div><div class="tstamp"></div>'+
+  '<div class="ban"><div class="b"></div><div class="s"></div></div>'+(id==='B'?'<div class="chip"></div>':'')+'<div class="note">'+v.note+'</div>'
+ stage.appendChild(ov);V.ov=ov
+ V.el={zone:ov.querySelector('.zone'),vig:ov.querySelector('.vig'),flash:ov.querySelector('.flash'),ban:ov.querySelector('.ban'),bm:ov.querySelector('.ban .b'),bs:ov.querySelector('.ban .s'),chip:ov.querySelector('.chip'),ts:ov.querySelector('.tstamp')}
+ return V})
+
+/* ── 상태 ── */
+const ST={t:0,playing:true,speed:1,mode:'ALL',frame:0}
+try{const q=new URLSearchParams(location.search)
+ if(q.get('mode')&&/^(A|B|C|ALL)$/.test(q.get('mode')))ST.mode=q.get('mode')
+ if(q.get('t'))ST.t=clamp(parseFloat(q.get('t'))||0)
+ if(q.get('paused')==='1')ST.playing=false
+ if(q.get('speed')==='0.5')ST.speed=0.5}catch(e){}
+if(innerHeight<500&&!/[?&]notes=1/.test(location.search))document.body.classList.add('nonote')   // 폰 가로: 설명이 뷰의 1/3을 덮는다 — 기본은 숨기고 「설명」으로 연다
+function clamp(t){return Math.max(0,Math.min(TL.END,t))}
+
+/* ── 레이아웃 ── */
+let SW=0,SH=0
+function layout(){
+ SW=stage.clientWidth;SH=stage.clientHeight
+ renderer.setSize(SW,SH,false)
+ const pr=renderer.getPixelRatio(),gap=2
+ const vis=ST.mode==='ALL'?views:views.filter(v=>v.id===ST.mode)
+ for(const V of views){V.rect=null;V.ov.style.display='none'}
+ const n=vis.length,w=Math.floor((SW-gap*(n-1))/n)
+ vis.forEach((V,i)=>{V.rect={x:i*(w+gap),y:0,w,h:SH}
+  V.ov.style.display='';Object.assign(V.ov.style,{left:V.rect.x+'px',top:'0px',width:w+'px',height:SH+'px'})
+  const W=Math.max(1,Math.round(w*pr)),Hh=Math.max(1,Math.round(SH*pr))
+  if(!V.rt||V.rt.width!==W||V.rt.height!==Hh){if(V.rt)V.rt.dispose()
+   V.rt=new THREE.WebGLRenderTarget(W,Hh,{minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter})}   // index.html:452
+  V.cam.aspect=w/SH;V.cam.updateProjectionMatrix()
+  // 배너 크기: 게임은 전체 화면 기준(22px/12px, top max(24%,166px), index.html:61-63) — 뷰 높이에 비례해 줄인다
+  const s=Math.max(0.5,Math.min(1,SH/800))
+  V.el.bm.style.fontSize=Math.max(12,22*s)+'px';V.el.bs.style.fontSize=Math.max(10,12*s)+'px'
+  V.el.ban.style.top=Math.max(SH*0.24,166*s*(SH<500?0.55:1))+'px'
+  V.zs=SH/900
+  if(V.el.chip)V.el.chip.style.bottom=(document.body.classList.contains('nonote')?10:(V.ov.querySelector('.note').offsetHeight+16))+'px'})
+}
+addEventListener('resize',layout)
+
+/* ── 렌더 — index.html:2268-2286 의 3패스(배경→RT · 렌징 후처리 · 게임플레이)를 뷰포트별로 ── */
+function fxCss(fx,s){return 'inset 0 0 '+(fx[0]*s).toFixed(1)+'px '+(fx[1]*s).toFixed(1)+'px rgba('+fx[2].toFixed(0)+','+fx[3].toFixed(0)+','+fx[4].toFixed(0)+','+fx[5].toFixed(3)+')'}
+const _p=new THREE.Vector3()
+function renderAll(t){
+ ST.frame++
+ renderer.setScissorTest(false);renderer.setRenderTarget(null);renderer.setClearColor(0x000000,1);renderer.clear()
+ for(const V of views){if(!V.rect)continue
+  const o=V.v.apply(V,t),r=V.rect
+  BG.stars.position.copy(V.cam.position);BG.neb.position.copy(V.cam.position)   // index.html:2254
+  renderer.setScissorTest(false)
+  renderer.setRenderTarget(V.rt);renderer.setClearColor(0x03040a,1);renderer.clear();renderer.render(BG.bgScene,V.cam)
+  renderer.setRenderTarget(null)
+  const y=SH-r.y-r.h
+  renderer.setViewport(r.x,y,r.w,r.h);renderer.setScissor(r.x,y,r.w,r.h);renderer.setScissorTest(true)
+  const L=POST.lensMat.uniforms
+  L.tDiffuse.value=V.rt.texture
+  _p.set(0,0,0).project(V.cam);L.uCenter.value.set(_p.x*.5+.5,_p.y*.5+.5)
+  L.uStrength.value=o.lens;L.uEH.value=o.eh;L.uAspect.value=r.w/r.h
+  renderer.autoClear=true;renderer.render(POST.postScene,POST.postCam)
+  renderer.autoClear=false;renderer.clearDepth();renderer.render(V.scene,V.cam);renderer.autoClear=true
+  // DOM 오버레이
+  V.el.flash.style.opacity=o.flash.toFixed(3)
+  V.el.zone.style.boxShadow=fxCss(o.zone,V.zs)
+  V.el.vig.style.boxShadow=o.vig?'inset 0 0 '+(260*V.zs).toFixed(0)+'px '+(120*V.zs).toFixed(0)+'px rgba(0,0,0,'+(0.75*o.vig).toFixed(3)+')':'none'
+  const b=o.banner;V.el.ban.style.opacity=b.op.toFixed(3)
+  if(b.m&&V.el.bm.textContent!==b.m.main){V.el.bm.textContent=b.m.main;V.el.bs.textContent=b.m.sub}
+  if(V.el.chip&&o.chip){const names=['원시별','항성','블랙홀']
+   V.el.chip.innerHTML=names.map((n,i)=>'<span class="'+(i===o.chip.idx?'on':'')+'">'+(i+1)+' '+n+'</span>').join('›')+(o.chip.cue?'<i>'+o.chip.cue+'</i>':'')}
+  V.el.ts.textContent='t='+t.toFixed(2)
+  V.renderedT=t;V.frame=ST.frame;V.lastOut=o}
+ renderer.setScissorTest(false)
+}
+
+/* ── UI ── */
+const scrub=$('scrub'),marks=$('marks')
+marks.innerHTML=TL.MARKERS.map(m=>'<button data-t="'+m.t+'" style="left:'+(m.t/TL.END*100)+'%">'+m.n+'</button>').join('')
+marks.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;ST.t=+b.dataset.t;ST.playing=false;syncUI()})
+scrub.addEventListener('input',()=>{ST.t=clamp(+scrub.value);syncUI()})
+$('play').onclick=()=>{if(!ST.playing&&ST.t>=TL.END)ST.t=0;ST.playing=!ST.playing;syncUI()}
+$('restart').onclick=()=>{ST.t=0;ST.playing=true;syncUI()}
+document.querySelectorAll('[data-speed]').forEach(b=>b.onclick=()=>{ST.speed=+b.dataset.speed;syncUI()})
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>setMode(b.dataset.mode))
+$('notes').onclick=()=>{document.body.classList.toggle('nonote');syncUI();layout()}
+addEventListener('keydown',e=>{if(e.target.tagName==='INPUT'&&e.key!==' ')return
+ if(e.key===' '){e.preventDefault();$('play').click()}
+ else if(e.key==='r'||e.key==='R')$('restart').click()
+ else if(e.key>='1'&&e.key<='4')setMode(['A','B','C','ALL'][+e.key-1])
+ else if(e.key==='ArrowRight'){ST.t=clamp(ST.t+0.1);syncUI()}
+ else if(e.key==='ArrowLeft'){ST.t=clamp(ST.t-0.1);syncUI()}})
+function setMode(m){ST.mode=m;layout();syncUI()}
+function syncUI(){
+ scrub.value=ST.t.toFixed(2);$('tnow').textContent=ST.t.toFixed(2);$('stg').textContent=TL.stageAt(ST.t)
+ $('play').textContent=ST.playing?'❚❚ 일시정지':'▶ 재생'
+ document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===ST.mode))
+ document.querySelectorAll('[data-speed]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.speed===ST.speed))
+ $('notes').setAttribute('aria-pressed',!document.body.classList.contains('nonote'))
+ let cur=-1;TL.MARKERS.forEach((m,i)=>{if(ST.t>=m.t-0.05)cur=i})
+ marks.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('cur',i===cur))}
+
+/* ── 루프: 한 시계(ST.t)를 세 뷰가 같은 프레임에 읽는다 ── */
+let last=performance.now(),fpsN=0,fpsT=0,fps=0
+function frame(now){requestAnimationFrame(frame)
+ const dt=Math.min(0.05,(now-last)/1000);last=now
+ fpsN++;fpsT+=dt;if(fpsT>=1){fps=fpsN/fpsT;fpsN=0;fpsT=0}
+ if(ST.playing){ST.t+=dt*ST.speed;if(ST.t>=TL.END){ST.t=TL.END;ST.playing=false}syncUI()}
+ renderAll(ST.t)}
+
+/* ── 검증 훅(이 시안 전용 — 게임 코드 아님) ── */
+window.__proto={
+ get t(){return ST.t},get mode(){return ST.mode},get playing(){return ST.playing},get fps(){return fps},
+ setT(t){ST.t=clamp(t);syncUI();renderAll(ST.t)},play(){ST.playing=true;syncUI()},pause(){ST.playing=false;syncUI()},
+ setMode,setSpeed(s){ST.speed=s;syncUI()},notes(on){document.body.classList.toggle('nonote',!on);syncUI();layout()},
+ views(){return views.map(V=>({id:V.id,visible:!!V.rect,renderedT:V.renderedT,frame:V.frame,rect:V.rect,particles:V.parts.n}))},
+ // 같은 태스크 안에서 그린 직후 읽는다(preserveDrawingBuffer 없이도 유효)
+ probe(){renderAll(ST.t);const gl=renderer.getContext(),pr=renderer.getPixelRatio(),out=[]
+  for(const V of views){if(!V.rect)continue;const r=V.rect
+   const x=Math.round(r.x*pr),y=Math.round((SH-r.y-r.h)*pr),w=Math.round(r.w*pr),h=Math.round(r.h*pr)
+   const px=new Uint8Array(w*h*4);gl.readPixels(x,y,w,h,gl.RGBA,gl.UNSIGNED_BYTE,px)
+   let s=0,s2=0,lit=0,n=0
+   for(let i=0;i<px.length;i+=4*7){const l=0.2126*px[i]+0.7152*px[i+1]+0.0722*px[i+2];s+=l;s2+=l*l;n++;if(l>40)lit++}
+   const m=s/n;out.push({id:V.id,t:V.renderedT,mean:+m.toFixed(2),std:+Math.sqrt(Math.max(0,s2/n-m*m)).toFixed(2),lit:+(lit/n).toFixed(4)})}
+  return out}}
+
+layout();syncUI();requestAnimationFrame(frame)
+</script>
+</body>
+</html>
