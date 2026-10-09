@@ -13,6 +13,15 @@
 
 # Activity Log (역시간순 — 최신 위)
 
+## 2026-10-09 — CrazyGames 반려 대응 v1.1(재미·잔존 패스)
+
+- 반려(성과 미달) 지표: 평균 4m43s · 전환 55.5%(모바일 40.5%) · D1 2.32% · crash 3.21%. 결정·근거·결과는 [decisions/2026-10-09-v1.1-fun-retention.md](decisions/2026-10-09-v1.1-fun-retention.md).
+- 실측 원인: 초보 중앙 11초 사망 · 세로 화면 정지 · GPU 지오메트리 누수(4분 1,215개) · 판 사이에 남는 게 수집뿐.
+- 수정: 생존 기회(부분 조석 파괴/병합 반동) · 초반·변신 유예 · 세로 플레이 · 별먼지 업그레이드 4종 · 데일리 연속 · KO 진화 배너 누락.
+- 검증: 신규 verify-fun11 19/19 · 기존 34 스위트 전부 통과(즉사 3건은 생존 기회 소진 조건으로 갱신) · 제출 zip 11/11 · 3기기 소크 에러 0.
+- 하네스: 스크립트의 playwright 경로(nova-surge/package.json)가 사라져 전 스위트가 import 에서 죽던 것을 nova-surge/toss 로 복구.
+
+
 ## 2026-10-05 · Basic Launch 실측 / 저장소 차단 부팅 결함
 - 수정본 build `efc24de2-61fa-4c37-a4af-84bb370d0541`: CrazyGames QA 프리뷰 실행 후 제출, 자동 승인 알림과 Version History Active 확인.
 - 세부 점수: Desktop 9/15(5m19s·D1 2.57%·전환 75.14%), Mobile/Tablet 6/15(4m24s·D1 2.49%·전환 39.50%). 모바일은 현재 기준 `<9`로 활성화 불가 표시.
