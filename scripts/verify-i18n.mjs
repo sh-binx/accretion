@@ -1,7 +1,7 @@
 // 언어 감사 — 포털(CrazyGames·Poki) 요건은 '영어로 플레이 가능할 것'이다.
 // 영어 모드에서 화면에 한글이 한 글자라도 남으면 제출에서 문제가 된다. 그걸 자동으로 막는다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }

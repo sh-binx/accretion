@@ -1,6 +1,6 @@
 // 출시 정리(2026-09-26) — 시작 카드 단순화 · 동사 이름 통일(PULL) · 동사는 풀릴 때 가르친다 · 후반 중앙 정리.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1&lang=en'
 const results = []

@@ -2,7 +2,7 @@
 // 계약: ① 보드로 가는 입구·제출 UI가 전부 숨겨진다 ② 외부 네트워크 요청 0건 ③ 개인 최고점은 로컬에 남는다
 // ④ 부활을 대비해 남긴 렌더 코드의 이스케이프는 여전히 안전하다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const BASE = 'http://localhost:3040/'
 

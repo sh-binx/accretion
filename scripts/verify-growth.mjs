@@ -2,7 +2,7 @@
 // 실측(3.6.1): 질량 2→120,000에서 먹이/나 비율이 0.40→0.54로 *증가*해 성장이 체감될 수 없었다.
 // 처방: ① 우주 자(고정 격자) ② 질량 비교 마일스톤 ③ 고정 크기 랜드마크(은하 중심)
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results=[]
 const ok=(n,c,x='')=>{results.push([c,n,x]);console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`)}

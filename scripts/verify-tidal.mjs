@@ -2,7 +2,7 @@
 //  (A) 큰 블랙홀에 닿으면 즉사가 아니라 '조석 영역'에서 질량을 뜯기며 탈출 기회를 준다
 //  (B) 큰 먹이는 한 입에 사라지지 않고 흡수에 시간이 걸린다(TDE)
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []
@@ -35,13 +35,13 @@ try {
 
   // ── (A2) 사건지평선(코어) 안쪽은 여전히 즉사 ──
   const core = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats(); A.setInv(0)
+    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats(); A.setInv(0); A.setShield(0)   // 생존 기회(1회)를 다 쓴 상태 — 그 뒤엔 여전히 즉사
     const q=A.pos()
     A.spawn('rival', 400, q.x+0.2, q.z)   // 사실상 중심
     A.step(0.05)
     return { alive:A.state.alive, cause:A.state.cause||null }
   })
-  ok('A2: 사건지평선 안쪽은 즉사(되돌릴 수 없다)', core.alive===false)
+  ok('A2: 생존 기회를 다 쓰면 사건지평선 안쪽은 즉사(되돌릴 수 없다)', core.alive===false)
 
   // ── (A3) 오래 머무르면 결국 죽는다 ──
   const drained = await page.evaluate(() => {

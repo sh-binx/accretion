@@ -1,7 +1,7 @@
 // Owner-reported logic bugs: (1) a rock must never eat a black hole,
 // (2) form must not flicker back and forth (nor re-fire the supernova).
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []
@@ -44,7 +44,7 @@ try {
 
   // a small black hole kills a planetesimal on contact
   const lethal = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(2.3); A.step(0.1); A.clearObjs()
+    const A=window.__acc; A.begin(); A.setMass(2.3); A.step(0.1); A.clearObjs(); A.setShield(0)   // 생존 기회 소진 후
     const p=A.pos(); A.spawn('rival', 1.0, p.x+1.2, p.z)            // right on top of us
     for(let i=0;i<10 && A.state.alive;i++)A.step(0.1)
     return A.state.alive

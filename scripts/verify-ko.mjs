@@ -3,7 +3,7 @@
 //       진화 선택 카드 · 결과 화면(증발·포식) · 코덱스(39 전부 발견) · 업적 · 데일리.
 // 허용: 고유명사·기호(ACCRETION 워드마크, TON 618, M87*, R136a1, LIGO, WASD 키캡, 단위 M☉·K·M·B, 버전).
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium, devices } = require('playwright')
 const BASE = 'http://localhost:3040/?dev=1&lang=ko'
 const results = []
