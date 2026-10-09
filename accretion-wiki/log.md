@@ -1,3 +1,11 @@
+## 2026-10-09 — v1.1 CrazyGames 재제출(AWAITING REVIEW)
+
+- 반려 게임엔 새 빌드 업로드가 없고 같은 이름은 「already in use」 → 오너 승인으로 기존 반려 기록(65da597c) 삭제 후 같은 이름으로 새 제출.
+- 새 게임 37e127ed-6da3-4db1-b069-a598332b1e3e · build 629d74cb-f571-4aa5-9db2-e61049024821 · main e6cecd7(v1.1.0). 모바일 방향 BOTH.
+- QA: Loading Stop · Gameplay Start/Stop · Get/Set Item 점등 · 로드 0.3MB · 로드 시간 0.9초(메뉴에 오래 머물면 100초로 찍힌다 — Relaunch 후 바로 시작해 재측정). 브라우저·실기기 점검은 No(실측 범위대로).
+- 소개문에 v1.1 문단(별먼지 업그레이드·연속 보너스·생존 기회·세로 지원) 추가, 커버 3종·영상 2종 기존 에셋.
+- 폴더 업로드 함정: webkitdirectory 입력이 자동화 파일 선택을 안 받아, 같은 두 파일을 DataTransfer 로 입력에 넣었다(`portal/` 경로 유지).
+
 ## 2026-10-09 — CrazyGames 반려 대응 v1.1(재미·잔존 패스)
 
 - 반려(성과 미달) 지표: 평균 4m43s · 전환 55.5%(모바일 40.5%) · D1 2.32% · crash 3.21%. 결정·근거·결과는 [decisions/2026-10-09-v1.1-fun-retention.md](decisions/2026-10-09-v1.1-fun-retention.md).
