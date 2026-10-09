@@ -2,7 +2,7 @@
 // NODE_PATH can point to a workspace Playwright installation.
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
-const { chromium } = createRequire(import.meta.url)('playwright')
+const { chromium } = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')('playwright')
 const browser = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] })
 try {
  for (const mode of ['normal','blocked','quota']) {

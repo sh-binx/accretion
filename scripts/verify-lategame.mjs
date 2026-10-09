@@ -1,7 +1,7 @@
 // Late-game verification — movement no longer collapses at high mass,
 // and threat (rivals) escalates as you grow. (owner: "커질수록 멈추는 느낌 + 커지면 안 무섭다")
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

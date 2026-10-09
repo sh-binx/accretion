@@ -3,7 +3,7 @@
 import { createRequire } from 'module'
 import { execFileSync, spawn } from 'child_process'
 import fs from 'fs'; import os from 'os'; import path from 'path'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const ZIP = process.argv[2] || path.resolve(path.dirname(new URL(import.meta.url).pathname), '../dist/accretion-submission.zip')
 const results = []

@@ -2,7 +2,7 @@
 // 별은 암석을 모아 태어나지 않고(원시별=붕괴하는 가스 구름 핵),
 // 약 20 태양질량 이상인 별만 붕괴해 블랙홀이 된다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL='http://localhost:3040/?dev=1'
 const results=[]

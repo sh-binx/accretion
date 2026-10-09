@@ -1,7 +1,7 @@
 // Eat-forgiveness verification — a moving hole must capture near-miss objects
 // (owner: "planets only get eaten when they line up too precisely").
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

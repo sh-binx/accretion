@@ -1,7 +1,7 @@
 // 오너: "머리에 빔이 생기고, 먹지도 않았는데 행성이 빨려든다"
 // 핵심 요구: '보이는 빔'과 '실제 판정'이 정확히 일치할 것.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results=[]; const ok=(n,c,x='')=>{results.push([c,n,x]);console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`)}
 const b = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']})
@@ -103,7 +103,7 @@ try{
   const esc = await p.evaluate(()=>{
     const A=window.__acc
     const trial=(useJet)=>{
-      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(30000)
+      A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(30000);A.setShield(0)   // 대조군은 생존 기회 없이
       const c=A.pos()
       A.spawn('rival',A.state.mass*2.5,c.x+Math.cbrt(30000)*2.4,c.z)
       A.step(0.05)
