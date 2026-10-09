@@ -1079,7 +1079,13 @@ function spawnObj(type,mass,x,z){
  const sp0=(type==='sstar'?5.5:(type==='nucleus'?0.35:1))*(1+0.85*runHeat())   // S성은 근점에서 광속의 3%로 스친다 · 핵성단은 무겁고 굼뜨다 · 중심에 가까울수록 다 빨라진다
  const o={g,type,mass,r,vx:rnd(-2,2)*sp0,vz:rnd(-2,2)*sp0,spin:rnd(-1,1),eaten:false,nmCd:0}
  objects.push(o);return o}
-function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
+// 천체마다 새로 만든 지오메트리·재질은 씬에서 빼도 GPU 에 남는다 — 4분 플레이에 1,200개가 쌓였다(2026-10-09 소크 실측).
+// 모바일에서 GPU 메모리가 차 탭이 죽는 경로로 본다. 공유 지오메트리·텍스처는 남기고 그 천체 몫만 푼다.
+const SHARED_GEO=new Set([ROCK,SPH])
+function freeGroup(g){if(!g)return;g.traverse(o=>{
+ if(o.geometry&&!SHARED_GEO.has(o.geometry)&&!o.isSprite)o.geometry.dispose()
+ const m=o.material;if(m)(Array.isArray(m)?m:[m]).forEach(x=>{if(!x.userData.shared)x.dispose()})})}
+function releaseObj(o){scene.remove(o.g);freeGroup(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
 /* ===== 점진 흡수(TDE) — 큰 먹이는 시간이 걸린다. 그동안 느려지고 무방비가 된다 ===== */
 function startFeed(o,rel){
@@ -1258,7 +1264,7 @@ function mkFeat(type,x,z){
  g.position.set(x,0,z);scene.add(g)
  const f={type,g,r,life:type==='nebula'?60:38,cd:0};feats.push(f);return f
 }
-function releaseFeat(f){scene.remove(f.g);const i=feats.indexOf(f);if(i>=0)feats.splice(i,1)}
+function releaseFeat(f){scene.remove(f.g);freeGroup(f.g);const i=feats.indexOf(f);if(i>=0)feats.splice(i,1)}
 function clearFeats(){for(const f of feats.slice())releaseFeat(f)}
 function topUpFeats(){
  if(NO_SPAWN)return   // 검증용 스폰 차단은 지형에도 걸린다 — 성운은 초당 +3.5%를 '먹인다'.
@@ -2757,10 +2763,10 @@ function updateDisk(dt){
   const give=d.mass*DISK_RATE*dt
   d.mass-=give;S.mass+=give*accEff()*(FORMS[S.formIdx].acc||1)
   S.score+=Math.round(give*11)
-  if(d.mass<=Math.max(0.05,S.mass*0.004)){if(d.g)scene.remove(d.g);D.splice(i,1)}
+  if(d.mass<=Math.max(0.05,S.mass*0.004)){if(d.g){scene.remove(d.g);freeGroup(d.g)}D.splice(i,1)}
  }
 }
-function clearDisk(){for(const d of (S.disk||[]))if(d.g)scene.remove(d.g);if(S.disk)S.disk.length=0}
+function clearDisk(){for(const d of (S.disk||[]))if(d.g){scene.remove(d.g);freeGroup(d.g)}if(S.disk)S.disk.length=0}
 // 제트는 안쪽 원반에서 쏘아 올려진다 — 쌓아 둔 것을 탄약으로 쓴다
 function launchDisk(ax,az){
  const D=S.disk;if(!D||!D.length)return 0
@@ -2772,7 +2778,7 @@ function launchDisk(ax,az){
    const sp=42+rad(S.mass)*2.2
    o.vx=ax*sp+rnd(-6,6);o.vz=az*sp+rnd(-6,6)
    eatBurst(d.g.position.x,d.g.position.z,0xbfe4ff,8)
-   scene.remove(d.g)}
+   scene.remove(d.g);freeGroup(d.g)}
   n++
  }
  D.length=0
@@ -2970,10 +2976,16 @@ addEventListener('keydown',e=>{if(typing(e))return;if(choiceOpen&&!/^Digit[123]$
  if(e.code==='KeyM'){const m=AU.toggleMute();$('mute').textContent=m?'🔇':'🔊'}if(e.code==='Space')doSurge();if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse();if(e.code==='KeyE')doWave();if(e.code==='KeyF')doFlare()
  if(choiceOpen&&/^Digit[123]$/.test(e.code)){const i=+e.code.slice(5)-1;const pk=window.__choicePick;if(pk&&pk[i])takeBoon(pk[i])}})
 addEventListener('keyup',e=>{if(e.code==='KeyC')holdCap=false})
-addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
+// 세로 화면도 플레이한다(2026-10-09) — 모바일 전환율 40%의 큰 몫이 세로로 연 사람이 「기기를 돌려라」 화면에서 떠난 것으로 본다.
+// 세로폭에서는 좌우가 좁아 옆에서 오는 위협이 안 보이므로 세로 화각을 넓혀 좌우 시야를 가로판 세로 시야에 가깝게 맞춘다.
+// tan(반화각) 0.45 = 가로판(52°) 세로 반폭 0.488 의 약 92% · 위아래는 스폰 거리(카메라 거리 ×1.15) 안쪽에 머문다.
+function applyView(){const a=innerWidth/innerHeight;cam.aspect=a
+ cam.fov=a<1?2*Math.atan(Math.min(1,0.45/a))*180/Math.PI:52;cam.updateProjectionMatrix()}
+applyView()
+addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);applyView();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
-function checkOrient(){const coarse=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window);const need=coarse&&innerHeight>innerWidth
+function checkOrient(){const need=false   // 세로도 플레이 가능 — 회전 강제·일시정지를 걷었다(applyView)
  $('rotate').classList.toggle('on',need);orientPaused=need;PAUSE.orient=need;syncGameplay()}
 addEventListener('orientationchange',()=>setTimeout(checkOrient,120));checkOrient()
 
@@ -3036,6 +3048,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  nemesis:()=>nemesis?{mass:Math.round(nemesis.mass*100)/100,dist:Math.round(nemesis.g.position.distanceTo(hole.position)*10)/10,vuln:nemesis.mass<S.mass}:null,
  spawnNemesis:()=>spawnNemesis(),apexKills:()=>S.apexKills||0,
  eatNemesis:()=>{if(nemesis){nemesisConsumed(nemesis);return true}return false},
+ mem:()=>{let n=0;scene.traverse(()=>n++);return {geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs?renderer.info.programs.length:0,nodes:n,objs:objects.length,heap:performance.memory?Math.round(performance.memory.usedJSHeapSize/1e6):null}},  // 소크 — 장시간 누수 추적(2026-10-09)
  todayMod:()=>({id:todayMod().id,name:todayMod().name}),dayKey:()=>dayKey(),
  daily:()=>S.daily?{id:S.daily.id,name:S.daily.name}:null,
  startDaily:()=>{S.daily=todayMod();begin()},setDaily:v=>{S.daily=v?todayMod():null},
