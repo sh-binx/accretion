@@ -106,7 +106,7 @@ try{
       A.begin();A.hideOnboard();A.setSpawn(false);A.clearField();A.setMass(30000);A.setShield(0)   // 대조군은 생존 기회 없이
       const c=A.pos()
       A.spawn('rival',A.state.mass*2.5,c.x+Math.cbrt(30000)*2.4,c.z)
-      A.step(0.05)
+      A.step(0.05);S.bhAt=-99   // 변신 직후 12초 적응(huntRamp)이 아닌, 블랙홀이 된 지 오래된 상태로 비교
       if(useJet){A.setEnergy(1);A.doFlare()}
       for(let i=0;i<40;i++){A.step(0.05);if(!A.state.alive)return false}
       return A.state.alive}

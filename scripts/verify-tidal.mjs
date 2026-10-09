@@ -45,7 +45,7 @@ try {
 
   // ── (A3) 오래 머무르면 결국 죽는다 ──
   const drained = await page.evaluate(() => {
-    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats(); A.setInv(0)
+    const A=window.__acc; A.begin(); A.setMass(100); A.step(0.1); A.clearObjs(); A.clearFeats(); A.setInv(0); A.setShield(0); S.bhAt=-99   // 생존 기회 소진 · 블랙홀이 된 지 오래된 상태
     const q=A.pos(), R=Math.cbrt(400)
     A.spawn('rival', 400, q.x+R*1.3, q.z)
     let n=0
