@@ -31,7 +31,7 @@
  #massbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(470px,70vw);z-index:5;pointer-events:none}
  @media (max-width:820px){#massbar{top:auto;bottom:14px;width:min(320px,54vw)}} /* 좁은 가로: 좌우 HUD와 겹쳐 아래로 */
  /* 세로 모드는 하단이 코덱스·능력으로 붐빈다 → 상단 HUD 아래 자기 줄을 준다 */
- @media (max-aspect-ratio:9/10){#massbar{top:122px;bottom:auto;width:min(340px,86vw)}}
+ @media (max-aspect-ratio:9/10){#massbar{top:252px;bottom:auto;width:min(340px,86vw)}#apex{top:296px}#combo{top:330px}#banner,#codex{top:max(44%,372px)}#hud .sub{max-width:46vw}} /* 세로 플레이(2026-10-09): 좌우 HUD 열 아래로 한 칸씩 — 좁은 폭에선 상단 중앙이 좌우 열과 겹친다 */
  #massbar .t{font-size:10.5px;letter-spacing:2.4px;color:#8e9ac0;text-align:center;margin-bottom:6px}
 #massbar .track{height:12px;border-radius:5px;background:rgba(120,150,220,.12);overflow:hidden}
  #massbar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#ff5d6c,#ffcf4a,#7bed4a);transition:width .1s}
@@ -95,6 +95,19 @@
  #joyThumb{position:absolute;left:50%;top:50%;width:48px;height:48px;border-radius:50%;background:rgba(143,208,255,.5);box-shadow:0 0 16px rgba(53,180,255,.55);transform:translate(-50%,-50%)}
  #rotate{position:fixed;inset:0;z-index:40;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse 60% 50% at 50% 45%,rgba(10,14,30,.9),#03040a);text-align:center}
  #rotate.on{display:flex}
+ #overDust{margin-top:10px;font:600 13px ui-monospace,Menlo,monospace;letter-spacing:1.5px;color:#cfe3ff;line-height:1.7}
+ #overDust b{color:#ffd27a}
+ #upScreen{z-index:30;background:#04050c}
+ #upList{display:flex;flex-direction:column;gap:10px;margin-top:14px;width:min(460px,90vw)}
+ .uprow{display:flex;align-items:center;gap:12px;padding:10px 14px;border:1px solid rgba(143,208,255,.22);border-radius:10px;background:rgba(10,16,34,.6);text-align:left}
+ .uprow .nm{font:800 13px ui-monospace,Menlo,monospace;letter-spacing:1.5px;color:#eaf1ff}
+ .uprow .ds{font:12px ui-monospace,Menlo,monospace;color:#93a0c4;margin-top:3px}
+ .uprow .pips{font-size:11px;letter-spacing:3px;color:#ffd27a;margin-top:4px}
+ .uprow .grow{flex:1}
+ .uprow button{pointer-events:auto;cursor:pointer;min-width:84px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,210,122,.6);background:rgba(255,210,122,.12);color:#ffd27a;font:800 12px ui-monospace,Menlo,monospace;letter-spacing:1px}
+ .uprow button:disabled{opacity:.35;cursor:default}
+ #startUp.can #chipDust,#overUp.can{color:#ffd27a;text-shadow:0 0 12px rgba(255,210,122,.7)}
+ #shieldPip{font-size:10px;letter-spacing:3px;color:#ffd27a;text-shadow:0 0 8px rgba(255,200,110,.7);margin-left:6px}
  #rotate .ph{width:58px;height:96px;border:3px solid #8fd0ff;border-radius:12px;margin-bottom:24px;box-shadow:0 0 26px rgba(53,180,255,.4);transform-origin:center;animation:rot 2s ease-in-out infinite}
  @keyframes rot{0%,38%{transform:rotate(0)}62%,100%{transform:rotate(-90deg)}}
  #rotate .t{font-size:16px;letter-spacing:2.5px;color:#eaf1ff;font-weight:800}
@@ -290,7 +303,7 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
  @media (max-height:430px){#combo{top:46px;font-size:clamp(22px,3vw,32px)}#apex{top:112px}
  #banner,#codex{top:134px}} /* 낮은 화면: 상단 밴드를 조인다 — 질량바 14~44 · 콤보 46~100 · APEX 104~128 · 배너 134~ */
 </style></head><body>
-<div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
+<div id="hud"><div class="lab"><span>MASS · M☉</span><span id="shieldPip"></span></div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
 <div id="right"><div class="lab">SCORE</div><div class="v" id="sval" style="color:#8fd0ff;font-size:20px">0</div><div class="lab" style="margin-top:7px">TIME</div><div class="v" id="tval">0.0s</div><div class="lab" style="margin-top:7px">PEAK</div><div class="v" id="pval">–</div><div id="diskRow" style="display:none"><div class="lab" style="margin-top:7px">DISK</div><div class="v" id="dval">–</div></div><div id="coreRow" style="display:none"><div class="lab" style="margin-top:7px">CORE</div><div class="v" id="cval">–</div></div></div>
 <div id="apex"></div>
@@ -305,7 +318,7 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
 <div id="zone"></div>
 <div id="surge"><div class="track"><div class="fill" id="surgeFill"></div></div><div class="acts"><button class="act" id="actDash">⚡ DASH</button><button class="act" id="actPulse">◉ PULL</button><button class="act" id="actWave">◎ WAVE</button><button class="act" id="actFlare" style="display:none">☄ JET</button><button class="act" id="actHold" style="display:none">◍ HOLD</button></div><div class="lab" id="surgeLab">⚡ SURGE</div></div>
 <div id="feedwrap"><div id="feedlbl">DEVOURING</div><div id="feedbar"><i id="feedfill"></i></div></div>
-<div class="credit" id="credit">v1.0.0</div>
+<div class="credit" id="credit">v1.1.0</div>
 <div id="joy" class="off"><div id="joyThumb"></div></div>
 <div id="rotate"><div class="ph"></div><div class="t">ROTATE YOUR DEVICE</div><div class="s">landscape mode for the best view</div></div>
 
@@ -318,6 +331,7 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
   <button class="play" id="startBtn"><i>▶</i><span>BEGIN</span></button>
   <div id="subs">
    <button class="lnk" id="startCodex"><span>CODEX</span> <span id="chipCodex">–</span></button>
+   <button class="lnk" id="startUp"><span>UPGRADES</span> <span id="chipDust">–</span></button>
    <button class="lnk" id="startBoard">LEADERBOARD</button>
    <button class="lnk" id="startAwards"><span>AWARDS</span> <span id="chipAwards">–</span></button>
   <button class="lnk" id="startLang">🌐 ENGLISH</button>
@@ -334,10 +348,23 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
  <div class="big" id="overTitle" style="color:#ff5d6c;text-shadow:0 0 34px rgba(255,93,108,.6)">COLLAPSED</div>
  <div class="msg" id="overMsg"></div>
  <div class="stat" id="overStat"></div>
+ <div id="overDust"></div>
  <div class="rankline" id="rankline"></div>
  <button class="btn" id="retryBtn" style="background:#ffcf4a;box-shadow:0 0 26px rgba(255,207,74,.5)">▶ AGAIN</button>
  <button class="linkbtn" id="overBoard">🏆 LEADERBOARD</button>
  <button class="linkbtn" id="overCodex">◆ CODEX</button>
+ <button class="linkbtn" id="overUp">✧ UPGRADES</button>
+</div>
+
+<div class="center off" id="upScreen">
+ <div class="big" style="font-size:clamp(24px,5vw,40px)">UP<span class="a">GRADES</span></div>
+ <div class="tagline" id="upBal">–</div>
+ <div class="msg" id="upStreak" style="margin-top:6px;max-width:38ch"></div>
+ <div id="upList"></div>
+ <div style="display:flex;gap:12px;margin-top:10px">
+  <button class="btn" id="upPlay" style="margin-top:0">▶ PLAY</button>
+  <button class="btn" id="upClose" style="margin-top:0;background:transparent;color:#8fd0ff;box-shadow:none;border:1px solid rgba(143,208,255,.4)">CLOSE</button>
+ </div>
 </div>
 
 <div class="center off" id="board">
@@ -671,7 +698,7 @@ function openChoice(tierName){
 function takeBoon(b){
  if(!choiceOpen||!b)return
  S.boons.push(b);closeChoice()
- banner('◆ '+b.n,T(b.sum),3);if(AU.tierUp)AU.tierUp()
+ banner('◆ '+trk(b.n),T(b.sum),3)  // 이름만 먼저 번역 — '◆ '를 붙인 통째 문자열은 사전에 없어 영어로 남았다;if(AU.tierUp)AU.tierUp()
 }
 function closeChoice(){
  choiceOpen=false;window.__choicePick=null
@@ -1227,7 +1254,7 @@ function stepFeed(f,slot,dt){
  if(pr>=1){
   o.eaten=true;o.eatT=0.28;o.eatBy=null;o.eatFast=true // 로슈 한계에서 시작해 더 멀다 — 확실히 '한 입에' 삼켜지도록 빠르게
   S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now()   // 연쇄 판정도 comboWin() — MAD(+60%)가 실제 연쇄에는 적용된 적이 없었다
-  S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(isMerge?0.35:0.12))
+  S.comboMax=Math.max(S.comboMax,S.combo);S.energy=Math.min(1,S.energy+(S.chargeMul||1)*((isMerge?0.35:0.12)))
   noteBoon()
   const rel2=f.total/Math.max(1e-6,S.mass-f.given+f.total) // 삼킨 것이 나에 비해 얼마나 컸나
   AU.eat(S.combo);eatBurst(o.g.position.x,o.g.position.z,isMerge?0xff9a5a:0x9fe870,12+Math.round(rel2*26))
@@ -1288,7 +1315,7 @@ function updateFeats(dt){
   if(d>(22+hr*7)*3.2){releaseFeat(f);continue}
   if(d<f.r+hr){
    if(f.type==='nebula'){ // 머무는 동안 질량 회복 — 증발과 싸우는 안전지대
-    S.mass+=Math.max(0.35,S.mass*0.035)*dt;S.energy=Math.min(1,S.energy+0.06*dt);S.nebCount=(S.nebCount||0)+1
+    S.mass+=Math.max(0.35,S.mass*0.035)*dt;S.energy=Math.min(1,S.energy+(S.chargeMul||1)*(0.06*dt));S.nebCount=(S.nebCount||0)+1
     if(f.cd<=0){f.cd=2.4;popup(hole.position,trk('NEBULA'),'#b07bff');codexToast('nebula')}
    } else if(f.type==='wormhole'&&f.cd<=0){ // 순간이동 — 포위·추격 탈출구
     f.cd=99;S.wormCount=(S.wormCount||0)+1;const a=rnd(0,6.283),dist=(22+hr*7)*2.4
@@ -1381,7 +1408,7 @@ const PORTAL={
  // 비로그인/프리뷰에서 SDK 쓰기가 무효인 사례가 있어 로컬 미러가 진행을 지킨다(nova-surge 실측).
  wireSave(){
   const d=this.sdk&&this.sdk.data; if(!d||!d.getItem)return
-  const KEYS=['acc_codex','acc_skin','acc_best','acc_rank','acc_name','acc_ach','acc_onboard','acc_scorever']
+  const KEYS=['acc_codex','acc_skin','acc_best','acc_rank','acc_name','acc_ach','acc_onboard','acc_scorever','acc_dust','acc_up','acc_streak','acc_runs']
   try{for(const k of KEYS){if(d.getItem(k)==null){const v=localStorage.getItem(k);if(v!=null)d.setItem(k,v)}}}catch(e){}
   const raw=Storage.prototype
   try{
@@ -1691,7 +1718,9 @@ const KO={
  '✦ SUPERNOVA REMNANT':'✦ 초신성 잔해','heavy elements — absorbed':'무거운 원소 — 흡수',
  '☀ IGNITION':'☀ 점화','fusion begins — you are a STAR':'핵융합이 시작됐다 — 당신은 항성이다',
  '◈ MERGER':'◈ 병합','black holes grow by merging — hunt them to keep growing':'블랙홀은 병합으로 자란다 — 계속 크려면 사냥하라',
- '☠ TIDAL ZONE':'☠ 조석 영역','being stripped — break away before you run out':'뜯기고 있다 — 바닥나기 전에 벗어나라',
+ '☠ TIDAL ZONE':'☠ 조석 영역','✦ PARTIAL DISRUPTION':'✦ 부분 조석 파괴','⟲ MERGER RECOIL':'⟲ 병합 반동',
+ 'your outer layers tore away — your core survived':'겉껍질이 뜯겨 나갔지만 핵은 살아남았다','your outer layers tore away — your core survived — no saves left':'겉껍질이 뜯겨 나갔지만 핵은 살아남았다 — 이제 기회는 없다',
+ 'a gravitational-wave kick flung you clear':'중력파 반동이 너를 걷어차 살려 냈다','a gravitational-wave kick flung you clear — no saves left':'중력파 반동이 너를 걷어차 살려 냈다 — 이제 기회는 없다','being stripped — break away before you run out':'뜯기고 있다 — 바닥나기 전에 벗어나라',
  '◈ GRAZE':'◈ 스침','skim a bigger hole — closer pass, more energy':'더 큰 블랙홀을 스친다 — 가까울수록 에너지가 크다',
  '★ TIDAL ESCAPE':'★ 조석 탈출',
  '⚡ RECOIL KICK':'⚡ 반동 킥','anisotropic gravitational waves kick you':'비대칭 중력파가 당신을 걷어찬다',
@@ -1730,6 +1759,10 @@ const KO2={
  '◉ PULL':'◉ 당기기','⚡ DASH':'⚡ 대시','◎ WAVE':'◎ 중력파','☄ JET':'☄ 제트','◍ HOLD':'◍ 붙잡기',
  '⚡ CHARGING':'⚡ 충전 중','⚡ SURGE':'⚡ 서지','TAP AN ABILITY':'능력을 탭하라',
  'DEVOURING':'흡수 중','FAMINE':'기근',
+ 'UPGRADES':'업그레이드','UP':'업','GRADES':'그레이드','✧ UPGRADES':'✧ 업그레이드','STARDUST':'별먼지','run':'이번 판','discoveries':'발견','daily streak':'연속 출석',
+ 'come back tomorrow — the streak bonus grows':'내일 다시 오면 연속 보너스가 커진다','first run each day earns a streak bonus':'하루 첫 판마다 연속 보너스를 받는다','MAX':'최대',
+ 'DENSE CLOUD':'짙은 성운','begin each run heavier':'더 무겁게 시작한다','COOLER HORIZON':'차가운 지평선','feed-or-fade drain 8% slower':'질량 감소가 8% 느려진다',
+ 'HOT DISK':'뜨거운 원반','abilities charge 12% faster':'능력이 12% 빨리 충전된다','SECOND CHANCE':'두 번째 기회','+1 save per run':'판마다 생존 기회 +1',
  'ROTATE YOUR DEVICE':'기기를 돌려 주세요','landscape mode for the best view':'가로 모드에서 가장 잘 보입니다',
  'BOARD':'보드','DEX':'덱스','ALL TIME · TOP 100':'역대 · 상위 100',
  'Discover cosmic bodies & phenomena as you play':'플레이하며 천체와 현상을 발견하세요',
@@ -1897,6 +1930,11 @@ let lastMix={}
 // 나선 낙하의 물리와도 맞는다 — 중심에는 점근적으로 가까워질 뿐 도달하지 않는다.
 //   30초 0.35 · 60초 0.58 · 114초 0.80 · 217초 0.96
 const HEAT_TAU=70
+// 초반 유예 — 판 시작 8초는 라이벌이 쫓지 않고, 30초에 걸쳐 원래 속도로 오른다. 처음 세 판은 50초까지 늘린다(조작을 익힐 시간).
+// 위험(빨간 후광)은 그대로 보인다 — 피하는 법을 배우는 시간이지 위험을 지우는 게 아니다.
+function huntRamp(){const fresh=(+(readRecord('acc_runs')||0))<3,t0=fresh?14:8,t1=fresh?50:30
+ if(S.formIdx===2)return S.bhAt==null?1:Math.min(1,Math.max(0.35,(S.t-S.bhAt)/12))   // 블랙홀이 된 직후 12초 — 보상 순간에 바로 사냥당하지 않게(봇: 변신 후 10~25초에 대부분 사망)
+ return Math.min(1,Math.max(0.15,(S.t-t0)/(t1-t0)))}
 function runHeat(){return S.alive?1-Math.exp(-(S.t||0)/HEAT_TAU):0}
 
 /* ===== spawn director ===== */
@@ -1932,7 +1970,7 @@ function update(dt){
  const nf=Math.max(S.formIdx,formOf(S.mass)) // 단조 증가 — 되돌아가지 않음(깜빡임·초신성 재폭발 방지)
  if(nf!==S.formIdx){
   const prev=S.formIdx
-  S.formIdx=nf;applyForm(nf)
+  S.formIdx=nf;applyForm(nf);if(nf===2)S.bhAt=S.t   // 블랙홀이 된 순간 — 추격 적응 시간(huntRamp)의 기준
   // 새 동사는 '생애 첫 판'이 아니라 '쓸 수 있게 된 순간'에 가르쳐야 한다.
   // HINTS에 넣었더니 onboarded 플래그 때문에 재방문 플레이어는 영영 못 봤다(오너: 뭐가 달라진지 모르겠다).
   if(nf===2&&prev<2)setTimeout(()=>{if(S.alive)banner(T(HOLD_TIP.m),T(COARSE?HOLD_TIP.st:HOLD_TIP.s),4)},1500)   // 죽은 뒤 결과 화면에 잔류하던 문제
@@ -1987,7 +2025,7 @@ function update(dt){
   // 적을 '밀어내는' 게 아니라 '추격을 끊는' 것이라, 제트가 위기 탈출 수단이 된다(오너 의도).
   if(o.type==='rival'&&o.jetStun>0){o.vx*=Math.max(0,1-dt*1.6);o.vz*=Math.max(0,1-dt*1.6)}
   else if(o.type==='rival'&&d>0.6){const hunts=o.mass>=S.mass||S.formIdx<2,dir=hunts?-1:1,rs=1+rad(S.mass)*0.6
-   let spd=(hunts?4.6:5.6)*rs;if(o.nemesis)spd*=hunts?1.35:0.75 // 네메시스: 추격은 집요(1.35×)·도망은 느려(0.75×) 따라잡기 쉽게
+   let spd=(hunts?4.6*huntRamp():5.6)*rs;if(o.nemesis)spd*=hunts?1.35:0.75 // 네메시스: 추격은 집요(1.35×)·도망은 느려(0.75×) 따라잡기 쉽게
    o.vx+=((dx/d)*spd*dir-o.vx)*Math.min(1,dt*1.6);o.vz+=((dz/d)*spd*dir-o.vz)*Math.min(1,dt*1.6)}
   const omouth=rad(o.mass)*1.55
   // 후광 가독성
@@ -2097,7 +2135,7 @@ function update(dt){
    const bn=boonNow()
    const eff=(isMerge?mergeEffOf(S.mass):accEff())*(FORMS[S.formIdx].acc||1)*(bn?bn.acc:1)*boonMul('acc') // 형태 × 콤보 단계 × 진화 선택
    const gain=o.mass*(isMerge?0.45:0.62)*eff
-   S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(isMerge?0.35:0.09))
+   S.mass+=gain;o.eaten=true;o.eatT=0.35;S.energy=Math.min(1,S.energy+(S.chargeMul||1)*((isMerge?0.35:0.09)))
    if(accEff()<0.5)codexToast('eddington')
    if(isMerge&&!S.mergedOnce){S.mergedOnce=true;banner('◈ MERGER','black holes grow by merging — hunt them to keep growing')}
    // 점수는 '실제로 흡수한 질량'에 비례 — 절대 질량 기준이면 후반에 폭주해 순위 등록이 거부된다
@@ -2123,20 +2161,20 @@ function update(dt){
    continue}
   if(threat){ // 더 큰 블랙홀: 먹히면 사망, 아슬하게 스치면 근접 회피 보너스
    const coreR=rad(o.mass)*0.72 // 사건지평선 — 넘으면 되돌릴 수 없다
-   if(d<coreR&&S.invT<=0){codexToast('devoured');return gameOver('eaten',o.mass)}
+   if(d<coreR&&S.invT<=0){if(trySave(o))continue;codexToast('devoured');return gameOver('eaten',o.mass)}
    if(d<omouth&&S.invT<=0){ // 조석 영역 — 스파게티화는 '과정'이다. 뜯기지만 탈출할 수 있다.
     const depth=Math.min(1,Math.max(0,1-(d-coreR)/Math.max(0.001,omouth-coreR)))
     S.mass-=S.mass*(0.22+0.85*depth)*dt
     S.vx+=(dx/d)*(16+hr*2.5)*dt;S.vz+=(dz/d)*(16+hr*2.5)*dt // 안쪽으로 끌려든다
     S.tidalT=0.3;S.tidalDepth=depth;S.combo=0
     if(!S.tidalSeen){S.tidalSeen=true;banner('☠ TIDAL ZONE','being stripped — break away before you run out');AU.warn();codexToast('tidal')}
-    if(S.mass<=S.evapFloor){codexToast('devoured');return gameOver('eaten',o.mass)}
+    if(S.mass<=S.evapFloor){if(trySave(o))continue;codexToast('devoured');return gameOver('eaten',o.mass)}
    }
    else if(d<omouth*1.7&&o.nmCd<=0){o.nmCd=2.2;const bonus=Math.round(o.mass*6);S.score+=bonus
     S.grazeChain=(performance.now()-(S.grazeAt||0)<3200)?(S.grazeChain||0)+1:1;S.grazeAt=performance.now()
     S.grazeMax=Math.max(S.grazeMax||0,S.grazeChain)
     const gm=Math.min(S.grazeChain,6) // 연쇄가 길수록 보상↑ — 위험한 플레이가 곧 강해지는 플레이
-    S.energy=Math.min(1,S.energy+0.16+gm*0.04);S.nmCount=(S.nmCount||0)+1;S.score+=bonus*(gm-1)
+    S.energy=Math.min(1,S.energy+(S.chargeMul||1)*(0.16+gm*0.04));S.nmCount=(S.nmCount||0)+1;S.score+=bonus*(gm-1)
     AU.nearMiss();popup(o.g.position,trk('GRAZE')+' ×'+gm+'  +'+(bonus*gm)+' ⚡','#35e6ff');S.shake=Math.min(S.shake+0.25,1);codexToast('tidal')
     if(!S.grazeSeen){S.grazeSeen=true;banner('◈ GRAZE','skim a bigger hole — closer pass, more energy')}}
   }
@@ -2743,7 +2781,7 @@ function captureBody(o){
  // 서로를 무효로 만든다(오너 리포트: 천천히 먹으면 콤보가 끊긴다).
  S.combo=(performance.now()-S.comboAt<comboWin())?S.combo+1:1;S.comboAt=performance.now()
  S.comboMax=Math.max(S.comboMax,S.combo);noteBoon()
- S.energy=Math.min(1,S.energy+0.10)
+ S.energy=Math.min(1,S.energy+(S.chargeMul||1)*(0.10))
  popup(o.g.position,trk('CAPTURED'),'#8fd0ff');codexToast('disk')
  AU.swallow();S.capCount=(S.capCount||0)+1
  return true
@@ -2905,7 +2943,7 @@ function begin(){AU.unlock();showOnboard()
  evShock.visible=false
  clearDisk()
  Object.assign(S,{bandSeen:-1,evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,disk:[],capCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
- S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
+ S.formIdx=0;S.invT=0;S.novaCount=0;S.shield=1+(typeof metaLv==='function'?metaLv('shield'):0);S.saves=0;S.bhAt=null;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
  setZoneInstant(0) // 존 팔레트 초기화
  applySkin(curSkin()) // 선택한(언락된) 블랙홀 스킨 적용
  nemesis=null;nemPending=0;S.apexKills=0 // 네메시스 초기화
@@ -2918,12 +2956,29 @@ function begin(){AU.unlock();showOnboard()
  S.hintIdx=0;S.verbHinted=false;S.grazeChain=0;S.grazeMax=0;S.boonAt=0;S.boons=[];closeChoice();S.feeds=[];hideAllFeedVis();S.tidalT=0;S.tidalSeen=false;S.jetFire=0;S.flareCount=0;S.flareSeen=false
  S.modDensity=1;S.modRivals=1;S.modEvap=1;S.modHunted=false;S.modFrenzy=false;S.mergedOnce=false // 모디파이어 리셋
  if(S.daily){S.daily.fx(S);banner(trk('◆ DAILY')+' · '+trk(S.daily.name),trk(S.daily.desc))} // 데일리 모디파이어 적용 + 안내
+ applyMetaRun();S.codexAtStart=CODEX.count();$('upScreen').classList.add('off') // 영구 업그레이드(시작 질량·증발·충전) · 이번 판 발견 수 기준점
  hole.position.set(0,0,0);cam.position.set(0,44,34);target.set(0,0,0);mouseActive=false;joyEnd()
  for(let i=0;i<10;i++)spawnObj('rock',rnd(0.3,0.8))
  topUp();AU.startAmbient();syncGameplay() // 포털 gameplayStart — 중복 없이(이미 진행 중이면 보내지 않는다)
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
- $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
+ $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off');refreshShield()}
+/* ===== 한 번의 생존(2026-10-09) — 초보 봇 26판 중 24판이 2~29초(중앙 11초)에 '먹혀' 끝났다.
+ * 1분도 못 버티면 포털 전환율(1분 이상 플레이)에서 빠진다. 판마다 한 번은 살려 보내고 그 이유를 실제 물리로 말한다:
+ * 별·원시별 = 부분 조석 파괴(겉껍질만 뜯기고 핵은 산다 — 실제 관측되는 TDE 유형),
+ * 블랙홀 = 병합 반동(중력파가 한쪽으로 쏠려 합쳐지던 블랙홀을 걷어찬다 — 실제 예측·관측). */
+function trySave(o){if(!(S.shield>0))return false
+ S.shield--;S.saves=(S.saves||0)+1
+ const dx=hole.position.x-o.g.position.x,dz=hole.position.z-o.g.position.z,d=Math.hypot(dx,dz)||1,kick=30+rad(S.mass)*3.2
+ S.vx=dx/d*kick;S.vz=dz/d*kick
+ S.mass=Math.max(S.evapFloor*1.8,S.mass*0.7);S.tidalT=0;S.combo=0
+ S.invT=Math.max(S.invT,2.2);o.jetStun=Math.max(o.jetStun||0,2.5);o.nmCd=2.5
+ S.shake=Math.min(S.shake+0.9,1.2);AU.boom();eatBurst(hole.position.x,hole.position.z,0xffd27a,16)
+ const bh=S.formIdx===2,left=S.shield>0?'':(bh?' — no saves left':' — no saves left')
+ banner(bh?'⟲ MERGER RECOIL':'✦ PARTIAL DISRUPTION',(bh?'a gravitational-wave kick flung you clear':'your outer layers tore away — your core survived')+left,3)
+ refreshShield();return true}
+function refreshShield(){const el=$('shieldPip');if(el)el.textContent=S.alive&&S.shield>0?'✦'.repeat(Math.min(3,S.shield)):''}
 function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();syncGameplay()
+ try{writeRecord('acc_runs',(+(readRecord('acc_runs')||0))+1)}catch(e){}refreshShield() // 누적 판 수 — 초반 유예(처음 세 판)·메타 진행이 읽는다
  MSGQ.length=0;msgUntil=0;msgPri=0;hideMsgs() // 런이 끝났다 — 남은 배너·코덱스가 결과 패널과 겹친다(실측: 마일스톤이 EVAPORATED 제목 위로)
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
@@ -2936,6 +2991,7 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
   ?L('You radiated away faster than you could feed.')+'<br><span style="color:#7c88ad">'+L('Hawking radiation: smaller black holes evaporate faster — a real prediction.')+'</span>'
   :L('A larger black hole tidally disrupted you.')+'<br><span style="color:#7c88ad">'+L('Spaghettification: tidal forces near a bigger mass stretch you apart.')+'</span>'
  $('overStat').innerHTML=L('SCORE')+' <b style="color:#8fd0ff">'+S.score.toLocaleString()+'</b> · '+L('PEAK')+' <b>'+fmtBig(S.peak)+' M☉</b> · '+L(TIERS[Math.max(0,tierOf(S.peak))].n)+' · '+L('MAX COMBO')+' <b>×'+S.comboMax+'</b> · '+S.t.toFixed(1)+'s'
+ try{renderOverDust(settleDust())}catch(e){} // 별먼지 정산 — 결과 화면에 '이번 판이 남긴 것'
  $('over').classList.remove('off');refreshCodexBtn() // 이번 런 발견 반영
  // 글로벌 리더보드 제출(의미있는 점수만) → 순위 리빌
  lastRun=null;$('rankline').textContent=''
@@ -2952,6 +3008,61 @@ function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient(
 $('startBtn').onclick=()=>{S.daily=null;begin()};$('retryBtn').onclick=()=>PORTAL.midgameAd(begin) // AGAIN — 자연스러운 휴지점에서만 광고(쿨다운 120s·워치독 15s)
 $('startBoard').onclick=()=>openBoard(false);$('overBoard').onclick=()=>openBoard(!!S.daily) // 게임오버 보드는 방금 모드 기준
 $('boardPlay').onclick=()=>{S.daily=null;begin()};$('boardClose').onclick=closeBoard
+/* ===== 메타 진행 — 별먼지 · 영구 업그레이드 · 데일리 연속 (2026-10-09) =====
+ * CrazyGames Basic Launch: D1 재방문 2.3%(하위 20%) · 평균 4분 43초. 판과 판 사이에 '남는 것'이 수집(코덱스·업적·스킨)뿐이라
+ * 다음 판이 달라지지 않았다. 판마다 별먼지를 남기고, 그걸로 다음 판을 실제로 바꾸는 업그레이드를 산다.
+ * 하루 첫 판엔 연속 보너스 — '내일 또 올 이유'. 값은 readRecord/writeRecord(저장소 차단 보호 · CG 클라우드 저장 대상). */
+const META_UP=[
+ {id:'head',  n:'DENSE CLOUD',    d:'begin each run heavier',            max:3,cost:[25,60,120]},
+ {id:'evap',  n:'COOLER HORIZON', d:'feed-or-fade drain 8% slower',       max:5,cost:[20,40,70,110,160]},
+ {id:'charge',n:'HOT DISK',       d:'abilities charge 12% faster',        max:4,cost:[30,60,100,150]},
+ {id:'shield',n:'SECOND CHANCE',  d:'+1 save per run',                    max:2,cost:[60,160]}
+]
+function metaGet(){try{return JSON.parse(readRecord('acc_up')||'{}')||{}}catch(e){return {}}}
+function metaLv(id){return Math.max(0,+metaGet()[id]||0)}
+function dustBal(){return Math.max(0,+(readRecord('acc_dust')||0)||0)}
+function addDust(n){writeRecord('acc_dust',dustBal()+Math.max(0,Math.round(n)))}
+function upCost(u){const lv=metaLv(u.id);return lv>=u.max?null:u.cost[lv]}
+function canBuyAny(){const b=dustBal();return META_UP.some(u=>{const c=upCost(u);return c!=null&&c<=b})}
+function buyUp(id){const u=META_UP.find(x=>x.id===id),c=u&&upCost(u);if(c==null||c>dustBal())return false
+ const m=metaGet();m[id]=metaLv(id)+1;writeRecord('acc_up',JSON.stringify(m));writeRecord('acc_dust',dustBal()-c);AU.tierUp&&AU.tierUp();return true}
+// 판 시작 때 업그레이드를 반영한다(데일리 모디파이어 뒤 — 둘은 곱해진다)
+function applyMetaRun(){const h=metaLv('head');if(h){S.mass=1.2*[1,1.25,1.55,1.9][h];S.peak=S.mass}
+ S.modEvap=(S.modEvap||1)*(1-0.08*metaLv('evap'));S.chargeMul=1+0.12*metaLv('charge')}
+// 연속 — 현지 날짜 기준(UTC 날짜를 쓰면 한국은 오전 9시에 하루가 바뀐다)
+function localDay(off){const d=new Date();d.setDate(d.getDate()+(off||0));return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()}
+function streakInfo(){const r=String(readRecord('acc_streak')||'');const [day,n]=r.split('|');return {day:day||'',n:+n||0}}
+// 판이 끝날 때 한 번: 별먼지 정산(+하루 첫 판 연속 보너스). 반환값은 결과 화면이 그린다.
+function settleDust(){const peak=Math.max(1,S.peak||1)
+ const base=4+Math.floor(Math.log10(peak)*5)+Math.floor((S.t||0)/30)
+ const disc=Math.max(0,CODEX.count()-(S.codexAtStart||0))*2
+ const st=streakInfo(),today=localDay(0);let daily=0,streak=st.n
+ if(st.day!==today){streak=st.day===localDay(-1)?st.n+1:1;daily=10+4*Math.min(streak-1,5);writeRecord('acc_streak',today+'|'+streak)}
+ const total=base+disc+daily;addDust(total);return {base,disc,daily,streak,total}}
+function renderOverDust(r){const el=$('overDust');if(!el)return
+ let h=L('STARDUST')+' <b>+'+r.total+' ✧</b>'
+ const parts=[L('run')+' '+r.base];if(r.disc)parts.push(L('discoveries')+' '+r.disc);if(r.daily)parts.push(L('daily streak')+' ×'+r.streak+' '+r.daily)
+ h+=' <span style="color:#7c88ad">('+parts.join(' · ')+')</span>'
+ if(r.daily)h+='<br><span style="color:#8fd0ff">'+L('come back tomorrow — the streak bonus grows')+'</span>'
+ el.innerHTML=h;refreshDustUI()}
+function refreshDustUI(){const b=dustBal(),can=canBuyAny()
+ const c=$('chipDust');if(c)c.textContent='✧ '+b
+ $('startUp')&&$('startUp').classList.toggle('can',can);$('overUp')&&$('overUp').classList.toggle('can',can)
+ if($('overUp'))$('overUp').textContent=(can?'● ':'')+'✧ '+L('UPGRADES')}
+function renderUp(){const b=dustBal(),st=streakInfo()
+ $('upBal').textContent='✧ '+b+' '+L('STARDUST')
+ $('upStreak').textContent=st.n?L('daily streak')+' '+st.n+' · '+L('first run each day earns a streak bonus'):L('first run each day earns a streak bonus')
+ const list=$('upList');list.innerHTML=''
+ for(const u of META_UP){const lv=metaLv(u.id),c=upCost(u)
+  const row=document.createElement('div');row.className='uprow'
+  row.innerHTML='<div class="grow"><div class="nm">'+L(u.n)+'</div><div class="ds">'+L(u.d)+'</div><div class="pips">'+'◆'.repeat(lv)+'◇'.repeat(u.max-lv)+'</div></div>'
+  const bt=document.createElement('button');bt.textContent=c==null?L('MAX'):c+' ✧';bt.disabled=c==null||c>b
+  bt.onclick=()=>{if(buyUp(u.id)){renderUp();refreshDustUI()}};row.appendChild(bt);list.appendChild(row)}}
+function openUp(){$('upScreen').classList.remove('off');renderUp()}
+function closeUp(){$('upScreen').classList.add('off');refreshDustUI()}
+$('startUp').onclick=openUp;$('overUp').onclick=openUp;$('upClose').onclick=closeUp
+$('upPlay').onclick=()=>{closeUp();begin()}
+refreshDustUI()
 $('startCodex').onclick=()=>{codexTab='codex';openCodex()};$('overCodex').onclick=()=>{codexTab='codex';openCodex()}
 $('startAwards').onclick=()=>{codexTab='awards';openCodex()}
 $('codexPlay').onclick=()=>{S.daily=null;begin()};$('codexClose').onclick=closeCodex
@@ -3048,6 +3159,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  nemesis:()=>nemesis?{mass:Math.round(nemesis.mass*100)/100,dist:Math.round(nemesis.g.position.distanceTo(hole.position)*10)/10,vuln:nemesis.mass<S.mass}:null,
  spawnNemesis:()=>spawnNemesis(),apexKills:()=>S.apexKills||0,
  eatNemesis:()=>{if(nemesis){nemesisConsumed(nemesis);return true}return false},
+ setShield:v=>{S.shield=v;refreshShield()},shield:()=>S.shield,saves:()=>S.saves||0,huntRamp:()=>huntRamp(),   // 생존 기회 검증(2026-10-09)
  mem:()=>{let n=0;scene.traverse(()=>n++);return {geo:renderer.info.memory.geometries,tex:renderer.info.memory.textures,prog:renderer.info.programs?renderer.info.programs.length:0,nodes:n,objs:objects.length,heap:performance.memory?Math.round(performance.memory.usedJSHeapSize/1e6):null}},  // 소크 — 장시간 누수 추적(2026-10-09)
  todayMod:()=>({id:todayMod().id,name:todayMod().name}),dayKey:()=>dayKey(),
  daily:()=>S.daily?{id:S.daily.id,name:S.daily.name}:null,
