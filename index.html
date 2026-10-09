@@ -31,7 +31,7 @@
  #massbar{position:fixed;top:14px;left:50%;transform:translateX(-50%);width:min(470px,70vw);z-index:5;pointer-events:none}
  @media (max-width:820px){#massbar{top:auto;bottom:14px;width:min(320px,54vw)}} /* 좁은 가로: 좌우 HUD와 겹쳐 아래로 */
  /* 세로 모드는 하단이 코덱스·능력으로 붐빈다 → 상단 HUD 아래 자기 줄을 준다 */
- @media (max-aspect-ratio:9/10){#massbar{top:252px;bottom:auto;width:min(340px,86vw)}#apex{top:296px}#combo{top:330px}#banner,#codex{top:max(44%,372px)}#hud .sub{max-width:46vw}} /* 세로 플레이(2026-10-09): 좌우 HUD 열 아래로 한 칸씩 — 좁은 폭에선 상단 중앙이 좌우 열과 겹친다 */
+
  #massbar .t{font-size:10.5px;letter-spacing:2.4px;color:#8e9ac0;text-align:center;margin-bottom:6px}
 #massbar .track{height:12px;border-radius:5px;background:rgba(120,150,220,.12);overflow:hidden}
  #massbar .fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#ff5d6c,#ffcf4a,#7bed4a);transition:width .1s}
@@ -302,6 +302,8 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
 @keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
  @media (max-height:430px){#combo{top:46px;font-size:clamp(22px,3vw,32px)}#apex{top:112px}
  #banner,#codex{top:134px}} /* 낮은 화면: 상단 밴드를 조인다 — 질량바 14~44 · 콤보 46~100 · APEX 104~128 · 배너 134~ */
+/* 세로 플레이(2026-10-09): 좌우 HUD 열 아래로 한 칸씩 — 좁은 폭에선 상단 중앙이 좌우 열과 겹친다. 기본 규칙보다 뒤에 둬야 이긴다 */
+@media (max-aspect-ratio:9/10){#massbar{top:252px;bottom:auto;width:min(340px,86vw)}#apex{top:296px}#combo{top:330px}#banner{top:60%}#codex,body.touch #codex{top:52%;left:14px;max-width:62vw;transform:translate(0,14px);text-align:left}#codex.on,body.touch #codex.on{transform:translate(0,0)}#feedwrap{bottom:64px}#hud .sub{max-width:46vw}}
 </style></head><body>
 <div id="hud"><div class="lab"><span>MASS · M☉</span><span id="shieldPip"></span></div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -1694,6 +1696,8 @@ function pumpMsg(now){
  if(now<msgUntil)return
  const m=MSGQ.shift()
  if(!m){if(msgUntil){hideMsgs();msgUntil=0;msgPri=0}return}
+ // 종류가 바뀌면(배너↔코덱스) 앞의 것이 다 사라진 뒤에 띄운다 — 0.3초 페이드가 겹쳐 둘이 동시에 보였다(세로 플레이 실측, 2026-10-09)
+ if((m.kind==='c'&&$('banner').style.opacity==='1')||(m.kind==='b'&&$('codex').classList.contains('on'))){hideMsgs();MSGQ.unshift(m);msgUntil=now+320;return}
  hideMsgs();msgPri=m.pri
  if(m.kind==='b'){
   $('bmain').textContent=m.main;$('bsub').textContent=m.sub||'';$('banner').style.opacity=1

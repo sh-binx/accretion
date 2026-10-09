@@ -56,11 +56,11 @@ try {
   const cover = await page.evaluate(() => { const A=window.__acc; return { small:A.coverDamp(20,10), big:A.coverDamp(40,10), huge:A.coverDamp(200,10) } })
   ok('cover damping: normal bodies untouched, screen-filling ones fade to ≥0.5', cover.small===1 && cover.big<1 && cover.huge===0.5, JSON.stringify(cover))
 
-  // ── 버전 표기: 플레이 중엔 숨김, 메뉴엔 v1.0.0 ──
+  // ── 버전 표기: 플레이 중엔 숨김, 메뉴엔 v1.1.0 ──
   const ver = await page.evaluate(() => { const c=document.getElementById('credit'); return { txt:c.textContent, playing:getComputedStyle(c).display, proto:/prototype \d/i.test(document.body.innerText) } })
   ok('in-play HUD shows no version / prototype label', ver.playing==='none' && !ver.proto, JSON.stringify(ver))
   await page.evaluate(() => window.__acc.gameOver()); await sleep(300)
-  ok('menu/results keep a small release label v1.0.0', await page.evaluate(() => { const c=document.getElementById('credit'); return c.textContent==='v1.0.0' && getComputedStyle(c).display!=='none' }))
+  ok('menu/results keep a small release label v1.1.0', await page.evaluate(() => { const c=document.getElementById('credit'); return c.textContent==='v1.1.0' && getComputedStyle(c).display!=='none' }))
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) { console.error('FATAL', e); results.push([false,'fatal',String(e)]) }
 finally { await browser.close() }
