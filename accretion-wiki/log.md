@@ -1,3 +1,10 @@
+## 2026-10-11 — v1.1.1 한글 글꼴 Pretendard(오너 선택)
+
+- 오너: 업그레이드 화면 한글이 낡아 보인다 → 후보 5종 보드(Pretendard·IBM Plex Sans KR·Orbit·Black Han Sans+Pretendard·Do Hyeon+Gothic A1)에서 **Pretendard** 선택.
+- 원인: 게임 글꼴(Martian Mono·Anton)에 한글이 없어 기기 기본 글꼴(맥 애플 고딕·윈도 굴림체)로 대체.
+- 적용: 한글 789자 서브셋(가변 139KB + 제목 Black 54KB)을 unicode-range 한글로 한정해 모든 font 스택 앞에 끼움 — 영문은 그대로. OFL 1.1 고지. 「UP그레이드」 번역 누락 수리, 한국어 어절 줄바꿈.
+- 검증: 35 스위트 통과 · zip 11/11(486KB). CrazyGames 업로드는 재심사 결과 뒤(심사 중 빌드 교체 영향 미확인) — 메일 감시 후속에 포함.
+
 ## 2026-10-09 — v1.1 CrazyGames 재제출(AWAITING REVIEW)
 
 - 반려 게임엔 새 빌드 업로드가 없고 같은 이름은 「already in use」 → 오너 승인으로 기존 반려 기록(65da597c) 삭제 후 같은 이름으로 새 제출.
