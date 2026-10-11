@@ -42,7 +42,8 @@ try {
   // ── 후반 중앙 정리 ──
   const boon = await page.evaluate(() => { const A=window.__acc; A.begin(); A.hideOnboard(); A.setMass(3000); A.step(0.2); A.setCombo(40); A.noteBoon(); return { q:A.msgList().map(m=>m.main), flash:document.getElementById('combo').classList.contains('up') } })
   ok('combo stage-up flashes the counter instead of a duplicate banner', boon.flash && !boon.q.some(m=>/HYPERACCRETION|RELATIVISTIC BEAM|BLAZAR|SUPER-EDDINGTON|DISK FLARE|MAGNETOSPHERE/.test(m)), JSON.stringify(boon))
-  const apex = await page.evaluate(async () => { const A=window.__acc; A.spawnNemesis(); A.setCombo(30); A.step(0.3); await new Promise(r=>setTimeout(r,400))
+  const apex = await page.evaluate(async () => { const A=window.__acc; A.spawnNemesis(); A.setCombo(30); A.step(0.3)
+    for(let i=0;i<20&&!document.getElementById('apex').classList.contains('on');i++)await new Promise(r=>setTimeout(r,100))   // 고정 0.4초 대기는 SwiftShader 부하에서 가끔 모자랐다(글꼴 적용 전 빌드도 1/4 실패) — 켜질 때까지 최대 2초
     const box=id=>{const r=document.getElementById(id).getBoundingClientRect();return {l:r.left,r:r.right,t:r.top,b:r.bottom}}
     return { apex:box('apex'), combo:box('combo'), banner:box('banner'), on:document.getElementById('apex').classList.contains('on'), w:innerWidth } })
   const overlap=(a,b)=>a.l<b.r&&b.l<a.r&&a.t<b.b&&b.t<a.b
@@ -56,11 +57,11 @@ try {
   const cover = await page.evaluate(() => { const A=window.__acc; return { small:A.coverDamp(20,10), big:A.coverDamp(40,10), huge:A.coverDamp(200,10) } })
   ok('cover damping: normal bodies untouched, screen-filling ones fade to ≥0.5', cover.small===1 && cover.big<1 && cover.huge===0.5, JSON.stringify(cover))
 
-  // ── 버전 표기: 플레이 중엔 숨김, 메뉴엔 v1.1.0 ──
+  // ── 버전 표기: 플레이 중엔 숨김, 메뉴엔 v1.1.1 ──
   const ver = await page.evaluate(() => { const c=document.getElementById('credit'); return { txt:c.textContent, playing:getComputedStyle(c).display, proto:/prototype \d/i.test(document.body.innerText) } })
   ok('in-play HUD shows no version / prototype label', ver.playing==='none' && !ver.proto, JSON.stringify(ver))
   await page.evaluate(() => window.__acc.gameOver()); await sleep(300)
-  ok('menu/results keep a small release label v1.1.0', await page.evaluate(() => { const c=document.getElementById('credit'); return c.textContent==='v1.1.0' && getComputedStyle(c).display!=='none' }))
+  ok('menu/results keep a small release label v1.1.1', await page.evaluate(() => { const c=document.getElementById('credit'); return c.textContent==='v1.1.1' && getComputedStyle(c).display!=='none' }))
   ok('no JS/console errors', errors.length===0, errors.slice(0,3).join(' | '))
 } catch (e) { console.error('FATAL', e); results.push([false,'fatal',String(e)]) }
 finally { await browser.close() }
