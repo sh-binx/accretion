@@ -9,6 +9,7 @@
 - [design/concept.md](design/concept.md) — **핵심 기획**: 코어 루프(움직이며 먹고 성장) + 실제 물리를 규칙으로(호킹 복사 축소타이머·질량 위계·조석 파괴·중력 렌징) + 3D 차별점 + 프로토 스코프
 
 ## Decisions
+- [[decisions/2026-09-26-release-build]] — 출시 빌드 v1.0.0 — 리더보드 OFF·포털 요건·동사 이름 통일 (09-26)
 - [decisions/2026-09-26-release-build.md](decisions/2026-09-26-release-build.md) — 출시 빌드 v1.0.0: 글로벌 리더보드 OFF(부활 조건) · 포털 요건(일시정지·광고 뮤트·locale·사이트락·DEV 게이트) · SHIFT 동사 = PULL
 
 ## Research
