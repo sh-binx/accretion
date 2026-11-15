@@ -559,8 +559,20 @@ const feedStream=(()=>{
 // 그래서 슬롯마다 코어 관 + 잔해 입자 세트를 따로 둔다. 슬롯 수는 티어가 정한다.
 const FEED_SLOTS_MAX=4   // 기본 최대 3 + 블레이자 보너스 1
 const STREAMN=220
+const FEED_TSEG=30,FEED_RSEG=8
 function mkFeedVis(){
- const spiral=new THREE.Mesh(new THREE.BufferGeometry(),new THREE.MeshBasicMaterial({vertexColors:true,
+ // 정점·인덱스는 슬롯 생성 시 한 번만 할당한다.
+ const tube=new THREE.BufferGeometry(),count=(FEED_TSEG+1)*(FEED_RSEG+1),indices=[]
+ tube.setAttribute('position',new THREE.BufferAttribute(new Float32Array(count*3),3).setUsage(THREE.DynamicDrawUsage))
+ tube.setAttribute('color',new THREE.BufferAttribute(new Float32Array(count*3),3).setUsage(THREE.DynamicDrawUsage))
+ for(let j=0;j<FEED_TSEG;j++)for(let k=0;k<FEED_RSEG;k++){
+  const a=j*(FEED_RSEG+1)+k,b=a+FEED_RSEG+1
+  indices.push(a,b,a+1,b,b+1,a+1)
+ }
+ tube.setIndex(indices)
+ const curvePts=Array.from({length:23},()=>new THREE.Vector3())
+ const curve=new THREE.CatmullRomCurve3(curvePts)
+ const spiral=new THREE.Mesh(tube,new THREE.MeshBasicMaterial({vertexColors:true,
   transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
  spiral.visible=false;scene.add(spiral)
  const geo=new THREE.BufferGeometry()
@@ -570,7 +582,7 @@ function mkFeedVis(){
   size:1,sizeAttenuation:true,map:GT,
   vertexColors:true,transparent:true,opacity:0.9,depthWrite:false,blending:THREE.AdditiveBlending,fog:false}))
  pts.visible=false;scene.add(pts)
- return {spiral,pts,geo,curvePts:[],
+ return {spiral,pts,geo,curvePts,curve,sample:new THREE.Vector3(),tangent:new THREE.Vector3(),
   seed:new Float32Array(STREAMN).map(()=>Math.random()),
   off:new Float32Array(STREAMN).map(()=>Math.random())}
 }
@@ -1160,27 +1172,30 @@ function stepFeed(f,slot,dt){
    f.grow=Math.min(1,(f.grow||0)+dt/growDur)
    const gEase=1-Math.pow(1-f.grow,2)               // 처음엔 빠르게 뻗고 끝에서 부드럽게 닿는다
    const u0=1-gEase                                 // u=1이 본체 쪽 — 거기서부터 자란다
-   V.curvePts.length=0
    for(let k=0;k<=22;k++){const u=u0+(1-u0)*(k/22)  // 자란 구간만 그린다
     // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
     const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
-    V.curvePts.push(new THREE.Vector3(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing))}
-   const curve=new THREE.CatmullRomCurve3(V.curvePts)
-   if(V.spiral.geometry)V.spiral.geometry.dispose()
-   const TSEG=30,RSEG=8
-   const tube=new THREE.TubeGeometry(curve,TSEG,rem*(0.032+pr*0.022),RSEG,false)  // 코어는 가늘게 — 길만 그린다
-   // TubeGeometry는 끝이 평평하게 잘린다 — 그 단면이 '꺾인 직선'으로 보였다(오너 리포트).
-   // 양 끝을 검게 칠해(가산 혼합에서 검정=보이지 않음) 단면을 지운다.
-   // 관도 '거리'로 사그라들게 한다 — 매개변수로 자르면 글로우 언저리에서 선이 뚝 끊겨 보인다(오너 지적).
-   {const cnt=tube.attributes.position.count,col=new Float32Array(cnt*3)
-    const pos=tube.attributes.position, hr1=rad(S.mass)
-    for(let i=0;i<cnt;i++){const t=Math.floor(i/(RSEG+1))/TSEG   // 0=홀 쪽 · 1=본체 쪽
-     const dq=Math.hypot(pos.getX(i)-hole.position.x,pos.getZ(i)-hole.position.z)
+    V.curvePts[k].set(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing)}
+   const curve=V.curve,tube=V.spiral.geometry
+   curve.updateArcLengths() // 제어점 갱신 후 기존 TubeGeometry와 같은 호 길이 샘플링
+   const pos=tube.attributes.position,col=tube.attributes.color
+   const hr1=rad(S.mass),radius=rem*(0.032+pr*0.022)
+   // 곡선은 XZ 평면에 있다. 수직축과 평면 접선의 법선으로 연속 단면을 만든다.
+   for(let j=0;j<=FEED_TSEG;j++){
+    const t=j/FEED_TSEG,q=curve.getPointAt(t,V.sample),tan=curve.getTangentAt(t,V.tangent)
+    const tl=Math.hypot(tan.x,tan.z)||1,nx=-tan.z/tl,nz=tan.x/tl
+    for(let k=0;k<=FEED_RSEG;k++){
+     const a=k/FEED_RSEG*Math.PI*2,i=j*(FEED_RSEG+1)+k
+     const side=Math.sin(a)*radius,x=q.x+nx*side,z=q.z+nz*side
+     pos.setXYZ(i,x,q.y+Math.cos(a)*radius,z)
+     const dq=Math.hypot(x-hole.position.x,z-hole.position.z)
      const fz=Math.max(0,Math.min(1,(dq-hr1*2.6)/(hr1*1.6)))
-     const k=fz*fz*(3-2*fz)*Math.min(1,(1-t)/0.10)         // 안쪽은 빛에 스며들고, 본체 쪽 끝단만 살짝 정리
-     col[i*3]=0.72*k;col[i*3+1]=0.85*k;col[i*3+2]=1.0*k}
-    tube.setAttribute('color',new THREE.BufferAttribute(col,3))}
-   V.spiral.geometry=tube
+     const fade=fz*fz*(3-2*fz)*Math.min(1,(1-t)/0.10)
+     col.setXYZ(i,0.72*fade,0.85*fade,fade)
+    }
+   }
+   pos.needsUpdate=true;col.needsUpdate=true
+   tube.computeBoundingSphere()
    V.spiral.material.opacity=(0.16+pr*0.14)*gEase   // 조각이 주인공 — 관은 길만 희미하게 암시한다
    V.spiral.visible=true;feedStream.visible=false
    // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
@@ -1193,7 +1208,7 @@ function stepFeed(f,slot,dt){
      // (예전엔 제곱을 써서 방향도 반대였고 원반 쪽에 뭉쳐 다시 막대처럼 보였다).
      const ph=(S.t*0.46+V.off[i])%1
      const sPar=Math.pow(1-ph,0.65)
-     const q=curve.getPoint(sPar)
+     const q=curve.getPoint(sPar,V.sample)
      const spread=rem*0.55*Math.sin(sPar*Math.PI)+rem*0.04     // 넓게 흩어져야 '줄'이 아니라 '조각들'로 읽힌다
      const a=V.seed[i]*6.283, rr=Math.sqrt(V.seed[i])*spread
      pa[i*3]=q.x+Math.cos(a+S.t*3.4)*rr
@@ -3106,6 +3121,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  spinAxis:()=>({angle:+jets.rotation.y.toFixed(3),target:S.spinTarget==null?null:+S.spinTarget.toFixed(3)}),
  massMarks:()=>({idx:S.markIdx||0,total:MASS_MARKS.length}),
  gridCells:()=>{const half=(22+rad(S.mass)*7)*0.466;return +(half*2/26).toFixed(2)},
+ streamResources:()=>FEEDVIS.map(v=>({id:v.spiral.geometry.uuid,visible:v.spiral.visible,finite:[...v.spiral.geometry.attributes.position.array].every(Number.isFinite)})),
  setStreamStyle:v=>{STREAM_STYLE=v},streamOn:()=>FEEDVIS.some(v=>v.spiral.visible),streamDims:()=>({w:+feedStream.scale.x.toFixed(2),len:+feedStream.scale.y.toFixed(2),op:+feedStream.material.opacity.toFixed(2)}),
  hideOnboard:()=>hideOnboard(),
  msgList:()=>MSGQ.map(m=>({main:m.main,pri:m.pri})),noteBoon:()=>noteBoon(),verbs:()=>[...VERBS],resetVerbs:()=>{VERBS.clear();try{localStorage.removeItem('acc_verbs')}catch(e){}},
