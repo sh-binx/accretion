@@ -1,13 +1,13 @@
 // 언어 감사 — 포털(CrazyGames·Poki) 요건은 '영어로 플레이 가능할 것'이다.
 // 영어 모드에서 화면에 한글이 한 글자라도 남으면 제출에서 문제가 된다. 그걸 자동으로 막는다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
 const HAN = /[가-힣ㄱ-ㅎㅏ-ㅣ]/
 
-const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] })
+const browser = await webkit.launch()
 const errors = []
 
 // 화면에 실제로 들어가는 모든 텍스트를 긁는다 — 숨은 패널·동적 카드까지 열어서

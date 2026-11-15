@@ -1,18 +1,23 @@
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 // 오버레이 겹침 감사 — fixed 요소를 DOM에서 열거해 텍스트 리프 단위로 쌍별 검사(손으로 선택자를 적으면 반드시 빠뜨린다)
 const results=[]
-const b = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']})
-for (const vp of [{width:1280,height:720},{width:1440,height:810},{width:844,height:390},{width:667,height:375}]) {
-  const p = await b.newPage({viewport:vp})
+const b = await webkit.launch()
+for (const [width,height,hasTouch,mode] of [[1280,720,false,'b'],[960,600,false,'c'],[1440,810,false,'b'],[844,390,true,'c'],[667,375,true,'b'],[667,375,true,'c']]) {
+  const vp={width,height}
+  const p = await b.newPage({viewport:vp,hasTouch,isMobile:hasTouch})
   await p.addInitScript(()=>requestAnimationFrame=()=>0)
   await p.goto('http://localhost:3040/?dev=1',{waitUntil:'networkidle'})
-  await p.evaluate(()=>{const A=window.__acc;A.begin();hideOnboard();A.setMass(1000);A.step(.1);hud();render()})
+  await p.evaluate(mode=>{
+    const A=window.__acc;A.begin();hideOnboard();A.setMass(14000);A.step(.1)
+    MSGQ.length=0;msgUntil=0;pushMsg({kind:'c',type:'rival',pri:9,key:'overlap-codex'});hud();render();A.forceUI(mode);hud()
+    document.querySelector('#apex').textContent='Shock incoming 4s • avoid the ring'
+  },mode)
   await p.waitForTimeout(600) // CSS 전환 종료까지 기다려 숨겨진 HUD를 통과시키지 않는다.
   const res = await p.evaluate(()=>{clearInterval(window.__t)
     // 화면에 실제로 '글자를 그리는' 요소만 리프 단위로 수집
-    const FORCE=['#mute','#surge .lab','#surge .track','#ribbon']  // 감사에서 빠지기 쉬운 요소는 명시적으로 포함
+    const FORCE=['#mute','#pauseBtn','#surge .track','#ribbon']  // 감사에서 빠지기 쉬운 요소는 명시적으로 포함
     const leaves=[...document.querySelectorAll('body *')].filter(e=>{
       const st=getComputedStyle(e)
       if(st.visibility==='hidden'||st.display==='none'||parseFloat(st.opacity)<0.06)return false
@@ -40,6 +45,7 @@ for (const vp of [{width:1280,height:720},{width:1440,height:810},{width:844,hei
     const ov=[]
     for(let i=0;i<info.length;i++)for(let j=i+1;j<info.length;j++){
       // 채움 막대는 트랙 안에 겹치는 것이 정상이다. 다른 패널/문구 충돌은 계속 검사한다.
+      if(leaves[i].id==='feedbar'&&leaves[j].id==='feedfill')continue
       if((leaves[i].classList.contains('track')&&leaves[j].classList.contains('fill')&&leaves[j].parentElement===leaves[i])||
          (leaves[j].classList.contains('track')&&leaves[i].classList.contains('fill')&&leaves[i].parentElement===leaves[j]))continue
       const a=info[i].r,c=info[j].r
@@ -49,7 +55,7 @@ for (const vp of [{width:1280,height:720},{width:1440,height:810},{width:844,hei
     return {n:info.length,ov}})
   const okk=res.ov.length===0&&res.n>=20
   results.push(okk)
-  console.log(`${okk?'✓':'✗'} ${vp.width}x${vp.height} 겹침 ${res.ov.length} (텍스트요소 ${res.n})`)
+  console.log(`${okk?'✓':'✗'} ${vp.width}x${vp.height} ${hasTouch?'터치':'키보드'}/${mode} 겹침 ${res.ov.length} (텍스트요소 ${res.n})`)
   res.ov.slice(0,7).forEach(x=>console.log('   ',x))
   await p.close()
 }

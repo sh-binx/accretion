@@ -3,8 +3,8 @@
 import { createRequire } from 'module'
 import { execFileSync, spawn } from 'child_process'
 import fs from 'fs'; import os from 'os'; import path from 'path'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const ZIP = process.argv[2] || path.resolve(path.dirname(new URL(import.meta.url).pathname), '../dist/accretion-submission.zip')
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
@@ -27,7 +27,7 @@ try {
   srv = spawn('python3', ['-m','http.server',String(port),'--bind','127.0.0.1','--directory',dir], { stdio:'ignore' })
   for (let i=0;i<40 && await free(port);i++) await sleep(100)
 
-  browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
+  browser = await webkit.launch()
   const page = await browser.newPage({ viewport:{ width:1280, height:720 } })
   const errors=[], bad=[], ext=[]
   page.on('pageerror', e => errors.push('PAGEERR: '+e.message))
