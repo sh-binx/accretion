@@ -236,6 +236,12 @@ body:not(.playing) :is(#hud,#massbar,#right,#apex,#combo,#banner,#codex){visibil
 #combo.up .cl{animation:none}
 #banner .b{font-size:17px;letter-spacing:0;color:var(--paper);text-shadow:none;font-weight:750}
 #banner .s{font-size:12px;letter-spacing:0;color:var(--muted);line-height:1.5}
+#banner.charge-note{
+ top:auto;bottom:100px;left:var(--edge);width:min(220px,calc(50vw - 104px - var(--edge)));
+ transform:none;text-align:left
+}
+#banner.charge-note .b{font-size:13px}
+#banner.charge-note .s{font-size:11px}
 #apex{top:124px;left:var(--edge);font-size:12px;font-weight:600;letter-spacing:0;border-radius:0 10px 10px 0;padding:7px 10px;max-width:calc(100vw - var(--edge) * 2);white-space:normal}
 #apex.hunt{background:#351f28;border:0;border-left:3px solid #f39aa7;text-shadow:none;animation:none;color:#fbd0d7}
 #apex.vuln{background:#152e29;border:0;border-left:3px solid #90c9ac;text-shadow:none;color:#d3f2dc}
@@ -277,7 +283,7 @@ body:not(.playing) :is(#hud,#massbar,#right,#apex,#combo,#banner,#codex){visibil
 #surge.ready .lab{color:var(--ice)}
 body.touch #surge{right:var(--edge);bottom:12px;gap:0}
 body.touch #surge .acts{display:grid;grid-template-columns:repeat(2,minmax(74px,auto));gap:3px;align-items:stretch;border-radius:16px}
-body.touch #surge .act{justify-content:flex-start;min-height:44px;min-width:0;padding:0 10px;border-radius:10px}
+body.touch #surge .act{justify-content:flex-start;min-height:46px;min-width:0;padding:0 10px;border-radius:10px}
 body.touch #surge .act kbd{display:none}
 body.touch #surge .track{width:100%}
 body.touch #surge .lab{display:flex}
@@ -287,7 +293,7 @@ body.touch #surge .lab{display:flex}
 #joy{background:#25223380;border:2px solid #beb5c480}
 #joyThumb{background:#d6ccd9a0;box-shadow:none}
 #pauseBtn,#mute{
- display:grid;place-items:center;width:44px;height:44px;padding:0;cursor:pointer;
+ display:grid;place-items:center;width:46px;height:46px;padding:0;cursor:pointer;
  border:0;border-radius:50%;background:var(--panel);color:var(--paper);font-size:19px;opacity:1
 }
 #mute{bottom:13px;right:var(--edge)}
@@ -398,7 +404,7 @@ body.touch #choice .ck{display:none}
  #combo{top:62px;font-size:20px}
  #banner{top:139px}
  #codex,body.touch #codex{max-width:min(240px,calc(50vw - 94px - var(--edge)))}
- body.touch #codex{bottom:71px}
+ body.touch :is(#codex,#banner.charge-note){bottom:71px}
  #feedwrap{bottom:69px;width:180px}
  #start .col{bottom:20px}
  #start .wm{font-size:clamp(36px,9.4vw,71px)}
@@ -850,7 +856,7 @@ function takeBoon(b){
  banner('◆ '+trk(b.n),T(b.sum),3);if(AU.tierUp)AU.tierUp()
 }
 function closeChoice(){
- choiceOpen=false;window.__choicePick=null
+ choiceOpen=false;pendingPullShift=null;window.__choicePick=null
  const el=$('choice');if(el)el.classList.remove('on')
  document.body.classList.remove('intro')
 }
@@ -1668,6 +1674,7 @@ function tierOf(m){for(let i=0;i<TIERS.length;i++)if(m<TIERS[i].max)return i;ret
 const ray=new THREE.Raycaster(),ndc=new THREE.Vector2(),plane=new THREE.Plane(new THREE.Vector3(0,1,0),0)
 const target=new THREE.Vector3(0,0,0);let mouseActive=false
 const keys={}
+let pendingPullShift=null
 // e.code = 물리 키(레이아웃·IME 무관) — 한글 입력기에서도 WASD 작동(e.key면 ㅈㅁㄴㅇ로 들어와 실패)
 const typing=e=>/^(INPUT|TEXTAREA|SELECT)$/.test(e.target&&e.target.tagName)
 addEventListener('keydown',e=>{if(typing(e)||PAUSE.on||choiceOpen||(e.code==='Space'&&e.target instanceof HTMLButtonElement))return;keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
@@ -1868,6 +1875,7 @@ function pumpMsg(now){
  if(!m){if(msgUntil){hideMsgs();msgUntil=0;msgPri=0}return}
  hideMsgs();msgPri=m.pri
  if(m.kind==='b'){
+  $('banner').classList.toggle('charge-note',m.main===L('⚡ CHARGED'))
   $('bmain').textContent=m.main;$('bsub').textContent=m.sub||'';$('banner').style.opacity=1
   msgUntil=now+1700; banT=msgUntil
  }else{
@@ -2597,6 +2605,7 @@ function syncGameplay(){const want=S.alive&&!PAUSE.on
  else if(!want&&gpActive){gpActive=false;PORTAL.gameplayStop()}}
 function audioHold(on){const ac=AU.ac;if(!ac)return;try{if(on){if(ac.state==='running')ac.suspend()}else if(ac.state==='suspended')ac.resume()}catch(e){}}
 function clearSteering(){
+ pendingPullShift=null
  for(const k of Object.keys(keys))keys[k]=0
  holdCap=false;joyEnd()
 }
@@ -3243,7 +3252,10 @@ function renderSound(){ $('mute').setAttribute('aria-pressed',String(AU.muted)) 
 function toggleSound(){AU.toggleMute();renderSound()}
 renderSound()
 $('mute').onclick=()=>{AU.unlock();toggleSound()}
+addEventListener('blur',clearSteering)
+const isShift=code=>code==='ShiftLeft'||code==='ShiftRight'
 addEventListener('keydown',e=>{
+ if(e.code==='Tab')pendingPullShift=null
  if(typing(e))return
  if(e.code==='Escape'&&!e.repeat){showPause(!PAUSE.manual);return}
  if(e.code==='Tab'&&(PAUSE.manual||choiceOpen)){
@@ -3257,11 +3269,15 @@ addEventListener('keydown',e=>{
  if(e.code==='KeyC'&&S.alive)holdCap=true
  if(e.code==='KeyM'&&!e.repeat)toggleSound()
  if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement))doSurge()
- if(e.code==='ShiftLeft'||e.code==='ShiftRight')doPulse()
+ // Shift+Tab은 먼저 Shift를 누른 뒤 Tab을 누른다. 해제를 기다려야 둘을 구별할 수 있다.
+ if(isShift(e.code)&&!e.repeat&&S.alive)pendingPullShift=e.code
  if(e.code==='KeyE')doWave()
  if(e.code==='KeyF')doFlare()
 })
-addEventListener('keyup',e=>{if(e.code==='KeyC')holdCap=false})
+addEventListener('keyup',e=>{
+ if(e.code==='KeyC')holdCap=false
+ if(e.code===pendingPullShift){pendingPullShift=null;if(!typing(e))doPulse()}
+})
 addEventListener('resize',()=>{renderer.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();rt.setSize(innerWidth,innerHeight);checkOrient()})
 // 모바일 세로 → 가로 회전 안내(+일시정지). 데스크톱은 무시.
 let orientPaused=false
@@ -3411,6 +3427,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   FORCE_UI=true
   msgUntil=performance.now()+20000;msgPri=9;banT=msgUntil;codexT=msgUntil
   const showC=mode==='c'
+  $('banner').classList.remove('charge-note')
   $('bmain').textContent='★ FEEDING FRENZY';$('bsub').textContent='Reach a ×30 combo'
   $('banner').style.opacity=showC?0:1
   $('codex').classList.toggle('on',showC);$('feedwrap').classList.add('on')

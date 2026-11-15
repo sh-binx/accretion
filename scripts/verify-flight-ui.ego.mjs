@@ -57,7 +57,14 @@ try{
   await page.evaluate(()=>{__acc.setInv(100);__acc.clearField();__acc.setSpawn(false);__acc.setMass(1000);__acc.step(.1);__acc.setEnergy(1);hud()})
   await page.waitForFunction(()=>document.querySelector('#actDash').getAttribute('aria-disabled')==='false')
   await shot(size,'play')
-  if(width===1280)await page.keyboard.press('Space')
+  if(width===1280){
+   await page.keyboard.press('Shift+Tab')
+   assert.deepEqual(await page.evaluate(()=>[S.energy,S.pulseCount]),[1,0])
+   await page.keyboard.press('Shift')
+   assert.deepEqual(await page.evaluate(()=>[S.energy,S.pulseCount]),[0,1])
+   await page.evaluate(()=>{focusFlight();__acc.setEnergy(1);hud()})
+   await page.keyboard.press('Space')
+  }
   else await hit('#actDash',mobile,'대시 능력 실행')
   await page.waitForFunction(()=>__acc.state.surging&&__acc.state.energy===0&&document.querySelector('#actDash').getAttribute('aria-disabled')==='true')
   await hit('#pauseBtn',mobile,'플레이 일시정지')

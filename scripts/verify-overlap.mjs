@@ -4,7 +4,7 @@ const { webkit } = require('playwright')
 // 오버레이 겹침 감사 — fixed 요소를 DOM에서 열거해 텍스트 리프 단위로 쌍별 검사(손으로 선택자를 적으면 반드시 빠뜨린다)
 const results=[]
 const b = await webkit.launch()
-for (const [width,height,hasTouch,mode] of [[1280,720,false,'b'],[960,600,false,'c'],[1440,810,false,'b'],[844,390,true,'c'],[667,375,true,'b'],[667,375,true,'c']]) {
+for (const [width,height,hasTouch,mode] of [[1280,720,false,'b'],[960,600,false,'c'],[1440,810,false,'b'],[844,390,true,'c'],[667,375,true,'b'],[667,375,true,'c'],[667,375,true,'charge']]) {
   const vp={width,height}
   const p = await b.newPage({viewport:vp,hasTouch,isMobile:hasTouch})
   await p.addInitScript(()=>requestAnimationFrame=()=>0)
@@ -12,6 +12,7 @@ for (const [width,height,hasTouch,mode] of [[1280,720,false,'b'],[960,600,false,
   await p.evaluate(mode=>{
     const A=window.__acc;A.begin();hideOnboard();A.setMass(14000);A.step(.1)
     MSGQ.length=0;msgUntil=0;pushMsg({kind:'c',type:'rival',pri:9,key:'overlap-codex'});hud();render();A.forceUI(mode);hud()
+    if(mode==='charge'){MSGQ.length=0;msgUntil=0;banner('⚡ CHARGED','tap DASH · PULL · WAVE',9);hud()}
     document.querySelector('#apex').textContent='Shock incoming 4s • avoid the ring'
   },mode)
   await p.waitForTimeout(600) // CSS 전환 종료까지 기다려 숨겨진 HUD를 통과시키지 않는다.
