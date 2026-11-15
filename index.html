@@ -336,6 +336,8 @@ body:is(.intro,.modal-paused) :is(#hud,#massbar,#right,#apex,#combo,#banner,#cod
 #start .keys{font-size:11px;color:var(--muted);margin-top:7px}
 body.touch #start .keys{display:none}
 #ribbon{left:clamp(24px,7vw,112px);top:22px;min-height:38px;font-size:12px;font-weight:700;color:var(--muted)}
+body.touch :is(.linkbtn,#subs .lnk,#ribbon,#startDailyBoard){min-width:46px;min-height:46px}
+body.touch #chips button.stat{align-items:center}
 #chips{margin-top:12px}
 #chips .stat{margin:0}
 #chips .k,#chips .v{font-size:12px;text-transform:none;letter-spacing:0;color:var(--muted)}
@@ -2667,6 +2669,10 @@ function clearSteering(){
 }
 function syncPause(){if(PAUSE.on)clearSteering();audioHold(PAUSE.on);syncGameplay()}
 function focusFlight(){renderer.domElement.tabIndex=-1;renderer.domElement.focus({preventScroll:true})}
+function returnPointerFocus(e){
+ // 키보드·보조기기의 활성화(detail 0)는 버튼에 초점을 남긴다.
+ if(e.detail>0&&S.alive&&!PAUSE.on&&!choiceOpen)focusFlight()
+}
 function showPause(on){
  if(on&&(!S.alive||PAUSE.on||onbT||choiceOpen))return
  PAUSE.manual=on
@@ -3290,9 +3296,10 @@ refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
 const CHARGE_CONTROLS=['actDash','actPulse','actWave','actFlare'].map($)
-;[doSurge,doPulse,doWave,doFlare].forEach((fire,i)=>{CHARGE_CONTROLS[i].onclick=fire})
+;[doSurge,doPulse,doWave,doFlare].forEach((fire,i)=>{CHARGE_CONTROLS[i].onclick=e=>{fire();returnPointerFocus(e)}})
 {const hb=$('actHold')   // 누르는 동안만 포획. 화면 밖에서 손을 떼도 상태를 해제한다.
- const dn=e=>{if(!S.alive||PAUSE.on||choiceOpen)return;e.preventDefault();hb.setPointerCapture(e.pointerId);holdCap=true}
+ const dn=e=>{if(!S.alive||PAUSE.on||choiceOpen)return;e.preventDefault()
+  focusFlight();hb.setPointerCapture(e.pointerId);holdCap=true} // blur에서 이전 붙잡기가 해제된 다음 새 입력을 시작한다.
  const up=()=>{holdCap=false}
  hb.addEventListener('pointerdown',dn);hb.addEventListener('pointerup',up)
  hb.addEventListener('lostpointercapture',up);hb.addEventListener('pointercancel',up)
@@ -3307,7 +3314,7 @@ $('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko',tru
 function renderSound(){ $('mute').setAttribute('aria-pressed',String(AU.muted)) }
 function toggleSound(){AU.toggleMute();renderSound()}
 renderSound()
-$('mute').onclick=()=>{AU.unlock();toggleSound()}
+$('mute').onclick=e=>{AU.unlock();toggleSound();returnPointerFocus(e)}
 addEventListener('blur',clearSteering)
 const isShift=code=>code==='ShiftLeft'||code==='ShiftRight'
 addEventListener('keydown',e=>{
