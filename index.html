@@ -104,8 +104,8 @@
  .brow.me .bn{color:#ffcf4a}
  /* ===== tier zone wash + surge ability ===== */
  #zone{position:fixed;inset:0;z-index:2;pointer-events:none;transition:box-shadow 1.6s ease;box-shadow:inset 0 0 320px 60px rgba(40,80,200,.20)}
- #flash{position:fixed;inset:0;z-index:8;pointer-events:none;background:#fff;opacity:0;transition:opacity .5s ease-out}
- #flash.on{opacity:.22;transition:opacity .04s}
+ #flash{position:fixed;inset:0;z-index:8;pointer-events:none;background:#d9e4f8;opacity:0;transition:opacity .24s ease-out}
+ #flash.on{opacity:.11;transition:opacity .04s}
  #surge{position:fixed;left:50%;transform:translateX(-50%);z-index:7;display:none;flex-direction:column;align-items:center}
  #surge.on{display:flex}
  #surge .track{overflow:hidden}
@@ -643,11 +643,22 @@ const RT=ringTex()
 // 정적 공유 텍스처라 라이벌마다 셰이더 노이즈를 계산하지 않는다.
 const RIVAL_DISK_TEX=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d'),im=x.createImageData(256,256);
  for(let y=0;y<256;y++)for(let k=0;k<256;k++){const px=(k-127.5)/127.5,py=(y-127.5)/127.5,r=Math.hypot(px,py),a=Math.atan2(py,px),i=(y*256+k)*4;
-  const wave=Math.sin(r*180+Math.sin(a*7+r*12)*1.4),swirl=Math.sin(px*37+py*29+Math.sin(r*43));
+  const wave=Math.sin(r*107+Math.sin(a*3+r*7)*1.8),swirl=Math.sin(r*55+Math.sin(a*5-r*13));
   const v=Math.round(255*(.38+.18*wave+.12*swirl));im.data[i]=im.data[i+1]=im.data[i+2]=v;
   im.data[i+3]=Math.round(255*Math.max(0,Math.min(1,(r-.525)*18,(1-r)*12)));
  }x.putImageData(im,0,0);return new THREE.CanvasTexture(c)})()
 
+// 가스 거인의 먼지 고리 — 띠마다 투과율이 다르고 가장자리와 두 큰 틈은 비어 있다.
+const GIANT_RING_TEX=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const ctx=c.getContext('2d'),im=ctx.createImageData(256,256)
+ for(let y=0;y<256;y++)for(let x=0;x<256;x++){
+  const r=Math.hypot(x-127.5,y-127.5)/127.5,t=(r-.657)/.343
+  if(t<0||t>1)continue
+  const gap=(1-.86*Math.exp(-Math.pow((t-.38)/.047,2)))*(1-.72*Math.exp(-Math.pow((t-.72)/.042,2)))
+  const edge=Math.min(1,t*18,(1-t)*13),layer=.62+.22*Math.cos(t*28)+.13*Math.sin(t*67),i=(y*256+x)*4
+  im.data[i]=249;im.data[i+1]=224;im.data[i+2]=194;im.data[i+3]=Math.round(255*gap*edge*layer)
+ }
+ ctx.putImageData(im,0,0);return new THREE.CanvasTexture(c)
+})()
 function halo(color){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:RT,color,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));return s}
 
 /* ===== black hole (player) ===== */
@@ -660,27 +671,27 @@ const DISK_GLSL={
  frag:[
  'precision highp float;varying vec2 vP;',
  'uniform float uT,uIn,uOut,uPhi,uOp;uniform vec3 uCA,uCR;',
- 'float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
- 'float n2(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);',
- ' return mix(mix(h(i),h(i+vec2(1.0,0.0)),f.x),mix(h(i+vec2(0.0,1.0)),h(i+vec2(1.0,1.0)),f.x),f.y);}',
- 'float fbm(vec2 p){float s=0.0,a=0.5;for(int i=0;i<4;i++){s+=a*n2(p);p*=2.03;a*=0.5;}return s;}',
  'void main(){',
  ' float r=length(vP);float t=(r-uIn)/(uOut-uIn);',
  ' if(t<0.0||t>1.0)discard;',
  ' float a=atan(vP.y,vP.x);',
- ' float shear=uT*2.4*pow(max(r,0.35),-1.5);',          // 케플러 전단: 안쪽이 훨씬 빠르게 감긴다
- ' float f=fbm(vec2(cos(a+shear)*3.0,sin(a+shear)*3.0)+vec2(r*9.0,r*2.0));',
- ' float bands=0.82+0.18*sin(r*85.0+f*9.0+shear);f=mix(0.30,1.05,f)*bands;', // 난류 플라스마
+ // 원주 방향으로 길게 이어지는 전단 필라멘트. 높은 반경 주파수는 화면 픽셀 폭에 맞춰 약화.
+ ' float a0=a+uT*.76+(1.0-t)*.64*sin(uT*.83);',
+ ' float ribbon=t*54.0+2.0*sin(2.0*a0+t*5.0)+0.88*sin(5.0*a0-t*8.0);',
+ ' float detail=1.0-smoothstep(0.7,2.9,fwidth(ribbon));',
+ ' float filament=0.56+detail*(0.20*sin(ribbon)+0.10*sin(ribbon*1.91+sin(5.0*a0)));',
+ ' float flow=0.73+0.22*cos(2.0*a0-t*6.0)+0.05*cos(5.0*a0+t*9.0);',
+ ' float f=filament*flow;',
  ' vec3 col=mix(uCR,uCA,pow(1.0-t,1.25));', // 온도 구배(안쪽 백청 → 바깥 적)
  ' float dop=0.30+0.85*pow(1.0+0.58*cos(a-uPhi),3.0)/4.1;',       // 상대론적 도플러 빔 — 접근측이 압도적으로 밝다
  ' float rad=pow(1.0-t,1.6)*1.55+0.10;',
- ' float al=smoothstep(0.0,0.10,t)*smoothstep(1.0,0.70,t)*uOp*f*dop*rad;',
+ ' float al=smoothstep(0.0,0.10,t)*(1.0-smoothstep(0.70,1.0,t))*uOp*f*dop*rad;',
  ' col=mix(col,uCA,clamp((dop-0.95)*0.25,0.0,0.25));', ' col+=vec3(0.12,0.10,0.07)*pow(1.0-t,5.0)*dop;', ' gl_FragColor=vec4(col,clamp(al*1.4,0.0,0.85));',
  '}'].join('\n')}
 function diskMat(op,arc){return new THREE.ShaderMaterial({
  uniforms:{uT:{value:0},uIn:{value:arc?0.98:0.86},uOut:{value:arc?2.16:1.98},uPhi:{value:1.15},uOp:{value:op},uCA:{value:new THREE.Color(0xcaf0ff)},uCR:{value:new THREE.Color(0xff4a12)}},
  vertexShader:DISK_GLSL.vert,fragmentShader:DISK_GLSL.frag,
- transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false})}
+ transparent:true,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false,extensions:{derivatives:true}})}
 const disk=new THREE.Mesh(new THREE.RingGeometry(0.84,2.0,220,1),diskMat(1.0,false))
 disk.rotation.x=Math.PI*0.5-0.26;hole.add(disk);hole.userData.disk=disk
 // 렌즈 아크 — 중력이 원반 뒤쪽 빛을 휘어 '그림자 위아래'로 넘겨 보낸다(실제 블랙홀 사진의 결정적 특징).
@@ -704,8 +715,6 @@ pRock.add(glow(0xff7a3a,3.4,0.5)) // 수축 복사 — 소행성 먹이와 확�
 hole.add(pRock)
 // 2) 주계열성 — 스스로 빛나는 구체 + 코로나
 const pStar=new THREE.Group()
-pStar.add(new THREE.Mesh(new THREE.SphereGeometry(1,26,18),new THREE.MeshBasicMaterial({color:0xffd98a,fog:false})))
-pStar.add(glow(0xffb254,4.6,0.85));pStar.add(glow(0xfff2c8,2.6,0.5))
 hole.add(pStar)
 // 상대론적 제트 — QUASAR 티어에서 점화(실제 퀘이사는 극에서 물질을 광속 가까이 뿜는다).
 // 탑다운 게임이라 축을 '플레이 평면(±X)'에 눕힌다 — 보이는 빔과 판정 영역을 정확히 일치시키기 위함.
@@ -1062,72 +1071,54 @@ function updateCore(dt){
 // ── 절차적 천체 텍스처 ──
 // 단일 HTML로 배포하므로 이미지 파일을 못 쓴다. 대신 캔버스로 그려 쓰면 용량 0에 변형이 무한하다.
 // 무늬는 실제 특징에서 가져온다 — 가스 거인의 위도별 제트기류 띠와 대적점, 얼음 행성의 극관, 용암 행성의 갈라진 지각.
-const TEXP={gas:[],terra:[],ice:[],lava:[],rock:[]}
-const hsl=(h,sa,l)=>'hsl('+Math.round((((h%1)+1)%1)*360)+','+Math.round(sa*100)+'%,'+Math.round(l*100)+'%)'
+const TEXP={gas:[],terra:[],ice:[],lava:[],rock:[],star:[]}
+const SURFACE_PALETTE={terra:[[20,68,129],[143,161,85]],gas:[[105,55,40],[251,207,149]],
+ ice:[[32,79,125],[216,242,249]],lava:[[32,22,29],[255,144,48]],
+ star:[[77,77,77],[255,255,255]],rock:[[46,38,43],[160,136,109]]}
+const GAS_COOL=[[69,90,121],[189,220,225]]
 function makeTex(kind){
  const c=document.createElement('canvas');c.width=256;c.height=128;const x=c.getContext('2d')
- const h=Math.random()
- if(kind==='gas'){
-  x.fillStyle=hsl(h,0.6,0.55);x.fillRect(0,0,256,128)
-  let y=0
-  while(y<128){const hg=rnd(3,14)                       // 위도별 제트기류 — 폭이 제각각인 띠
-   x.fillStyle=hsl(h+rnd(-0.06,0.06),rnd(0.4,0.8),rnd(0.34,0.78));x.globalAlpha=0.9
-   x.fillRect(0,y,256,hg);y+=hg}
-  x.globalAlpha=1
-  if(Math.random()<0.75){                               // 대적점 — 수백 년을 도는 거대 폭풍
-   const sx=rnd(30,226),sy=rnd(40,92)
-   x.save();x.translate(sx,sy);x.scale(1.7,1)
-   const g=x.createRadialGradient(0,0,0,0,0,17)
-   g.addColorStop(0,hsl(h+0.45,0.75,0.6));g.addColorStop(0.6,hsl(h+0.45,0.6,0.5));g.addColorStop(1,'rgba(0,0,0,0)')
-   x.fillStyle=g;x.beginPath();x.arc(0,0,17,0,6.283);x.fill();x.restore()}
- } else if(kind==='terra'){
-  // 구면 연속 지형: 타원 스티커 대신 여러 크기의 지형장을 합쳐 해안과 구름을 만든다.
-  const seed=Math.floor(h*65535),hash=(a,b,c)=>{let n=Math.imul(a,374761393)^Math.imul(b,668265263)^Math.imul(c,2147483647)^seed;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295}
-  const mix=(a,b,t)=>a+(b-a)*t,smooth=t=>t*t*(3-2*t)
-  function noise(a,b,c){const i=Math.floor(a),j=Math.floor(b),k=Math.floor(c),u=smooth(a-i),v=smooth(b-j),w=smooth(c-k)
-   return mix(mix(mix(hash(i,j,k),hash(i+1,j,k),u),mix(hash(i,j+1,k),hash(i+1,j+1,k),u),v),mix(mix(hash(i,j,k+1),hash(i+1,j,k+1),u),mix(hash(i,j+1,k+1),hash(i+1,j+1,k+1),u),v),w)}
-  const im=x.createImageData(256,128)
-  for(let py=0;py<128;py++)for(let px=0;px<256;px++){
-   const lon=px/256*Math.PI*2,lat=py/127*Math.PI,a=Math.cos(lon)*Math.sin(lat),b=Math.cos(lat),c3=Math.sin(lon)*Math.sin(lat)
-   const elev=noise(a*3,b*3,c3*3)*.62+noise(a*8,b*8,c3*8)*.26+noise(a*21,b*21,c3*21)*.12
-   const land=smooth(Math.max(0,Math.min(1,(elev-.48)/.045))),ice=smooth(Math.max(0,Math.min(1,(Math.abs(b)-.88)/.10)))
-   const arid=noise(a*6+17,b*6,c3*6),cloud=smooth(Math.max(0,Math.min(1,(noise(a*9+31,b*5,c3*9)-.59)/.16)))*.50
-   const ocean=[15,42,69],soil=[mix(54,135,arid),mix(83,112,arid),mix(51,73,arid)],idx=(py*256+px)*4
-   for(let k=0;k<3;k++)im.data[idx+k]=mix(mix(mix(ocean[k],soil[k],land),220,ice),235,cloud)
-   im.data[idx+3]=255
-  }
-  x.putImageData(im,0,0)
- } else if(kind==='ice'){
-  x.fillStyle=hsl(0.52+rnd(-0.05,0.06),0.45,0.72);x.fillRect(0,0,256,128)
-  for(let i=0;i<9;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.08,0.22).toFixed(2)+')'
-   x.fillRect(0,rnd(0,120),256,rnd(3,10))}
-  x.strokeStyle='rgba(120,180,220,0.5)';x.lineWidth=1                // 유로파식 균열
-  for(let i=0;i<12;i++){x.beginPath();x.moveTo(rnd(0,256),rnd(0,128))
-   x.lineTo(rnd(0,256),rnd(0,128));x.stroke()}
-  x.fillStyle='rgba(255,255,255,0.9)';x.fillRect(0,0,256,rnd(8,16));x.fillRect(0,128-rnd(8,16),256,18)
- } else if(kind==='lava'){
-  x.fillStyle='#2a1a1c';x.fillRect(0,0,256,128)                      // 굳은 지각
-  for(let i=0;i<40;i++){                                             // 갈라진 틈에서 새는 마그마
-   const cx=rnd(0,256),cy=rnd(0,128)
-   const g=x.createRadialGradient(cx,cy,0,cx,cy,rnd(4,16))
-   g.addColorStop(0,'rgba(255,190,90,0.95)');g.addColorStop(0.4,'rgba(255,90,30,0.55)');g.addColorStop(1,'rgba(0,0,0,0)')
-   x.fillStyle=g;x.beginPath();x.arc(cx,cy,16,0,6.283);x.fill()}
- } else {                                                            // rock — 광물 얼룩과 크레이터
-  x.fillStyle=hsl(0.07+rnd(-0.03,0.05),rnd(0.1,0.3),rnd(0.34,0.5));x.fillRect(0,0,256,128)
-  for(let i=0;i<26;i++){x.fillStyle='rgba(0,0,0,'+rnd(0.05,0.2).toFixed(2)+')'
-   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(3,15),0,6.283);x.fill()}
-  for(let i=0;i<14;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.04,0.14).toFixed(2)+')'
-   x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(2,8),0,6.283);x.fill()}
- }
- // 구면 좌표의 미세 지형 변화 — 경도 경계에서 노이즈가 끊기지 않는다.
- const pixels=x.getImageData(0,0,256,128),data=pixels.data
+ const seed=Math.floor(Math.random()*65535),im=x.createImageData(256,128)
+ const hash=(a,b,c)=>{let n=Math.imul(a,374761393)^Math.imul(b,668265263)^Math.imul(c,2147483647)^seed;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295}
+ const mix=(a,b,t)=>a+(b-a)*t
+ const ease=t=>{t=Math.max(0,Math.min(t,1));return t*t*(3-2*t)}
+ const noise=(x,y,z)=>{
+  const a=Math.floor(x),b=Math.floor(y),c=Math.floor(z),u=ease(x-a),v=ease(y-b),w=ease(z-c)
+  return mix(mix(mix(hash(a,b,c),hash(a+1,b,c),u),mix(hash(a,b+1,c),hash(a+1,b+1,c),u),v),
+   mix(mix(hash(a,b,c+1),hash(a+1,b,c+1),u),mix(hash(a,b+1,c+1),hash(a+1,b+1,c+1),u),v),w)}
+ const [low,high]=kind==='gas'&&seed%2?GAS_COOL:SURFACE_PALETTE[kind]
  for(let py=0;py<128;py++)for(let px=0;px<256;px++){
-  const a=px/256*Math.PI*2,b=py/127*Math.PI,xx=Math.cos(a)*Math.sin(b),yy=Math.cos(b),zz=Math.sin(a)*Math.sin(b)
-  const detail=Math.sin(xx*37+Math.sin(zz*19))*Math.sin(yy*31+zz*23)*.07+Math.sin(xx*87+yy*71+zz*93)*.025
-  const gain=1+detail,idx=(py*256+px)*4
-  for(let k=0;k<3;k++)data[idx+k]=Math.max(0,Math.min(255,data[idx+k]*gain))
+  const lat=py/127*Math.PI,lon=px/256*2*Math.PI,a=Math.cos(lon)*Math.sin(lat),b=Math.cos(lat),d=Math.sin(lon)*Math.sin(lat)
+  const broad=noise(a*3,b*3,d*3),mid=noise(a*9+17,b*9,d*9),fine=noise(a*26,b*26,d*26)
+  const field=broad*.64+mid*.27+fine*.09
+  let t,light=1,frost=0
+  if(kind==='gas'){
+   // 위도 방향의 강한 띠에 경도 방향으로 늘어난 소용돌이를 더한다.
+   const flow=lat*15+(noise(a*4,b*12,d*4)-.5)*2.3
+   t=ease(.5+.42*Math.sin(flow)+.17*Math.sin(flow*1.83)+.16*(fine-.5))
+  }else if(kind==='terra'){
+   t=ease((field-.46)/.12)
+   light=.74+.46*mid
+   const ice=ease((Math.abs(b)-.90+(mid-.5)*.15)/.10),cloud=ease((noise(a*7+31,b*8,d*7)-.58)/.20)*.40
+   frost=Math.max(ice,cloud)
+  }else if(kind==='ice'){
+   const seam=1-ease(Math.abs(Math.sin(a*8+d*4+b*5+mid*2))/.32)
+   t=ease(.45+field*.6-seam*.56)
+  }else if(kind==='lava'){
+   const rift=1-ease(Math.abs(field-.49)/.066)
+   t=Math.pow(rift,2.6);light=.83+.28*mid
+  }else if(kind==='star'){
+   // 밝은 대류 셀과 그 사이 어두운 경계를 별도 스케일의 활동 영역 안에 배치.
+   t=.66*ease((mid-.28)/.49)+.34*ease((fine-.27)/.47)
+   light=.71+broad*.34
+  }else{
+   t=ease(field);light=.80+.30*fine
+  }
+  const i=(py*256+px)*4
+  for(let k=0;k<3;k++)im.data[i+k]=mix(mix(low[k],high[k],t)*light,235,frost)
+  im.data[i+3]=255
  }
- x.putImageData(pixels,0,0)
+ x.putImageData(im,0,0)
  const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return t
 }
 function texOf(kind){const a=TEXP[kind]
@@ -1135,6 +1126,45 @@ function texOf(kind){const a=TEXP[kind]
  return a[Math.floor(Math.random()*a.length)]}
 const ROCK=new THREE.IcosahedronGeometry(1,0)
 const SPH=new THREE.SphereGeometry(1,18,14)
+// 표면의 밝기는 시선과 법선의 각도에 따라 감소한다. 색과 대류 결은 코로나와 분리한다.
+const STAR_VERT='varying vec2 vUv;varying vec3 vN,vEye;void main(){vUv=uv;vN=normalMatrix*normal;vec4 p=modelViewMatrix*vec4(position,1.0);vEye=-p.xyz;gl_Position=projectionMatrix*p;}'
+const STAR_FRAG=`
+ varying vec2 vUv;varying vec3 vN,vEye;
+ uniform sampler2D surface;uniform vec3 tint;
+ void main(){
+  float mu=max(0.0,dot(normalize(vN),normalize(vEye)));
+  float cells=texture2D(surface,vUv).r;
+  vec3 chroma=mix(tint*tint,tint,smoothstep(.36,.92,cells));
+  gl_FragColor=vec4(chroma*(.50+.55*cells)*(.40+.60*sqrt(mu)),1.0);
+ }`
+function starBody(color,size=1){
+ const body=new THREE.Mesh(SPH,new THREE.ShaderMaterial({vertexShader:STAR_VERT,fragmentShader:STAR_FRAG,
+  uniforms:{surface:{value:texOf('star')},tint:{value:new THREE.Color(color)}}}))
+ body.scale.setScalar(size);body.rotation.set(rnd(-.45,.45),rnd(0,6.283),0);return body
+}
+function addStar(g,color,corona,op){g.add(starBody(color),glow(color,corona,op))}
+addStar(pStar,0xffd78a,3.45,.44)
+// 게임 카메라에서 작은 구도 구별하도록 밤·낮 경계를 읽히게 한다.
+function planetSurface(tx,kind){
+ const rocky=kind!=='gas',lava=kind==='lava'
+ const m=new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,bumpMap:rocky?tx:null,
+  bumpScale:kind==='ice'?.035:.055,roughness:kind==='ice'?.42:.8,
+  emissive:0xffffff,emissiveIntensity:lava?.60:.10})
+ m.onBeforeCompile=shader=>{
+  shader.uniforms.surfaceRim={value:new THREE.Color(lava?0x9c4428:kind==='terra'?0x336fbe:0x728fac)}
+  shader.uniforms.nightFloor={value:lava?.52:.22}
+  shader.fragmentShader='uniform vec3 surfaceRim;uniform float nightFloor;\n'+shader.fragmentShader.replace(
+   'gl_FragColor = vec4( outgoingLight, diffuseColor.a );',`
+   vec3 sphereN=normalize(vNormal);
+   float sky=dot(sphereN,normalize(vec3(-.62,.63,.59)));
+   float terminator=smoothstep(-.22,.67,sky);
+   float limb=pow(1.0-max(0.0,dot(sphereN,normalize(vViewPosition))),3.1);
+   outgoingLight*=mix(nightFloor,1.0,terminator);
+   outgoingLight+=surfaceRim*limb*smoothstep(-.22,.9,sky)*.19;
+   gl_FragColor=vec4(outgoingLight,diffuseColor.a);`)
+ }
+ return m
+}
 const objects=[]
 function mkVisual(type,mass){
  const g=new THREE.Group()
@@ -1142,11 +1172,10 @@ function mkVisual(type,mass){
  else if(type==='planet'){ // 지구형·얼음·용암 — 무늬가 있어야 보는 맛이 산다(오너)
   const kind=['terra','terra','ice','lava'][Math.floor(Math.random()*4)]
   const tx=texOf(kind)
-  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,
-    bumpMap:tx,bumpScale:kind==='ice'?.025:.045,roughness:kind==='ice'?.42:.78,metalness:0,emissive:0xffffff,emissiveIntensity:kind==='lava'?0.40:0.12})))}
+  g.add(new THREE.Mesh(SPH,planetSurface(tx,kind)))}
  else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
-  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
+  addStar(g,col,3.5,.42)}
  else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
  else if(type==='pulsar'){ // 펄서 — 자기극에서 나오는 등대 빔. 그 빔이 지구를 스칠 때마다 깜빡여 보여 '펄스'다.
   // 빔 길이가 6.5였는데 몸 스케일(r*0.72)에 그대로 곱해져, 질량 2.9K에서 62유닛 — 화면 반높이(~65)를 통째로 덮었다.
@@ -1187,20 +1216,19 @@ function mkVisual(type,mass){
  else if(type==='giant'){ // 가스 거인 — 고리가 실루엣을 만든다
   // 위도별 제트기류 띠 + 대적점 — 실제 가스 거인의 얼굴
   const tx=texOf('gas')
-  g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,
-    roughness:.8,emissive:0xffffff,emissiveIntensity:.32})))
-  const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,48),new THREE.MeshBasicMaterial({color:0xe8dcc0,transparent:true,opacity:.5,side:THREE.DoubleSide,depthWrite:false}))
+  g.add(new THREE.Mesh(SPH,planetSurface(tx,'gas')))
+  const rg=new THREE.Mesh(new THREE.RingGeometry(1.35,2.05,48),new THREE.MeshBasicMaterial({map:GIANT_RING_TEX,color:0xe8dcc0,transparent:true,opacity:.68,side:THREE.DoubleSide,depthWrite:false}))
   rg.rotation.x=Math.PI*0.5-rnd(0.15,0.5);g.add(rg);g.userData.gring=rg}
  else if(type==='redgiant'){ // 적색거성 — 크고 어둡고 부풀어 있다
-  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:0xff6a3a})));g.add(glow(0xff5a2a,5.6,0.55))}
+  addStar(g,0xff8a56,3.8,.36)}
  else if(type==='whitedwarf'){ // 백색왜성 — 지구만 한 크기에 태양급 질량. 작고 지독하게 밝다.
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.38,14,10),new THREE.MeshBasicMaterial({color:0xffffff})));g.add(glow(0xdfeaff,3.2,1))}
  else if(type==='binary'){ // 쌍성계 — 둘이 서로 돈다. 실루엣이 가장 확실하게 다르다.
   const c1=0xffd27a,c2=0x9fc0ff
-  const a1=new THREE.Mesh(new THREE.SphereGeometry(0.62,14,10),new THREE.MeshBasicMaterial({color:c1}))
-  const a2=new THREE.Mesh(new THREE.SphereGeometry(0.46,14,10),new THREE.MeshBasicMaterial({color:c2}))
+  const a1=starBody(c1,.62)
+  const a2=starBody(c2,.46)
   a1.position.x=-0.62;a2.position.x=0.78;g.add(a1,a2)
-  g.add(glow(c1,3.2,0.5));g.userData.pair=[a1,a2]}
+  g.add(glow(c1,3.2,.23));g.userData.pair=[a1,a2]}
  else if(type==='gascloud'){ // 분자운 — 별이 태어나는 차가운 가스 구름. 실제로 블랙홀을 살찌우는 주 연료다.
   const h=rnd(0,1)
   for(let i=0;i<9;i++){const c=new THREE.Color().setHSL((h+rnd(-0.09,0.09)+1)%1,0.75,0.62)
@@ -1210,7 +1238,7 @@ function mkVisual(type,mass){
    const sm=new THREE.Mesh(new THREE.SphereGeometry(0.085,8,6),new THREE.MeshBasicMaterial({color:0xffffff}))
    sm.position.set(rnd(-0.6,0.6),rnd(-0.12,0.12),rnd(-0.6,0.6));g.add(sm)}}
  else if(type==='sstar'){ // S성 — 은하 중심을 도는 별. S2는 근점에서 광속의 3%로 스친다.
-  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:0xdff0ff})));g.add(glow(0xbfe0ff,5.0,0.75))
+  addStar(g,0xc0daff,3.4,.40)
   const tr=new THREE.Mesh(new THREE.RingGeometry(1.7,1.85,48),new THREE.MeshBasicMaterial({color:0x9fd0ff,transparent:true,opacity:0.30,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
   tr.rotation.x=-Math.PI/2+0.22;g.add(tr)}   // 극단 이심 궤도의 흔적
  else if(type==='nucleus'){ // 왜소은하 핵 — 소규모 병합이 중심으로 실어 나르는 성단 덩어리.
@@ -1226,7 +1254,7 @@ function mkVisual(type,mass){
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.16,10,8),new THREE.MeshBasicMaterial({color:0x000000,fog:false})))}   // 자기 블랙홀을 품고 온다
  else if(type==='hypergiant'){ // 극대거성 — R136a1급. 태양의 200배 질량에 수백만 배 밝기.
   const SC=[0x9fc0ff,0xcfe4ff,0xfff0d0],col=SC[Math.floor(Math.random()*SC.length)]
-  g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,7.2,0.9))}
+  addStar(g,col,4.1,.43)}
  else if(type==='cluster'){ // 구상성단 — 별 수십만 개가 뭉친 공이다.
   // 예전엔 8×6 세그먼트 구 14개라 실루엣이 팔각형·위아래가 평평해 '짧은 원기둥'처럼 읽혔다(오너 지적).
   const N=320,cp=new Float32Array(N*3),cc=new Float32Array(N*3)
@@ -1246,7 +1274,7 @@ function mkVisual(type,mass){
    map:GT,                                                     // 기본 점은 사각형 — 원형 텍스처로 별처럼
    vertexColors:true,transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})))
   g.add(glow(0xffe8c0,3.6,0.5))}
- else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
+ else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x000000,fog:false})))
   const d=new THREE.Mesh(new THREE.RingGeometry(1.05,2.0,96),new THREE.MeshBasicMaterial({map:RIVAL_DISK_TEX,color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
   const rgl=glow(0xff5a2a,4,0.55);g.add(rgl);g.userData.rdisk=d;g.userData.rglow=rgl} // 원반·글로우를 런타임에 위협/먹이 색으로 칠한다
  const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
@@ -1290,10 +1318,21 @@ function disposeBody(g){
 function releaseObj(o){disposeBody(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
 /* ===== 점진 흡수(TDE) — 큰 먹이는 시간이 걸린다. 그동안 느려지고 무방비가 된다 ===== */
+// 박리 파편은 본체의 색을 간직하고, 원반으로 접근하면서 백열에 가까워진다.
+const DEBRIS_TINT={rock:0xeab18b,planet:0x9dd3e6,giant:0xecc396,star:0xffbf77,
+ redgiant:0xff9a63,hypergiant:0xbad7ff,rival:0xffa270}
+function debrisTint(type){return DEBRIS_TINT[type]||0xbfe0ff}
+function peelShard(f,dt){
+ if(f.t>f.dur*.76)return false
+ f.peelT=(f.peelT||0)-dt
+ if(f.peelT>0)return false
+ f.peelT=fxLow?.12:.05;return true
+}
 function startFeed(o,rel){
  const bh=S.formIdx===2
  // 지속 25% 단축(오너 판단: 시간이 걸리는 건 유지하되 대기가 길면 답답하다)
- S.feeds.push({o,dur:(bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel))*boonMul('fdur'),t:0,total:o.mass,given:0,grow:0})
+ const tint=debrisTint(o.type)
+ S.feeds.push({o,tint,dur:(bh?0.32+0.95*Math.min(1.8,rel):0.16+0.38*Math.min(1.2,rel))*boonMul('fdur'),t:0,total:o.mass,given:0,grow:0})
  popup(o.g.position,trk('DEVOURING…'),'#8fd0ff');codexToast('tde')
 }
 function cancelFeed(){S.feeds.length=0;hideAllFeedVis()}
@@ -1344,34 +1383,37 @@ function stepFeed(f,slot,dt){
  if(deep>0)f.t+=dt*deep*0.5
  o.g.position.set(hole.position.x+fnx*nd,o.g.position.y,hole.position.z+fnz*nd)
  o.g.rotation.y=Math.atan2(-fdz,fdx)
- // 본체는 형태를 유지한 채 줄어들고(조석 팽대는 살짝만), 뜯겨 나온 물질이 '줄기'로 흘러든다.
- const bulge=1+pr*0.28
- o.g.scale.set(rem*bulge,rem*(1-pr*0.10),rem*(1-pr*0.10))
+ // 앞부분은 덩어리를 남기고, 중간에 방사 방향으로 길어지며, 마지막엔 잔재만 남긴다.
+ const stretch=Math.sin(Math.PI*Math.min(1,pr))*(1-deep*.65),bulge=1+stretch*.78
+ const cross=1-stretch*.36-pr*.14
+ o.g.scale.set(rem*bulge,rem*cross,rem*cross)
+ if(peelShard(f,dt)){
+  const edge=o.g.scale.x*.72
+  streamPart(o.g.position.x-fnx*edge,o.g.position.z-fnz*edge,-fnx,-fnz,f.tint)
+ }
  {const hx=hole.position.x,hz=hole.position.z
-  const sx=o.g.position.x-fnx*rem*0.55, sz=o.g.position.z-fnz*rem*0.55
+  const sx=o.g.position.x-fnx*o.g.scale.x*.84, sz=o.g.position.z-fnz*o.g.scale.x*.84
   const len=Math.max(0.01,Math.hypot(sx-hx,sz-hz))
   feedStream.visible=true
   feedStream.position.set(hx,0.15,hz)
-  const wF=STREAM_STYLE===2?0.13+pr*0.15:0.30+pr*0.34   // ② 가는 실
+  const wF=STREAM_STYLE===2?0.13+pr*0.15:0.30+pr*0.34
   feedStream.scale.set(rem*wF,len,rem*wF)
   feedStream.material.opacity=(STREAM_STYLE===2?0.42+pr*0.4:0.30+pr*0.34)
-  if(STREAM_STYLE===3){ // ③ 나선 — 실제 강착 흐름은 곧장 떨어지지 않고 각운동량 때문에 감긴다
-   // 실제 강착 흐름은 블랙홀을 향해 곧장 가지 않고 '원반 가장자리를 감고' 들어간다.
-   // 끝점을 중심이 아니라 접선 방향으로 어긋난 원반 언저리에 두면 그 감김이 읽힌다.
-   const tx=-fnz,tz=fnx
-   const rim=rad(S.mass)*2.16                      // 원반 '바깥 테두리' = 흐름이 합류하는 곳(1.9면 허공에서 끊겨 보였다)
-   const ex=hx+tx*rim, ez=hz+tz*rim                // 접선 방향으로 어긋난 종점
-   const bend=len*0.42*(0.5+pr*0.5)
-   // 줄기는 본체에서 '자라나' 홀에 닿는다. 예전엔 완성된 길이로 한 프레임에 나타나 이질적이었다(오너 지적).
-   // 실제 조석 파괴도 잔해가 뜯겨 나가 궤도를 돌아 도달하기까지 시간이 걸린다.
-   const growDur=Math.min(0.45,f.dur*0.45)
+  if(STREAM_STYLE===3){
+   // 본체의 안쪽 면에서 출발해 원반의 회전 방향을 따라 접선으로 합류한다.
+   const tx=fnz,tz=-fnx,rim=rad(S.mass)*1.82
+   const ex=hx+tx*rim,ez=hz+tz*rim
+   const cx=ex+fnx*len*.48,cz=ez+fnz*len*.48
+   const bx=sx-fnx*len*.34,bz=sz-fnz*len*.34
+   const growDur=Math.min(0.48,f.dur*.52)
    f.grow=Math.min(1,(f.grow||0)+dt/growDur)
-   const gEase=1-Math.pow(1-f.grow,2)               // 처음엔 빠르게 뻗고 끝에서 부드럽게 닿는다
-   const u0=1-gEase                                 // u=1이 본체 쪽 — 거기서부터 자란다
-   for(let k=0;k<=22;k++){const u=u0+(1-u0)*(k/22)  // 자란 구간만 그린다
-    // 미세한 흔들림 — 실제 흐름은 고정된 관이 아니라 밀도가 출렁이는 가스다
-    const swing=Math.sin(u*Math.PI)*bend + Math.sin(u*Math.PI*1.9+S.t*1.9)*rem*0.10*Math.sin(u*Math.PI)
-    V.curvePts[k].set(ex+(sx-ex)*u+tx*swing,0.15,ez+(sz-ez)*u+tz*swing)}
+   const gEase=1-Math.pow(1-f.grow,2)
+   const u0=1-gEase
+   for(let k=0;k<=22;k++){
+    const u=u0+(1-u0)*(k/22),v=1-u
+    const swing=Math.sin(u*Math.PI)*Math.sin(u*8+S.t*7)*rem*.12
+    V.curvePts[k].set(v*v*v*ex+3*v*v*u*cx+3*v*u*u*bx+u*u*u*sx+tx*swing,
+     .15+Math.sin(u*Math.PI)*rem*.14,v*v*v*ez+3*v*v*u*cz+3*v*u*u*bz+u*u*u*sz+tz*swing)}
    const curve=V.curve,tube=V.spiral.geometry
    curve.updateArcLengths() // 제어점 갱신 후 기존 TubeGeometry와 같은 호 길이 샘플링
    const pos=tube.attributes.position,col=tube.attributes.color
@@ -1385,24 +1427,25 @@ function stepFeed(f,slot,dt){
      const side=Math.sin(a)*radius,x=q.x+nx*side,z=q.z+nz*side
      pos.setXYZ(i,x,q.y+Math.cos(a)*radius,z)
      const dq=Math.hypot(x-hole.position.x,z-hole.position.z)
-     const fz=Math.max(0,Math.min(1,(dq-hr1*2.6)/(hr1*1.6)))
+     const fz=Math.max(0,Math.min(1,(dq-hr1*1.77)/(hr1*.95)))
      const fade=fz*fz*(3-2*fz)*Math.min(1,(1-t)/0.10)
      col.setXYZ(i,0.72*fade,0.85*fade,fade)
     }
    }
    pos.needsUpdate=true;col.needsUpdate=true
    tube.computeBoundingSphere()
-   V.spiral.material.opacity=(0.16+pr*0.14)*gEase   // 조각이 주인공 — 관은 길만 희미하게 암시한다
+   V.spiral.material.opacity=(0.14+stretch*0.13)*gEase*(1-pr*pr*.92)   // 조각이 주인공 — 관은 길만 희미하게 암시한다
    V.spiral.visible=true;feedStream.visible=false
    // 잔해 입자 — 본체에서 떨어져 원반으로 갈수록 빨라진다(케플러: 안쪽이 빠르다)
    {const pa=V.geo.attributes.position.array,ca=V.geo.attributes.color.array
     const cap=fxLow?80:STREAMN
+    const tail=1-Math.pow(pr,5), tr=((f.tint>>16)&255)/255,tg=((f.tint>>8)&255)/255,tb=(f.tint&255)/255
     for(let i=0;i<STREAMN;i++){
      if(i>=cap*gEase){pa[i*3+1]=-1e5;continue}              // 저사양 모드 · 아직 자라지 않은 몫은 숨긴다
      // 곡선 매개변수는 0=원반 · 1=본체. 시간이 흐르면 본체(1) → 원반(0)으로 간다.
      // sPar=(1-f)^0.65 로 두면 원반에 가까울수록 빨라지고, 그래서 '성글어진다'
      // (예전엔 제곱을 써서 방향도 반대였고 원반 쪽에 뭉쳐 다시 막대처럼 보였다).
-     const ph=(S.t*0.46+V.off[i])%1
+     const ph=(f.t*1.65+V.off[i])%1
      const sPar=Math.pow(1-ph,0.65)
      const q=curve.getPoint(sPar,V.sample)
      const spread=rem*0.55*Math.sin(sPar*Math.PI)+rem*0.04     // 넓게 흩어져야 '줄'이 아니라 '조각들'로 읽힌다
@@ -1412,22 +1455,22 @@ function stepFeed(f,slot,dt){
      pa[i*3+2]=q.z+Math.sin(a+S.t*3.4)*rr
      // 잔해는 홀의 밝은 빛 속으로 '스며들며' 사라져야 한다.
      // 곡선 매개변수로 자르면 글로우 언저리에서 뚝 끊겨 보였다(오너 지적) →
-     // 홀까지의 실제 거리로 서서히 어두워지게 한다(밝은 코어 4.2hr에서 시작해 2.6hr에서 소멸).
+     // 밝은 원반 안쪽으로 접근할수록 어두워지고 종료 직전에는 잔해 전체가 잦아든다.
      const hr0=rad(S.mass)
      const dq=Math.hypot(q.x-hole.position.x,q.z-hole.position.z)
-     const fz=Math.max(0,Math.min(1,(dq-hr0*2.6)/(hr0*1.6)))
+     const fz=Math.max(0,Math.min(1,(dq-hr0*1.79)/(hr0*1.04)))
      const fade=fz*fz*(3-2*fz)          // smoothstep — 경계가 드러나지 않게
      const hot=1-sPar                                          // 원반에 가까울수록 뜨겁다
-     const v=fade*(0.55+V.seed[i]*0.45)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
-     ca[i*3]=(0.78+hot*0.22)*v;ca[i*3+1]=(0.86+hot*0.11)*v;ca[i*3+2]=v}
+     const v=fade*Math.min(1,ph*8)*(0.45+V.seed[i]*0.55)                   // 밝기를 흩어 균일한 밧줄로 안 보이게
+     ca[i*3]=(tr+(1-tr)*hot)*v;ca[i*3+1]=(tg+(.94-tg)*hot)*v;ca[i*3+2]=(tb+(.76-tb)*hot)*v}
     V.geo.attributes.position.needsUpdate=true;V.geo.attributes.color.needsUpdate=true
     V.pts.material.size=Math.max(0.04,rem*0.15)   // 잘게 — 크면 서로 겹쳐 '굵은 선' 하나로 뭉친다(오너 리포트)
-    V.pts.material.opacity=(0.55+pr*0.40)*gEase;V.pts.visible=true}
+    V.pts.material.opacity=(0.52+stretch*0.38)*gEase*tail;V.pts.visible=true}
   } else hideFeedVis(slot)
   feedStream.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),
     new THREE.Vector3((sx-hx)/len,0,(sz-hz)/len))
-  if(!o.strT2||(o.strT2-=dt)<=0){o.strT2=0.11
-   streamPart(sx,sz,(hx-sx)/len,(hz-sz)/len,0xcfe6ff)}
+  if(STREAM_STYLE!==3&&(!o.strT2||(o.strT2-=dt)<=0)){o.strT2=0.11
+   streamPart(sx,sz,(hx-sx)/len,(hz-sz)/len,f.tint)}
  }
  if(pr>=1){
   o.eaten=true;o.eatT=0.28;o.eatBy=null;o.eatFast=true // 로슈 한계에서 시작해 더 멀다 — 확실히 '한 입에' 삼켜지도록 빠르게
@@ -2249,7 +2292,7 @@ function update(dt){
       o.mass-=strip; o.r=rad(o.mass)
       S.mass+=strip*0.62*accEff()*(FORMS[S.formIdx].acc||1)
       if(!o.stripT||(o.stripT-=dt)<=0){o.stripT=0.09
-       streamPart(o.g.position.x-(dx/d)*o.r*0.5,o.g.position.z-(dz/d)*o.r*0.5,-(dx/d),-(dz/d),0xbfe0ff)}}}
+       streamPart(o.g.position.x-(dx/d)*o.r*0.5,o.g.position.z-(dz/d)*o.r*0.5,-(dx/d),-(dz/d),debrisTint(o.type))}}}
     // ── 조석 늘어남(spaghettification) — 영향권에 들면 즉시 사라지지 않고 '늘어나며' 빨려든다.
     //    실제 조석파괴사건에서 천체는 가느다란 강착 흐름으로 찢겨 나선을 그리며 떨어진다.
     if(!o.eaten&&!feedOf(o)){ // 흡수 중인 천체는 updateFeed가 형태를 소유한다
@@ -2258,7 +2301,7 @@ function update(dt){
      o.g.scale.set(base*(1+st*1.35),base*(1-st*0.34),base*(1-st*0.34))
      if(st>0.30&&!(fxLow&&st<0.62)&&(o.strT=(o.strT||0)-dt)<=0){o.strT=(fxLow?0.2:0.07)+Math.random()*0.06
       // 흐름 입자 — 천체에서 떨어져 나와 블랙홀로 흘러든다
-      streamPart(o.g.position.x-(dx/d)*o.r*0.6,o.g.position.z-(dz/d)*o.r*0.6,-(dx/d),-(dz/d),o.type==='rival'?0xffb070:0x9fd8ff)}}
+      streamPart(o.g.position.x-(dx/d)*o.r*0.6,o.g.position.z-(dz/d)*o.r*0.6,-(dx/d),-(dz/d),debrisTint(o.type))}}
    } else if(!o.eaten&&o.g.scale.x!==base){o.g.rotation.y=0;o.g.scale.setScalar(base)}} // 영향권 밖 → 원래 형태로
   else if(threat){h.material.color.setHex(0xff4050);h.material.opacity=0.74+Math.sin(S.t*9)*0.24;if(d<omouth*3)S.sawThreat=true}
   else if(crush){h.material.color.setHex(0xffa83c);h.material.opacity=0.5+Math.sin(S.t*7)*0.2;if(d<omouth*3)S.sawThreat=true} // 충돌 위험(부서짐)
@@ -2273,7 +2316,7 @@ function update(dt){
    const cov=coverDamp(o.g.scale.x*2.0,hr)
    if(rd){rd.material.color.setHex(0xff8a44);if(!(o.jetStun>0))rd.material.opacity=(threat?0.98:0.8)*cov}
    if(rg){rg.material.color.setHex(threat?0xff3020:0x66e84a);if(rg.userData.op0==null)rg.userData.op0=rg.material.opacity;rg.material.opacity=rg.userData.op0*cov}}   // op0 = 스폰 때 포화 완화가 반영된 값
-  else if(o.g.userData.gring)o.g.userData.gring.material.opacity=0.5*coverDamp(o.g.scale.x*2.05,hr) // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
+  else if(o.g.userData.gring)o.g.userData.gring.material.opacity=0.68*coverDamp(o.g.scale.x*2.05,hr) // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
 
   if(o.g.userData.pair)o.g.rotation.y+=dt*1.5 // 쌍성계는 서로 공전한다
   // 혜성 꼬리는 광원 '반대쪽'을 향한다(복사압·항성풍). 여기서 가장 밝은 광원은 내 강착원반이다.
@@ -2633,13 +2676,13 @@ requestAnimationFrame(frame)
 /* ===== tier visual zones (성장할수록 환경 팔레트 전환) + surge ability ===== */
 // 진화 단계(0 미행성·1 항성) + 블랙홀 규모 티어(2~4) = 총 5개 존
 const ZONES=[
- {fog:new THREE.Color(0x070910),hemi:new THREE.Color(0x9fb0cc),lens:1.0,fx:'inset 0 0 300px 50px rgba(70,90,130,.16)'},   // PLANETESIMAL — 회청(먼지)
- {fog:new THREE.Color(0x120c07),hemi:new THREE.Color(0xffd9a0),lens:1.0,fx:'inset 0 0 320px 66px rgba(255,160,70,.20)'},  // MAIN SEQUENCE — 온기
- {fog:new THREE.Color(0x05060f),hemi:new THREE.Color(0x9fc0ff),lens:1.0,fx:'inset 0 0 320px 60px rgba(40,80,200,.20)'},   // BH STELLAR — 청
- {fog:new THREE.Color(0x0b0718),hemi:new THREE.Color(0xb89cff),lens:1.18,fx:'inset 0 0 320px 72px rgba(150,70,255,.24)'}, // BH INTERMEDIATE — 보라
- {fog:new THREE.Color(0x140b06),hemi:new THREE.Color(0xffd39a),lens:1.4,fx:'inset 0 0 340px 92px rgba(255,180,60,.26)'},   // BH SUPERMASSIVE — 금
- {fog:new THREE.Color(0x081420),hemi:new THREE.Color(0xd8f0ff),lens:1.7,fx:'inset 0 0 360px 104px rgba(120,220,255,.30)'}, // QUASAR — 백청 화염
- {fog:new THREE.Color(0x1a0610),hemi:new THREE.Color(0xff9ec0),lens:2.1,fx:'inset 0 0 380px 120px rgba(255,60,120,.30)'}   // ULTRAMASSIVE — 심홍
+ {fog:new THREE.Color(0x070910),hemi:new THREE.Color(0x9fb0cc),lens:1.0,fx:'inset 0 0 300px 50px rgba(70,90,130,.12)'},   // PLANETESIMAL — 회청(먼지)
+ {fog:new THREE.Color(0x120c07),hemi:new THREE.Color(0xffd9a0),lens:1.0,fx:'inset 0 0 320px 66px rgba(255,160,70,.13)'},  // MAIN SEQUENCE — 온기
+ {fog:new THREE.Color(0x05060f),hemi:new THREE.Color(0x9fc0ff),lens:1.0,fx:'inset 0 0 320px 60px rgba(40,80,200,.13)'},   // BH STELLAR — 청
+ {fog:new THREE.Color(0x0b0718),hemi:new THREE.Color(0xb89cff),lens:1.18,fx:'inset 0 0 320px 72px rgba(150,70,255,.13)'}, // BH INTERMEDIATE — 보라
+ {fog:new THREE.Color(0x140b06),hemi:new THREE.Color(0xffd39a),lens:1.4,fx:'inset 0 0 340px 92px rgba(255,180,60,.15)'},   // BH SUPERMASSIVE — 금
+ {fog:new THREE.Color(0x081420),hemi:new THREE.Color(0xd8f0ff),lens:1.7,fx:'inset 0 0 360px 104px rgba(120,220,255,.17)'}, // QUASAR — 백청 화염
+ {fog:new THREE.Color(0x1a0610),hemi:new THREE.Color(0xff9ec0),lens:2.1,fx:'inset 0 0 380px 120px rgba(255,60,120,.16)'}   // ULTRAMASSIVE — 심홍
 ]
 const zoneIdx=()=>S.formIdx<2?S.formIdx:2+Math.max(0,S.tierIdx)
 let zoneLens=1.0
