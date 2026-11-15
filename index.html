@@ -119,7 +119,7 @@
  /* ===== tier zone wash + surge ability ===== */
  #zone{position:fixed;inset:0;z-index:2;pointer-events:none;transition:box-shadow 1.6s ease;box-shadow:inset 0 0 320px 60px rgba(40,80,200,.20)}
  #flash{position:fixed;inset:0;z-index:8;pointer-events:none;background:#fff;opacity:0;transition:opacity .5s ease-out}
- #flash.on{opacity:.82;transition:opacity .04s}
+ #flash.on{opacity:.22;transition:opacity .04s}
  #surge{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:7;display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:auto;cursor:pointer;user-select:none}
  #surge.on{display:flex}
  #surge .track{width:180px;height:8px;border-radius:5px;background:rgba(120,150,220,.14);overflow:hidden;border:1px solid rgba(120,150,220,.2)}
@@ -289,6 +289,41 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
 @keyframes obPulse{0%,100%{opacity:.55}50%{opacity:1}}
  @media (max-height:430px){#combo{top:46px;font-size:clamp(22px,3vw,32px)}#apex{top:112px}
  #banner,#codex{top:134px}} /* 낮은 화면: 상단 밴드를 조인다 — 질량바 14~44 · 콤보 46~100 · APEX 104~128 · 배너 134~ */
+
+/* 관측 HUD: 공간과 천체가 주인공, 발광·다색 강조는 위험 판정에만 남긴다. */
+#hud,#right,#massbar,#combo,#banner,#apex,#codex,#surge{font-family:ui-sans-serif,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+#hud .mass,#right .v,#combo{font-family:'Martian Mono',ui-monospace,monospace}
+#surge .act,#codex b{font-family:inherit}
+#hud .mass{color:#edf2f5;text-shadow:none;font-size:30px;font-variant-numeric:tabular-nums;letter-spacing:-1px}
+#hud .lab,#right .lab{color:#a4b0c1;letter-spacing:.6px}
+#hud .tier{color:#c5d2df;letter-spacing:.4px;font-size:11px}
+#hud .sub{color:#9ba9bb;font-size:11px}
+#right .v{font-variant-numeric:tabular-nums;font-weight:500}
+#right #sval{color:#e8eef3!important}
+#massbar{width:min(340px,46vw)}
+#massbar .t{letter-spacing:.45px;font-size:10px;color:#bdc8d4}
+#massbar .track{height:4px;border-radius:0;background:#1a2534}
+#massbar .fill{border-radius:0;background:#b7cad6}
+#combo{font-size:26px;color:#ece5d5;text-shadow:none;font-weight:500;letter-spacing:-1px}
+#combo .cl{font-size:10px;letter-spacing:.4px;color:#b8c4cf;font-weight:400}
+#combo.up .cl{animation:none}
+#banner .b{font-size:17px;letter-spacing:.7px;color:#e9e2d3;text-shadow:none;font-weight:500}
+#banner .s{font-size:12px;letter-spacing:0;color:#aebbc9;line-height:1.5}
+#apex{font-size:11px;letter-spacing:.3px;border-radius:2px;padding:6px 10px}
+#apex.hunt{background:#29171e;border:0;border-left:2px solid #e9848b;text-shadow:none;animation:none;color:#f0b3b7}
+#apex.vuln{background:#122a26;border:0;border-left:2px solid #86c6ac;text-shadow:none;color:#b6e3cc}
+#codex{background:#101a27;border:0;border-radius:2px;padding:12px 18px}
+#codex b{letter-spacing:.3px;color:#d7e1e9;font-weight:500}
+#codex span{color:#aebbc9;line-height:1.5}
+#surge .act{border-radius:2px;letter-spacing:.3px;font-weight:500;color:#9caabd;background:#101925;border-color:#324253}
+#surge.ready .act{color:#e9eff3;border-color:#647d8b}
+#surge .track{height:4px;border-radius:0;border:0;background:#1a2534}
+#surge .fill,#surge.ready .fill{border-radius:0;background:#a6becb;box-shadow:none}
+#surge .lab,#surge.ready .lab{letter-spacing:.4px;color:#a5b4c5;animation:none}
+#joy{background:#15202b66;border-color:#a1b5c166}
+#joyThumb{background:#a1b5c177;box-shadow:none}
+@media(max-height:430px){#hud .mass{font-size:24px}#combo{font-size:23px}#banner .b{font-size:15px}}
+@media(max-width:820px) and (orientation:landscape){#massbar{top:14px;bottom:auto;width:min(280px,40vw)}}
 </style></head><body>
 <div id="hud"><div class="lab">MASS · M☉</div><div class="mass" id="mval">–</div><div class="tier" id="tier">–</div><div class="sub" id="hint">eat smaller · avoid larger</div></div>
 <div id="massbar"><div class="t" id="drain">◀ ERODING — FEED OR FADE</div><div class="track"><div class="fill" id="mfill"></div></div></div>
@@ -463,10 +498,10 @@ const lensMat=new THREE.ShaderMaterial({
  ' vec3 col=texture2D(tDiffuse,uv-off).rgb;',                     // 배경을 안쪽으로 당김 = 렌징
  ' float mag=uStrength/(r*r+0.006);',                            // ~1/r² 확대 → 휜 별빛이 밝아짐(아인슈타인 링)
  ' col*=1.0+clamp(mag*0.55,0.0,2.6);',
- ' float ph=exp(-pow((r-uEH)/(uEH*0.4),2.0));',                  // 얇은 광자 고리(가우시안)
- ' col+=vec3(1.0,0.82,0.6)*ph*(0.35+uStrength*4.5);',            // 따뜻한 광자 고리
+ ' float ph=exp(-pow((r-uEH)/(max(uEH*0.075,0.0008)),2.0));',                  // 얇은 광자 고리(가우시안)
+ ' col+=vec3(1.0,0.82,0.6)*ph*(0.16+uStrength*1.2);',            // 따뜻한 광자 고리
  ' float halo=smoothstep(uEH*3.5,uEH*1.3,r);',                   // 은은한 외곽 블루시프트
- ' col+=vec3(0.12,0.28,0.6)*halo*uStrength*2.2;',
+ ' col+=vec3(0.12,0.28,0.6)*halo*uStrength*0.6;',
  ' gl_FragColor=vec4(col,1.0);',
  '}'].join('\n')})
 postScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),lensMat))
@@ -480,6 +515,15 @@ function glow(color,size,op){const s=new THREE.Sprite(new THREE.SpriteMaterial({
 function ringTex(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d')
  x.strokeStyle='#fff';x.lineWidth=10;x.beginPath();x.arc(64,64,52,0,6.283);x.stroke();return new THREE.CanvasTexture(c)}
 const RT=ringTex()
+// 라이벌 원반도 매끈한 플라스틱 도넛 대신 얇은 층과 불균일한 밝기를 가진다.
+// 정적 공유 텍스처라 라이벌마다 셰이더 노이즈를 계산하지 않는다.
+const RIVAL_DISK_TEX=(()=>{const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d'),im=x.createImageData(256,256);
+ for(let y=0;y<256;y++)for(let k=0;k<256;k++){const px=(k-127.5)/127.5,py=(y-127.5)/127.5,r=Math.hypot(px,py),a=Math.atan2(py,px),i=(y*256+k)*4;
+  const wave=Math.sin(r*180+Math.sin(a*7+r*12)*1.4),swirl=Math.sin(px*37+py*29+Math.sin(r*43));
+  const v=Math.round(255*(.38+.18*wave+.12*swirl));im.data[i]=im.data[i+1]=im.data[i+2]=v;
+  im.data[i+3]=Math.round(255*Math.max(0,Math.min(1,(r-.525)*18,(1-r)*12)));
+ }x.putImageData(im,0,0);return new THREE.CanvasTexture(c)})()
+
 function halo(color){const s=new THREE.Sprite(new THREE.SpriteMaterial({map:RT,color,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));return s}
 
 /* ===== black hole (player) ===== */
@@ -501,12 +545,13 @@ const DISK_GLSL={
  ' if(t<0.0||t>1.0)discard;',
  ' float a=atan(vP.y,vP.x);',
  ' float shear=uT*2.4*pow(max(r,0.35),-1.5);',          // 케플러 전단: 안쪽이 훨씬 빠르게 감긴다
- ' float f=fbm(vec2((a+shear)*2.6,r*5.0));f=mix(0.5,1.45,f);', // 난류 플라스마
+ ' float f=fbm(vec2(cos(a+shear)*3.0,sin(a+shear)*3.0)+vec2(r*9.0,r*2.0));',
+ ' float bands=0.82+0.18*sin(r*85.0+f*9.0+shear);f=mix(0.30,1.05,f)*bands;', // 난류 플라스마
  ' vec3 col=mix(uCR,uCA,pow(1.0-t,1.25));', // 온도 구배(안쪽 백청 → 바깥 적)
  ' float dop=0.30+0.85*pow(1.0+0.58*cos(a-uPhi),3.0)/4.1;',       // 상대론적 도플러 빔 — 접근측이 압도적으로 밝다
  ' float rad=pow(1.0-t,1.6)*1.55+0.10;',
  ' float al=smoothstep(0.0,0.10,t)*smoothstep(1.0,0.70,t)*uOp*f*dop*rad;',
- ' col=mix(col,uCA,clamp((dop-0.95)*0.4,0.0,0.45));', ' col+=vec3(0.34,0.31,0.27)*pow(1.0-t,5.0)*dop;', ' gl_FragColor=vec4(col,clamp(al*1.85,0.0,1.0));',
+ ' col=mix(col,uCA,clamp((dop-0.95)*0.25,0.0,0.25));', ' col+=vec3(0.12,0.10,0.07)*pow(1.0-t,5.0)*dop;', ' gl_FragColor=vec4(col,clamp(al*1.4,0.0,0.85));',
  '}'].join('\n')}
 function diskMat(op,arc){return new THREE.ShaderMaterial({
  uniforms:{uT:{value:0},uIn:{value:arc?0.98:0.86},uOut:{value:arc?2.16:1.98},uPhi:{value:1.15},uOp:{value:op},uCA:{value:new THREE.Color(0xcaf0ff)},uCR:{value:new THREE.Color(0xff4a12)}},
@@ -911,15 +956,22 @@ function makeTex(kind){
    g.addColorStop(0,hsl(h+0.45,0.75,0.6));g.addColorStop(0.6,hsl(h+0.45,0.6,0.5));g.addColorStop(1,'rgba(0,0,0,0)')
    x.fillStyle=g;x.beginPath();x.arc(0,0,17,0,6.283);x.fill();x.restore()}
  } else if(kind==='terra'){
-  x.fillStyle=hsl(h*0.15+0.55,0.65,0.42);x.fillRect(0,0,256,128)   // 바다
-  x.fillStyle=hsl(h*0.25+0.06,0.5,0.44)                            // 대륙
-  for(let i=0;i<14;i++){const cx=rnd(0,256),cy=rnd(14,114),r=rnd(10,34)
-   x.beginPath();x.ellipse(cx,cy,r,r*rnd(0.4,0.9),rnd(0,3),0,6.283);x.fill()}
-  x.fillStyle='rgba(255,255,255,0.85)'                             // 극관
-  x.fillRect(0,0,256,rnd(5,12));x.fillRect(0,128-rnd(5,12),256,14)
-  x.fillStyle='rgba(255,255,255,0.28)'                             // 구름
-  for(let i=0;i<18;i++){const cx=rnd(0,256),cy=rnd(8,120)
-   x.beginPath();x.ellipse(cx,cy,rnd(8,26),rnd(2,6),0,0,6.283);x.fill()}
+  // 구면 연속 지형: 타원 스티커 대신 여러 크기의 지형장을 합쳐 해안과 구름을 만든다.
+  const seed=Math.floor(h*65535),hash=(a,b,c)=>{let n=Math.imul(a,374761393)^Math.imul(b,668265263)^Math.imul(c,2147483647)^seed;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295}
+  const mix=(a,b,t)=>a+(b-a)*t,smooth=t=>t*t*(3-2*t)
+  function noise(a,b,c){const i=Math.floor(a),j=Math.floor(b),k=Math.floor(c),u=smooth(a-i),v=smooth(b-j),w=smooth(c-k)
+   return mix(mix(mix(hash(i,j,k),hash(i+1,j,k),u),mix(hash(i,j+1,k),hash(i+1,j+1,k),u),v),mix(mix(hash(i,j,k+1),hash(i+1,j,k+1),u),mix(hash(i,j+1,k+1),hash(i+1,j+1,k+1),u),v),w)}
+  const im=x.createImageData(256,128)
+  for(let py=0;py<128;py++)for(let px=0;px<256;px++){
+   const lon=px/256*Math.PI*2,lat=py/127*Math.PI,a=Math.cos(lon)*Math.sin(lat),b=Math.cos(lat),c3=Math.sin(lon)*Math.sin(lat)
+   const elev=noise(a*3,b*3,c3*3)*.62+noise(a*8,b*8,c3*8)*.26+noise(a*21,b*21,c3*21)*.12
+   const land=smooth(Math.max(0,Math.min(1,(elev-.48)/.045))),ice=smooth(Math.max(0,Math.min(1,(Math.abs(b)-.88)/.10)))
+   const arid=noise(a*6+17,b*6,c3*6),cloud=smooth(Math.max(0,Math.min(1,(noise(a*9+31,b*5,c3*9)-.59)/.16)))*.50
+   const ocean=[15,42,69],soil=[mix(54,135,arid),mix(83,112,arid),mix(51,73,arid)],idx=(py*256+px)*4
+   for(let k=0;k<3;k++)im.data[idx+k]=mix(mix(mix(ocean[k],soil[k],land),220,ice),235,cloud)
+   im.data[idx+3]=255
+  }
+  x.putImageData(im,0,0)
  } else if(kind==='ice'){
   x.fillStyle=hsl(0.52+rnd(-0.05,0.06),0.45,0.72);x.fillRect(0,0,256,128)
   for(let i=0;i<9;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.08,0.22).toFixed(2)+')'
@@ -942,7 +994,16 @@ function makeTex(kind){
   for(let i=0;i<14;i++){x.fillStyle='rgba(255,255,255,'+rnd(0.04,0.14).toFixed(2)+')'
    x.beginPath();x.arc(rnd(0,256),rnd(0,128),rnd(2,8),0,6.283);x.fill()}
  }
- const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;return t
+ // 구면 좌표의 미세 지형 변화 — 경도 경계에서 노이즈가 끊기지 않는다.
+ const pixels=x.getImageData(0,0,256,128),data=pixels.data
+ for(let py=0;py<128;py++)for(let px=0;px<256;px++){
+  const a=px/256*Math.PI*2,b=py/127*Math.PI,xx=Math.cos(a)*Math.sin(b),yy=Math.cos(b),zz=Math.sin(a)*Math.sin(b)
+  const detail=Math.sin(xx*37+Math.sin(zz*19))*Math.sin(yy*31+zz*23)*.07+Math.sin(xx*87+yy*71+zz*93)*.025
+  const gain=1+detail,idx=(py*256+px)*4
+  for(let k=0;k<3;k++)data[idx+k]=Math.max(0,Math.min(255,data[idx+k]*gain))
+ }
+ x.putImageData(pixels,0,0)
+ const t=new THREE.CanvasTexture(c);t.wrapS=THREE.RepeatWrapping;t.anisotropy=Math.min(4,renderer.capabilities.getMaxAnisotropy());return t
 }
 function texOf(kind){const a=TEXP[kind]
  if(a.length<7)a.push(makeTex(kind))          // 종류마다 7장까지 만들어 돌려 쓴다(매번 만들면 낭비)
@@ -957,7 +1018,7 @@ function mkVisual(type,mass){
   const kind=['terra','terra','ice','lava'][Math.floor(Math.random()*4)]
   const tx=texOf(kind)
   g.add(new THREE.Mesh(SPH,new THREE.MeshStandardMaterial({map:tx,emissiveMap:tx,
-    roughness:.72,metalness:.05,emissive:0xffffff,emissiveIntensity:kind==='lava'?0.55:0.34})))}
+    bumpMap:tx,bumpScale:kind==='ice'?.025:.045,roughness:kind==='ice'?.42:.78,metalness:0,emissive:0xffffff,emissiveIntensity:kind==='lava'?0.40:0.12})))}
  else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
   g.add(new THREE.Mesh(SPH,new THREE.MeshBasicMaterial({color:col})));g.add(glow(col,4.5,0.8))}
@@ -1061,7 +1122,7 @@ function mkVisual(type,mass){
    vertexColors:true,transparent:true,opacity:0.95,depthWrite:false,blending:THREE.AdditiveBlending,fog:false})))
   g.add(glow(0xffe8c0,3.6,0.5))}
  else if(type==='rival'){g.add(new THREE.Mesh(new THREE.SphereGeometry(1,20,14),new THREE.MeshBasicMaterial({color:0x05030a})))
-  const d=new THREE.Mesh(new THREE.TorusGeometry(1.7,0.28,8,40),new THREE.MeshBasicMaterial({color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
+  const d=new THREE.Mesh(new THREE.RingGeometry(1.05,2.0,96),new THREE.MeshBasicMaterial({map:RIVAL_DISK_TEX,color:0xff7a3a,transparent:true,opacity:.95,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));d.rotation.x=Math.PI*0.5-0.3;g.add(d)
   const rgl=glow(0xff5a2a,4,0.55);g.add(rgl);g.userData.rdisk=d;g.userData.rglow=rgl} // 원반·글로우를 런타임에 위협/먹이 색으로 칠한다
  const h=halo(0x7bed4a);g.add(h);g.userData.halo=h
  return g}
@@ -1091,7 +1152,17 @@ function spawnObj(type,mass,x,z){
  const sp0=(type==='sstar'?5.5:(type==='nucleus'?0.35:1))*(1+0.85*runHeat())   // S성은 근점에서 광속의 3%로 스친다 · 핵성단은 무겁고 굼뜨다 · 중심에 가까울수록 다 빨라진다
  const o={g,type,mass,r,vx:rnd(-2,2)*sp0,vz:rnd(-2,2)*sp0,spin:rnd(-1,1),eaten:false,nmCd:0}
  objects.push(o);return o}
-function releaseObj(o){scene.remove(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
+function disposeBody(g){
+ if(!g||g.userData.bodyDisposed)return
+ g.userData.bodyDisposed=true;scene.remove(g)
+ const geometries=new Set(),materials=new Set()
+ g.traverse(n=>{if(n.geometry&&!n.isSprite&&n.geometry!==SPH&&n.geometry!==ROCK)geometries.add(n.geometry)
+  for(const m of (Array.isArray(n.material)?n.material:[n.material]))if(m)materials.add(m)})
+ // 구/암석·스프라이트 기하와 모든 텍스처는 다른 천체도 공유한다.
+ // 개별 기하와 재질만 해제하고 map/emissiveMap/bumpMap은 보존한다.
+ for(const g of geometries)g.dispose();for(const m of materials)m.dispose()
+}
+function releaseObj(o){disposeBody(o.g);const i=objects.indexOf(o);if(i>=0)objects.splice(i,1)}
 
 /* ===== 점진 흡수(TDE) — 큰 먹이는 시간이 걸린다. 그동안 느려지고 무방비가 된다 ===== */
 function startFeed(o,rel){
@@ -2266,6 +2337,7 @@ function updateCamera(dt){
  scene.fog.density=0.047/camDist // 안개는 '보기 좋을 만큼'만 — 고질량서 100% 포화돼 전부 무채색이 되던 버그 수리
  S.shake=Math.max(0,S.shake-dt*3)
 }
+const lensCenter=new THREE.Vector3(),lensRim=new THREE.Vector3()
 function render(){
  stars.position.copy(cam.position);neb.position.copy(cam.position) // 먼 배경 = 스카이박스(카메라 추종) · 먼지는 월드 고정(시차)
  hole.userData.photon.quaternion.copy(cam.quaternion) // 광자 고리 = 카메라 향함(그림자 감싸는 원)
@@ -2286,7 +2358,7 @@ function render(){
  // 2) 렌징 적용해 화면에
  renderer.setRenderTarget(null)
  lensMat.uniforms.tDiffuse.value=rt.texture
- const p=hole.position.clone().project(cam)
+ const p=lensCenter.copy(hole.position).project(cam)
  lensMat.uniforms.uCenter.value.set(p.x*.5+.5,p.y*.5+.5)
  const hr=rad(S.mass)
  // 완전체(EXTREMAL KERR)는 '시공간이 휘는' 게 보여야 최종 형태로 읽힌다 — 예전엔 원반 색만 희게 바꿔
@@ -2294,7 +2366,9 @@ function render(){
  // 물리: 최대 회전 커 블랙홀의 에르고구면 — 시공간 자체가 끌려 도는 영역이 지평선 밖까지 뻗는다.
  const exK=extremalOn()?Math.min(1,(EXT_DUR-Math.max(0,S.extT-EXT_DUR+1.2))/1.2)*Math.min(1,S.extT/0.8):0
  if(S.alive){lensMat.uniforms.uStrength.value=(0.010+Math.min(0.09,hr*0.014))*zoneLens*FORMS[S.formIdx].lens*(1+1.35*exK) // 블랙홀이 되는 순간 렌징이 켜진다 · 완전체는 시공간을 왜곡한다
-  lensMat.uniforms.uEH.value=(0.02+Math.min(0.13,hr*0.02))*(1+0.45*exK)}
+  photon.updateWorldMatrix(true,false)
+  photon.localToWorld(lensRim.set(.645,0,0)).project(cam)
+  lensMat.uniforms.uEH.value=Math.max(.0001,Math.hypot((lensRim.x-p.x)*innerWidth/innerHeight,lensRim.y-p.y)*.5)}
  else{lensMat.uniforms.uStrength.value=0.082;lensMat.uniforms.uEH.value=0.058} // 메뉴 히어로 — 아크 왜곡은 강하게, 광자링은 얇고 또렷하게
  lensMat.uniforms.uAspect.value=innerWidth/innerHeight
  renderer.autoClear=true;renderer.render(postScene,postCam)
@@ -2776,10 +2850,10 @@ function updateDisk(dt){
   const give=d.mass*DISK_RATE*dt
   d.mass-=give;S.mass+=give*accEff()*(FORMS[S.formIdx].acc||1)
   S.score+=Math.round(give*11)
-  if(d.mass<=Math.max(0.05,S.mass*0.004)){if(d.g)scene.remove(d.g);D.splice(i,1)}
+  if(d.mass<=Math.max(0.05,S.mass*0.004)){if(d.g)disposeBody(d.g);D.splice(i,1)}
  }
 }
-function clearDisk(){for(const d of (S.disk||[]))if(d.g)scene.remove(d.g);if(S.disk)S.disk.length=0}
+function clearDisk(){for(const d of (S.disk||[]))if(d.g)disposeBody(d.g);if(S.disk)S.disk.length=0}
 // 제트는 안쪽 원반에서 쏘아 올려진다 — 쌓아 둔 것을 탄약으로 쓴다
 function launchDisk(ax,az){
  const D=S.disk;if(!D||!D.length)return 0
@@ -2791,7 +2865,7 @@ function launchDisk(ax,az){
    const sp=42+rad(S.mass)*2.2
    o.vx=ax*sp+rnd(-6,6);o.vz=az*sp+rnd(-6,6)
    eatBurst(d.g.position.x,d.g.position.z,0xbfe4ff,8)
-   scene.remove(d.g)}
+   disposeBody(d.g)}
   n++
  }
  D.length=0
@@ -3038,7 +3112,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
   return out},
  _hide:(g,r)=>{let n=0;scene.traverse(o=>{if(o.geometry&&o.geometry.type===g){const b=o.geometry.boundingSphere;
   if(r==null||(b&&Math.abs(b.radius-r)<1)){o.visible=false;n++}}});return n},
- clearField:()=>{for(const o of objects)if(o.g&&o.g.parent)o.g.parent.remove(o.g)
+ clearField:()=>{for(const o of objects)disposeBody(o.g)
   objects.length=0;S.feeds=[];hideAllFeedVis()
   for(const f of feats)if(f.g&&f.g.parent)f.g.parent.remove(f.g)
   feats.length=0   // 성운은 안에 있으면 질량이 차오른다 — 지형까지 치워야 순수 손실이 보인다

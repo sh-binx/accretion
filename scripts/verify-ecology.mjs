@@ -8,6 +8,8 @@ const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} 
 
 const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
 const page = await browser.newPage()
+// 실패를 재현할 수 있도록 시드 고정. 실제 게임의 난수 정책은 바꾸지 않는다.
+await page.addInitScript((seed)=>{let state=seed;Math.random=()=>((state=Math.imul(1664525,state)+1013904223>>>0)/4294967296);requestAnimationFrame=()=>0},Number(process.env.TEST_SEED||42))
 const errors = []
 page.on('pageerror', e => errors.push('PAGEERR: '+e.message))
 page.on('console', m => { if (m.type()==='error' && !/Failed to load resource/.test(m.text())) errors.push('CONSOLE: '+m.text()) })
@@ -124,7 +126,7 @@ try {
   const edibleFrac = await page.evaluate(() => {
     const A=window.__acc; A.begin(); A.setMass(20000); A.step(0.1)
     let riv=0, ed=0
-    for (let r=0;r<40;r++){ A.clearObjs(); A.setMass(20000); A.step(0.1)  // 실측 32%±5 → 표본을 키워야 22% 문턱이 안 흔들린다
+    for (let r=0;r<400;r++){ A.clearObjs(); A.setMass(20000); A.step(0.1)  // 고정 시드 400회로 낮은 표본수에 따른 오탐을 줄인다.
       for (const o of A.objInfo()) if(o.t==='rival'){ riv++; if(o.edible)ed++ } }
     return { riv, pct: Math.round(ed/riv*100) }
   })
