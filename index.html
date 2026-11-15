@@ -1710,6 +1710,7 @@ const KO={
  '◉ PULL':'◉ 당기기','frame dragging — spinning spacetime drags nearby matter in':'관성계 끌림 — 회전하는 시공간이 주변 물질을 끌어들인다',
  '★ SUPERNOVA':'★ 초신성','the core collapses — you are a BLACK HOLE':'중심핵이 붕괴한다 — 당신은 블랙홀이다',
  '✧ STELLAR STREAM':'✧ 항성류','a shredded cluster strung along its orbit — harvest the chain':'찢긴 성단이 궤도를 따라 늘어섰다 — 사슬을 수확하라',
+ ' · LURE THE HUNTER':' · 포식자를 범위로 유도',' · AVOID THE RING':' · 표시 범위를 피하라','SHOCK INCOMING':'충격파 접근','lure the hunter into the marked blast':'표시된 폭발 범위로 포식자를 유도하라',' · WINDOW ':' · 기회 ','NEXT HUNTER IN ':'다음 포식자까지 ',' · 12s before the next hunter':' · 다음 포식자까지 12초',
  '✦ SHOCK BREAKOUT':'✦ 충격파 돌파','a neighbour went supernova — the blast is passing':'이웃 별이 터졌다 — 폭풍이 지나간다',
  '☠ APEX PREDATOR':'☠ 최상위 포식자','a greater black hole hunts you — outgrow it, then consume it':'더 큰 블랙홀이 당신을 쫓는다 — 넘어선 뒤 삼켜라',
  '★ APEX CONSUMED':'★ 포식자 포식',
@@ -1991,7 +1992,7 @@ function update(dt){
    for(const bm of o.g.userData.beams)bm.material.opacity=op}
   const dx=o.g.position.x-hole.position.x,dz=o.g.position.z-hole.position.z,d=Math.hypot(dx,dz)
   if(!o.nemesis&&d>(22+rad(S.mass)*7)*2.8){releaseObj(o);continue} // 뷰 밖 표류 → 재활용(네메시스는 예외 — 끝까지 쫓아옴)
-  if(o.nemesis){o.mass+=(S.mass*1.35-o.mass)*Math.min(1,dt*0.35);o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)} // 네메시스=내 1.35× 지연추종(급성장 시 잠깐 추월→되먹을 창)
+  if(o.nemesis){if(!(o.supplyUntil>S.t))o.mass+=(S.mass*1.35-o.mass)*Math.min(1,dt*0.35);o.r=rad(o.mass);o.g.scale.setScalar(o.r*1.15)} // 네메시스=내 1.35× 지연추종(급성장 시 잠깐 추월→되먹을 창)
   // 원반 가스가 날아간 라이벌은 나를 쫓지 않는다 — 굶은 블랙홀은 가스를 찾아 흩어진다(AGN 피드백의 결과).
   // 적을 '밀어내는' 게 아니라 '추격을 끊는' 것이라, 제트가 위기 탈출 수단이 된다(오너 의도).
   if(o.type==='rival'&&o.jetStun>0){o.vx*=Math.max(0,1-dt*1.6);o.vz*=Math.max(0,1-dt*1.6)}
@@ -2165,7 +2166,7 @@ function update(dt){
     const pdx=bq.g.position.x-hole.position.x,pdz=bq.g.position.z-hole.position.z
     const myG2=S.mass/Math.max(1,pdx*pdx+pdz*pdz), itsG=a.mass/Math.max(1,dd*dd)
     if(myG2>itsG)continue // 내 중력이 더 세면 라이벌은 못 가져간다(중력 경쟁)
-    if(a.mass<cap&&!(a.jetStun>0))a.mass=Math.min(a.mass+bq.mass*0.4*accEffOf(a.mass),cap) // 원반이 날아갔으면 못 먹는다
+    if(a.mass<cap&&!(a.jetStun>0)&&!(a.supplyUntil>S.t))a.mass=Math.min(a.mass+bq.mass*0.4*accEffOf(a.mass),cap) // 원반이 날아갔으면 못 먹는다
     a.r=rad(a.mass);a.g.scale.setScalar(a.r*1.15)
     bq.eaten=true;bq.eatT=0.28;bq.eatBy=a // 이 라이벌에게 빨려들게
     if(a.g.position.distanceTo(hole.position)<(22+rad(S.mass)*7)*1.6)eatBurst(bq.g.position.x,bq.g.position.z,0xff8a5a,4)
@@ -2350,8 +2351,11 @@ function hud(){
  const ready=S.energy>=1;su.classList.toggle('ready',ready)
  $('surgeLab').textContent=L(ready?(COARSE?'TAP AN ABILITY':(jetsReady?'SPACE · SHIFT · E · F':'SPACE · SHIFT · E')):'⚡ CHARGING')
  const ap=$('apex') // 네메시스 경보 — 추격(붉음)/취약(초록)+거리
- if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
-  ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=trk(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?trk(' — CONSUME IT'):'')}
+ if(pendingBlast&&S.alive){ap.className='on hunt';ap.textContent=trk('SHOCK INCOMING')+' '+Math.max(1,Math.ceil(pendingBlast.at-S.t))+'s'+(nemesis?trk(' · LURE THE HUNTER'):trk(' · AVOID THE RING'))}
+ else if(nemesis&&S.alive){const nd=Math.round(nemesis.g.position.distanceTo(hole.position)),vuln=nemesis.mass<S.mass
+  const paused=Math.max(0,Math.ceil((nemesis.supplyUntil||0)-S.t))
+  ap.className='on '+(vuln?'vuln':'hunt');ap.textContent=trk(vuln?'★ APEX VULNERABLE ▸ ':'☠ APEX ▸ ')+nd+(vuln?trk(' — CONSUME IT'):'')+(paused?trk(' · WINDOW ')+paused+'s':'')}
+ else if(S.alive&&nemPending>S.t){ap.className='on vuln';ap.textContent=trk('NEXT HUNTER IN ')+Math.ceil(nemPending-S.t)+'s'}
  else ap.className=''
 }
 
@@ -2798,7 +2802,9 @@ function launchDisk(ax,az){
    맵 전체를 흔드는 사건을 주기적으로 넣어 '지금 무슨 일이 일어났다'를 만든다. 둘 다 실제 현상. ===== */
 const evShock=new THREE.Mesh(shockGeo,new THREE.MeshBasicMaterial({color:0xffd0a0,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide,fog:false}))
 evShock.rotation.x=-Math.PI/2;evShock.visible=false;scene.add(evShock)
-let evShockT=0,evShockR=1
+let evShockT=0,evShockR=1,pendingBlast=null
+const blastWarning=new THREE.Mesh(new THREE.RingGeometry(0.97,1,80),new THREE.MeshBasicMaterial({color:0xffbd65,transparent:true,opacity:0.5,depthWrite:false,side:THREE.DoubleSide,fog:false}))
+blastWarning.rotation.x=-Math.PI/2;blastWarning.visible=false;scene.add(blastWarning)
 function updateEvShock(dt){
  if(!evShock.visible)return
  evShockT+=dt*1.5
@@ -2829,14 +2835,23 @@ function stellarStream(){
 }
 // 초신성 충격파 — 이웃 별이 터지면 폭풍이 지나간다. 밀려나지만 잔해가 남는다.
 function shockBreakout(){
+ if(pendingBlast)return
  const hr=rad(S.mass)
- const a0=rnd(0,6.283), dist=(22+hr*7)*rnd(0.7,1.1)
+ const view=Math.max(hr*6,cam.position.distanceTo(hole.position))
+ const a0=rnd(0,6.283), dist=view*0.45
  const ex=hole.position.x+Math.cos(a0)*dist, ez=hole.position.z+Math.sin(a0)*dist
- evShockR=(22+hr*7)*1.9
+ pendingBlast={x:ex,z:ez,radius:view*0.28,at:S.t+2}
+ blastWarning.position.set(ex,0.2,ez);blastWarning.scale.setScalar(pendingBlast.radius);blastWarning.visible=true
+ AU.warn()
+}
+function detonateShock(q){
+ const ex=q.x,ez=q.z
+ evShockR=q.radius
  evShock.position.set(ex,0.1,ez);evShock.visible=true;evShockT=0
  for(const o of objects){ if(o.eaten)continue
   const dx=o.g.position.x-ex,dz=o.g.position.z-ez,d=Math.hypot(dx,dz)||1
   if(d>evShockR)continue
+  if(o.nemesis)o.supplyUntil=S.t+8
   const push=(1-d/evShockR)*40
   o.vx+=(dx/d)*push;o.vz+=(dz/d)*push }
  {const dx=hole.position.x-ex,dz=hole.position.z-ez,d=Math.hypot(dx,dz)||1   // 나도 밀려난다
@@ -2853,6 +2868,8 @@ function fireEvent(kind){
  return k
 }
 function updateEvents(dt){
+ if(pendingBlast){blastWarning.material.opacity=0.45+Math.sin(S.t*9)*0.18
+  if(S.t>=pendingBlast.at){const q=pendingBlast;pendingBlast=null;blastWarning.visible=false;detonateShock(q)}}
  if(S.formIdx<2)return                                 // 블랙홀이 된 뒤부터 — 그 전은 기본기에 집중
  if(S.evT==null)S.evT=rnd(16,24)
  S.evT-=dt
@@ -2868,9 +2885,9 @@ function spawnNemesis(){
 function nemesisConsumed(o){
  const gain=o.mass*0.5*mergeEffOf(S.mass),bonus=Math.round(gain*22)
  S.mass+=gain;S.score+=bonus;S.apexKills=(S.apexKills||0)+1
- o.eaten=true;o.eatT=0.5;nemesis=null;nemPending=S.t+2.8 // 더 큰 다음 에이펙스 예약(게임시간)
+ o.eaten=true;o.eatT=0.5;nemesis=null;nemPending=S.t+12 // 더 큰 다음 에이펙스 예약(게임시간)
  S.shake=Math.min(S.shake+0.9,1.4);AU.tierUp();AU.boom();eatBurst(o.g.position.x,o.g.position.z,0xffb060,26)
- banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+' · a greater hunter will rise');codexToast('quasar')
+ banner('★ APEX CONSUMED','+'+bonus.toLocaleString()+trk(' · 12s before the next hunter'));codexToast('quasar')
 }
 let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e){return false}})() // let — 같은 세션의 두 번째 런에서 힌트가 반복되던 버그
 // 힌트는 시계가 아니라 '그 링이 실제로 화면에 있을 때' 떠야 한다.
@@ -2911,7 +2928,7 @@ addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>
 function begin(){AU.unlock();showOnboard()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
- evShock.visible=false
+ evShock.visible=false;pendingBlast=null;blastWarning.visible=false
  clearDisk()
  Object.assign(S,{bandSeen:-1,evT:null,evN:0,streamCount:0,blastCount:0,extT:0,extCount:0,sawEdible:false,sawThreat:false,disk:[],capCount:0,mass:1.2,vx:0,vz:0,t:0,peak:1.2,alive:true,combo:0,comboMax:0,score:0,shake:0,warnT:0,tierIdx:0,energy:0,surgeT:0,formIdx:0,invT:0,feeds:[],boons:[]})
  S.formIdx=0;S.invT=0;S.novaCount=0;applyForm(0);codexToast('protostar');shock.visible=false;jets.visible=false;jetsReady=false // 진화 아크 리셋 — 미행성으로 시작
@@ -2932,7 +2949,7 @@ function begin(){AU.unlock();showOnboard()
  topUp();AU.startAmbient();syncGameplay() // 포털 gameplayStart — 중복 없이(이미 진행 중이면 보내지 않는다)
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off')}
-function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;AU.stopAmbient();syncGameplay()
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;pendingBlast=null;blastWarning.visible=false;AU.stopAmbient();syncGameplay()
  MSGQ.length=0;msgUntil=0;msgPri=0;hideMsgs() // 런이 끝났다 — 남은 배너·코덱스가 결과 패널과 겹친다(실측: 마일스톤이 EVAPORATED 제목 위로)
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
@@ -3048,7 +3065,8 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  setSkin:id=>{try{localStorage.setItem('acc_skin',id)}catch(e){}return curSkin()},
  resetCodex:()=>{CODEX.seen.clear();try{localStorage.removeItem('acc_codex');localStorage.removeItem('acc_skin')}catch(e){}refreshCodexBtn()},
  openCodex,closeCodex,codexOpen:()=>!$('codexScreen').classList.contains('off'),
- nemesis:()=>nemesis?{mass:Math.round(nemesis.mass*100)/100,dist:Math.round(nemesis.g.position.distanceTo(hole.position)*10)/10,vuln:nemesis.mass<S.mass}:null,
+ nemesis:()=>nemesis?{mass:Math.round(nemesis.mass*100)/100,dist:Math.round(nemesis.g.position.distanceTo(hole.position)*10)/10,vuln:nemesis.mass<S.mass,supplyPause:Math.max(0,(nemesis.supplyUntil||0)-S.t)}:null,
+ placeNemesis:(x,z)=>{if(nemesis){nemesis.g.position.set(x,0,z);nemesis.vx=0;nemesis.vz=0}},
  spawnNemesis:()=>spawnNemesis(),apexKills:()=>S.apexKills||0,
  eatNemesis:()=>{if(nemesis){nemesisConsumed(nemesis);return true}return false},
  todayMod:()=>({id:todayMod().id,name:todayMod().name}),dayKey:()=>dayKey(),
@@ -3114,7 +3132,7 @@ setScore:v=>{S.score=v},setTarget:(x,z)=>{target.set(x,0,z);mouseActive=true},
  diskColor:()=>({a:'#'+disk.material.uniforms.uCA.value.getHexString(),r:'#'+disk.material.uniforms.uCR.value.getHexString(),ph:'#'+photon.material.color.getHexString(),temp:+diskTemp().toFixed(2)}),
  viewR:()=>{const h=rad(S.mass);return {V:Math.round(22+h*7),camDist:Math.round(cam.position.distanceTo(hole.position))}},
  fireEvent:(k)=>fireEvent(k),
- eventState:()=>({t:Math.round((S.evT||0)*10)/10,streams:S.streamCount||0,blasts:S.blastCount||0,ring:evShock.visible}),
+ eventState:()=>({t:Math.round((S.evT||0)*10)/10,streams:S.streamCount||0,blasts:S.blastCount||0,ring:evShock.visible,warning:pendingBlast?{...pendingBlast}:null}),
  streamCount:()=>objects.filter(o=>o.stream&&!o.eaten).length,
  corePos:()=>({x:galCore.position.x,z:galCore.position.z}),
  coreState:()=>({visible:galCore.visible,eaten:coreEaten,dist:+galCore.position.distanceTo(hole.position).toFixed(1),mass:CORE_MASS}),

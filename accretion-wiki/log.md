@@ -1,3 +1,7 @@
+## 2026-11-15 — 고도화 첫 구현(미배포)
+
+- 흡수 기하 재사용·충격파 예고·네메시스 공급 중단 및 재등장 간격을 작업 브랜치에 구현. [현재 범위와 미완료 관문](design/commercial-polish-20261115.md).
+
 ## 2026-10-05 — 반복 로딩 신호 수정 · CrazyGames 라이브
 
 - 매 프레임 `loadingStop` 전송을 재현(1.6초 10회), 첫 렌더/SDK 지연 도착 모두 1회만 전송하도록 수정. 교훈은 [design/portal-loading.md](design/portal-loading.md).

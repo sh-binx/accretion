@@ -149,7 +149,7 @@ try {
     const p0=A.pos(), f0=A.featCount()
     A.spawn('giant', 300, p0.x+20, p0.z)
     const before=A.objInfo()[0]
-    A.fireEvent('blast'); A.step(0.05,20)
+    A.fireEvent('blast'); A.step(2.1,20)
     out.blast={ ring:A.eventState().ring, feats:A.featCount()-f0, rec:A.eventState().blasts }
     // 형태 게이트 — 원시별 구간엔 사건이 없다(기본기에 집중)
     A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(2)
