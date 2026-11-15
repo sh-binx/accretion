@@ -1130,16 +1130,19 @@ const SPH=new THREE.SphereGeometry(1,18,14)
 const STAR_VERT='varying vec2 vUv;varying vec3 vN,vEye;void main(){vUv=uv;vN=normalMatrix*normal;vec4 p=modelViewMatrix*vec4(position,1.0);vEye=-p.xyz;gl_Position=projectionMatrix*p;}'
 const STAR_FRAG=`
  varying vec2 vUv;varying vec3 vN,vEye;
- uniform sampler2D surface;uniform vec3 tint;
+ uniform sampler2D surface;uniform vec3 tint;uniform float compact;
  void main(){
   float mu=max(0.0,dot(normalize(vN),normalize(vEye)));
   float cells=texture2D(surface,vUv).r;
   vec3 chroma=mix(tint*tint,tint,smoothstep(.36,.92,cells));
-  gl_FragColor=vec4(chroma*(.50+.55*cells)*(.40+.60*sqrt(mu)),1.0);
+  float photosphere=(.50+.55*cells)*(.40+.60*sqrt(mu));
+  // 밀집 천체는 대류 무늬 없이, 중심과 가장자리의 밝기 차로 구체를 읽는다.
+  float compactLight=(.24+.65*pow(mu,.68))*(.96+.04*vN.y);
+  gl_FragColor=vec4(mix(chroma*photosphere,tint*compactLight,compact),1.0);
  }`
-function starBody(color,size=1){
+function starBody(color,size=1,compact=false){
  const body=new THREE.Mesh(SPH,new THREE.ShaderMaterial({vertexShader:STAR_VERT,fragmentShader:STAR_FRAG,
-  uniforms:{surface:{value:texOf('star')},tint:{value:new THREE.Color(color)}}}))
+  uniforms:{surface:{value:compact?GT:texOf('star')},tint:{value:new THREE.Color(color)},compact:{value:compact?1:0}}}))
  body.scale.setScalar(size);body.rotation.set(rnd(-.45,.45),rnd(0,6.283),0);return body
 }
 function addStar(g,color,corona,op){g.add(starBody(color),glow(color,corona,op))}
@@ -1176,11 +1179,11 @@ function mkVisual(type,mass){
  else if(type==='star'){ // 실제 항성 분류(O/B 청백 → G 노랑 → K 주황 → M 적색)로 색 다양성 + 교육
   const SC=[0x9fc0ff,0xbfd8ff,0xfff4e8,0xffd27a,0xffa860,0xff7a5a],col=SC[Math.floor(Math.random()*SC.length)]
   addStar(g,col,3.5,.42)}
- else if(type==='neutron'){g.add(new THREE.Mesh(new THREE.SphereGeometry(0.62,16,12),new THREE.MeshBasicMaterial({color:0xe6f2ff})));g.add(glow(0x9fd0ff,3.6,0.95))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
+ else if(type==='neutron'){g.add(starBody(0xc3deff,.62,true),glow(0x9fd0ff,2.35,.28))} // 중성자별 — 작지만 초고밀도(강한 청백 광)
  else if(type==='pulsar'){ // 펄서 — 자기극에서 나오는 등대 빔. 그 빔이 지구를 스칠 때마다 깜빡여 보여 '펄스'다.
   // 빔 길이가 6.5였는데 몸 스케일(r*0.72)에 그대로 곱해져, 질량 2.9K에서 62유닛 — 화면 반높이(~65)를 통째로 덮었다.
   // 오너가 '저 원뿔은 뭐냐'고 물은 이유다. 짧게 줄이고, 대신 '깜빡임'을 넣어 펄서로 읽히게 한다.
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.55,16,12),new THREE.MeshBasicMaterial({color:0xeaf6ff})));g.add(glow(0xbfe0ff,3.1,0.9))
+  g.add(starBody(0xc5e2ff,.55,true),glow(0x9ac8ff,2.10,.26))
   const beams=[]
   for(const sx of [1,-1]){const bg=new THREE.ConeGeometry(0.30,3.2,10);bg.translate(0,1.6,0)
    const bm=new THREE.Mesh(bg,new THREE.MeshBasicMaterial({color:0x8fd8ff,transparent:true,opacity:0.4,blending:THREE.AdditiveBlending,depthWrite:false}))
@@ -1222,7 +1225,7 @@ function mkVisual(type,mass){
  else if(type==='redgiant'){ // 적색거성 — 크고 어둡고 부풀어 있다
   addStar(g,0xff8a56,3.8,.36)}
  else if(type==='whitedwarf'){ // 백색왜성 — 지구만 한 크기에 태양급 질량. 작고 지독하게 밝다.
-  g.add(new THREE.Mesh(new THREE.SphereGeometry(0.38,14,10),new THREE.MeshBasicMaterial({color:0xffffff})));g.add(glow(0xdfeaff,3.2,1))}
+  g.add(starBody(0xe0e8ff,.38,true),glow(0xc5d6ff,1.65,.25))}
  else if(type==='binary'){ // 쌍성계 — 둘이 서로 돈다. 실루엣이 가장 확실하게 다르다.
   const c1=0xffd27a,c2=0x9fc0ff
   const a1=starBody(c1,.62)
@@ -2309,13 +2312,25 @@ function update(dt){
   h.scale.setScalar(2.4/Math.max(0.2,o.g.scale.x)) // 후광은 화면상 일정 크기 유지
   if(o.type==='rival'){ // 크기로는 못 알아본다(반경=질량^⅓ → 1.5배 무거워도 1.14배) → 색으로 확실히
    const rd=o.g.userData.rdisk,rg=o.g.userData.rglow
-   // 원반은 언제나 뜨거운 강착원반 — 먹을 수 있는지는 후광(halo)이 이미 알려준다.
-   // 예전엔 원반을 민트/적색으로 칠해 라이벌이 '고리 두른 사탕 행성'처럼 보였다.
-   // 화면 덮개 완화(2026-09-26): 카메라 가까이 온 큰 라이벌의 원반·글로우가 가산 합성으로 화면을 크림색으로 덮었다
-   // (실측: 반경이 화면 반높이의 40~50%). 판정 크기·후광(위협 신호)은 그대로 두고 장식만 옅게 한다.
-   const cov=coverDamp(o.g.scale.x*2.0,hr)
-   if(rd){rd.material.color.setHex(0xff8a44);if(!(o.jetStun>0))rd.material.opacity=(threat?0.98:0.8)*cov}
-   if(rg){rg.material.color.setHex(threat?0xff3020:0x66e84a);if(rg.userData.op0==null)rg.userData.op0=rg.material.opacity;rg.material.opacity=rg.userData.op0*cov}}   // op0 = 스폰 때 포화 완화가 반영된 값
+   // 원반과 잔광만 낮춘다. 위협/포식 판정의 바깥 고리는 그 위의 경고를 유지한다.
+   const diskR=o.g.scale.x*2
+   const coverage=diskR/((22+hr*7)*.49)
+   const sizeFade=THREE.MathUtils.smoothstep(coverage,.45,1.25)
+   // 두 원반의 바깥 반경에 여유를 더해 접촉 직전에도 유입 흐름의 대비를 확보한다.
+   const reach=diskR+hr*2.16
+   const overlap=1-THREE.MathUtils.smoothstep(d,reach*.62,reach*1.38)
+   const cov=(1-.64*sizeFade)*(1-.78*overlap)
+   if(rd){
+    rd.material.color.setHex(0xff8a44)
+    const baseOpacity=o.jetStun>0?.16+Math.sin(S.t*14)*.06:threat?.86:.72
+    rd.material.opacity=baseOpacity*cov
+   }
+   if(rg){
+    rg.material.color.setHex(threat?0xff3020:0x66e84a)
+    if(rg.userData.op0==null)rg.userData.op0=rg.material.opacity
+    rg.material.opacity=rg.userData.op0*cov
+   }
+  }
   else if(o.g.userData.gring)o.g.userData.gring.material.opacity=0.68*coverDamp(o.g.scale.x*2.05,hr) // 신호는 바깥 글로우가 담당(원반은 언제나 뜨겁다)
 
   if(o.g.userData.pair)o.g.rotation.y+=dt*1.5 // 쌍성계는 서로 공전한다
@@ -2331,9 +2346,7 @@ function update(dt){
      tl.scale.setScalar(0.55+near*0.9)
      tl.material.opacity=(tl.userData.tilt?0.10:0.20)+near*(tl.userData.tilt?0.14:0.26)}}}
   if(o.nmCd>0)o.nmCd-=dt
-  if(o.jetStun>0){o.jetStun-=dt
-   const rd0=o.g.userData.rdisk;if(rd0)rd0.material.opacity=0.16+Math.sin(S.t*14)*0.06 // 원반이 흩어진 상태
-   if(o.jetStun<=0&&rd0)rd0.material.opacity=0.98}
+  if(o.jetStun>0)o.jetStun-=dt
   // 상호작용
   // ── 큰 천체는 '입'이 아니라 로슈 한계에서 붙잡힌다 ──
   // 조석 파괴는 강착원반 바깥에서 시작된다. 예전엔 입에 닿아야 흡수가 시작돼, 시작 순간 이미
