@@ -2,6 +2,7 @@
 const {strict:assert}=await import('node:assert')
 const page=(await taskSpace(spaceId)).page(tab)
 const errors=[]
+const hudOverlaps=[]
 if(typeof output==='string')await (await import('node:fs/promises')).mkdir(output,{recursive:true})
 const shot=(name)=>typeof output==='string'?page.screenshot({path:output+'/'+name+'.png'}):null
 const metrics=(width,height,mobile=true)=>page.cdp('Emulation.setDeviceMetricsOverride',{
@@ -100,6 +101,24 @@ try{
  assert(late[0]<=late[1],'오른쪽 HUD와 최대 조작 버튼 수가 겹치지 않음')
  await snapshot([10,7,640,274],[...playIds,'actFlare','actHold'],insets)
  await shot('green-late')
+ // 후기 퀘이사 조작대(버튼 5개)가 가장 많은 물리 행을 만든다.
+ const latePlayIds=[...playIds,'actFlare','actHold']
+ await page.evaluate(()=>{holdCap=true;hud()})
+ for(const height of [320,321,340,365,375,430,431]){
+  if(height===430)await metrics(667,450)
+  await updateVisual(667,height)
+  const [hudBottom,controlsTop,buttons]=await page.evaluate(()=>[
+   $('right').getBoundingClientRect().bottom,$('surge').getBoundingClientRect().top,
+   [...document.querySelectorAll('#surge .act')].filter(b=>b.getClientRects().length).length
+  ])
+  console.log('퀘이사 HUD 경계',JSON.stringify({height,hudBottom,controlsTop,buttons}))
+  if(hudBottom>controlsTop)hudOverlaps.push(height)
+  await snapshot([0,0,667,height],latePlayIds,insets)
+  if(height===340)await shot('late-340')
+ }
+ await page.evaluate(()=>{holdCap=false;hud()})
+ await metrics(667,375)
+ await updateVisual(640,274,10,7)
  await click('pauseBtn')
  await page.waitForFunction(()=>__acc.pauseState().manual)
  await snapshot([10,7,640,274],['canvas','resumeBtn'],insets)
@@ -147,15 +166,33 @@ try{
  await page.waitForFunction(()=>$('startFullscreenStatus').textContent.includes('전체 화면'))
  assert.equal(await page.evaluate(()=>$('startFullscreen').textContent.trim()),'전체 화면')
  assert.equal(await page.evaluate(()=>document.fullscreenElement),null)
+ await page.evaluate(()=>{delete document.documentElement.requestFullscreen})
  await click('startBtn',false)
  await page.waitForFunction(()=>document.body.classList.contains('playing'))
  await page.evaluate(()=>hideOnboard())
+ await page.waitForFunction(()=>S.t>=.03)
  await page.keyboard.press('Escape')
  await page.waitForFunction(()=>__acc.pauseState().manual&&document.activeElement.id==='resumeBtn')
  await page.keyboard.press('Tab')
  assert.equal(await page.evaluate(()=>document.activeElement.id),'pauseFullscreen')
  await page.keyboard.press('Tab')
  assert.equal(await page.evaluate(()=>document.activeElement.id),'resumeBtn')
+ // 실제 전체 화면에 들어간 뒤, 브라우저가 소비하지 않고 게임에 전달한 Escape를 재현한다.
+ await click('pauseFullscreen',false)
+ await page.waitForFunction(()=>document.fullscreenElement===document.documentElement&&$('pauseFullscreen').textContent==='전체 화면 종료')
+ await click('pauseFullscreen',false)
+ await page.waitForFunction(()=>!document.fullscreenElement&&$('pauseFullscreen').textContent==='전체 화면')
+ assert.deepEqual(await page.evaluate(()=>[__acc.pauseState().manual,__acc.pauseState().gp]),[true,false],'전체 화면 종료 버튼으로 나와도 정지 유지')
+ await click('pauseFullscreen',false)
+ await page.waitForFunction(()=>document.fullscreenElement===document.documentElement&&$('pauseFullscreen').textContent==='전체 화면 종료')
+ const timeBefore=await page.evaluate(()=>S.t)
+ await page.evaluate(()=>document.activeElement.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',code:'Escape',bubbles:true,cancelable:true})))
+ await page.waitForFunction(()=>!document.fullscreenElement||!__acc.pauseState().manual,undefined,{timeout:3000})
+ const escapeState=await page.evaluate(()=>({full:!!document.fullscreenElement,manual:__acc.pauseState().manual,gp:__acc.pauseState().gp,time:S.t}))
+ console.log('전체 화면에서 Escape',JSON.stringify({timeBefore,...escapeState}))
+ assert.deepEqual({hudOverlaps,escapeState},{hudOverlaps:[],escapeState:{full:false,manual:true,gp:false,time:timeBefore}})
+ await page.keyboard.press('Escape')
+ await page.waitForFunction(()=>!__acc.pauseState().manual&&__acc.pauseState().gp)
  errors.push(...await page.evaluate(()=>window.__viewportErrors))
  // 구형 WebKit 접두사 경로와 VisualViewport 미지원은 따로 모의한다.
  const legacy=await inject(`
@@ -188,6 +225,7 @@ try{
  console.log('가시영역·안전 여백·회전·모달·전체 화면 실제 진입/해제 및 거부·접두사/가시영역 미지원 대체 경로 통과')
  assert.deepEqual(errors,[],'페이지 에러')
 }finally{
+ await page.evaluate(()=>{if(document.fullscreenElement)return document.exitFullscreen()}).catch(()=>{})
  await remove(unavailable).catch(()=>{})
  await remove(visual).catch(()=>{})
  await remove(errorProbe)

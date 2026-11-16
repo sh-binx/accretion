@@ -454,12 +454,13 @@ body.low-view #start .wm{font-size:clamp(36px,9.4vw,71px)}
 body.low-view #start .play{margin-top:13px}
 body.low-view #choice .cc{padding:10px 11px}
 body.low-view #choice .cwhy{font-size:10.5px}
+/* Compact the flight instruments before a three-row ability grid crowds the HUD. */
+body.low-view.touch #right .hud-line{display:flex;justify-content:flex-end;align-items:baseline;gap:7px}
+body.low-view.touch #right .hud-line .lab{margin-top:0!important}
+body.low-view.touch #right .hud-line .v{margin-top:0}
+body.low-view.touch #surge .acts{grid-template-columns:repeat(3,minmax(74px,auto))}
+body.low-view.touch #banner:not(.charge-note){top:calc(94px + var(--safe-top));left:39%;width:min(200px,32%)}
 /* When browser chrome leaves very little height, the start controls flow instead of overlapping. */
-body.short-view.touch #right .hud-line{display:flex;justify-content:flex-end;align-items:baseline;gap:7px}
-body.short-view.touch #right .hud-line .lab{margin-top:0!important}
-body.short-view.touch #right .hud-line .v{margin-top:0}
-body.short-view.touch #surge .acts{grid-template-columns:repeat(3,minmax(74px,auto))}
-body.short-view.touch #banner:not(.charge-note){top:calc(94px + var(--safe-top));left:34%;width:min(230px,38%)}
 body.short-view #start{
  align-items:flex-start;justify-content:flex-start;overflow-y:auto;overscroll-behavior:contain;
  padding:calc(4px + var(--safe-top)) var(--edge-right) calc(4px + var(--safe-bottom))
@@ -3505,16 +3506,15 @@ function renderFullscreen(){
 function fullscreenFailed(status){
  screenAttempt=null;screenError=status;renderFullscreen()
 }
-screenModes.forEach((button,i)=>{button.onclick=async()=>{
- const api=fullscreenAPI()
+async function toggleFullscreen(status,api=fullscreenAPI()){
  if(!api){renderFullscreen();return}
- const status=screenStatus[i]
  screenError=null;screenAttempt=status;renderFullscreen()
  try{
   if(document[api[1]]===screenRoot)await document[api[3]]()
   else await screenRoot[api[2]]()
  }catch(e){fullscreenFailed(status)}
-}})
+}
+screenModes.forEach((button,i)=>{button.onclick=()=>toggleFullscreen(screenStatus[i])})
 for(const [,,,,change,error] of FULLSCREEN){
  document.addEventListener(change,()=>{screenAttempt=null;screenError=null;renderFullscreen();queueView()})
  document.addEventListener(error,()=>{if(screenAttempt)fullscreenFailed(screenAttempt)})
@@ -3530,7 +3530,16 @@ const isShift=code=>code==='ShiftLeft'||code==='ShiftRight'
 addEventListener('keydown',e=>{
  if(e.code==='Tab')pendingPullShift=null
  if(typing(e)||(PAUSE.result&&PAUSE.interrupted))return
- if(e.code==='Escape'&&!e.repeat){if(!coreFinishing())showPause(!PAUSE.manual);return}
+ if(e.code==='Escape'){
+  if(e.repeat)return
+  const api=fullscreenAPI()
+  if(api&&document[api[1]]===screenRoot){
+   // Safari/Chromium may keep Escape for native exit. If it reaches the game, only exit fullscreen.
+   e.preventDefault()
+   toggleFullscreen(screenStatus[PAUSE.manual?1:0],api)
+  }else if(!coreFinishing())showPause(!PAUSE.manual)
+  return
+ }
  if(e.code==='Tab'&&(PAUSE.manual||PAUSE.result||choiceOpen)){
   const items=PAUSE.result?[$('coreContinue'),$('coreRestart')]:PAUSE.manual?[$('resumeBtn'),...(screenModes[1].hidden?[]:[screenModes[1]])]:[...$('choiceWrap').children]
   const edge=e.shiftKey?items[0]:items[items.length-1]
