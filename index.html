@@ -1731,16 +1731,17 @@ function setMouse(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;r
 // 마우스 조종은 제거했다(2026-07-28) — 시작 즉시 커서 위치로 끌려가 의도치 않게 움직였다.
 // 조작은 키보드(WASD·방향키)와 모바일 조이스틱뿐. setMouse는 DEV/자동화용으로만 남는다.
 const joyEl=$('joy'),joyThumb=$('joyThumb'),JOYR=52
-let joyOn=false,joyOx=0,joyOy=0,joyX=0,joyZ=0,joyMag=0
-function joyStart(t){joyOx=t.clientX;joyOy=t.clientY;joyEl.style.left=t.clientX+'px';joyEl.style.top=t.clientY+'px';joyEl.classList.remove('off');joyThumb.style.transform='translate(-50%,-50%)';joyOn=true}
+let joyTouchId=null,joyOn=false,joyOx=0,joyOy=0,joyX=0,joyZ=0,joyMag=0
+function joyStart(t){joyTouchId=t.identifier;joyMag=0;joyOx=t.clientX;joyOy=t.clientY;joyEl.style.left=t.clientX+'px';joyEl.style.top=t.clientY+'px';joyEl.classList.remove('off');joyThumb.style.transform='translate(-50%,-50%)';joyOn=true}
 function joyMove(t){if(!joyOn)return;const ox=t.clientX-joyOx,oy=t.clientY-joyOy,len=Math.hypot(ox,oy)||1,cl=Math.min(len,JOYR)
  joyThumb.style.transform='translate(calc(-50% + '+(ox/len*cl)+'px),calc(-50% + '+(oy/len*cl)+'px))'
  joyX=ox/len;joyZ=oy/len;joyMag=Math.min(len/JOYR,1)}
-function joyEnd(){joyOn=false;joyMag=0;joyEl.classList.add('off')}
+function joyEnd(){joyTouchId=null;joyOn=false;joyMag=0;joyEl.classList.add('off')}
 // 조이스틱은 플레이 중 캔버스 터치에서만 — UI(버튼/오버레이) 탭은 통과시켜 모바일 클릭 보존
-addEventListener('touchstart',e=>{if(S.alive&&!PAUSE.on&&!choiceOpen&&e.target===renderer.domElement&&e.touches[0]){joyStart(e.touches[0]);e.preventDefault()}},{passive:false})
-addEventListener('touchmove',e=>{if(joyOn&&e.touches[0]){joyMove(e.touches[0]);e.preventDefault()}},{passive:false})
-addEventListener('touchend',e=>{if(!e.touches.length)joyEnd()});addEventListener('touchcancel',joyEnd)
+addEventListener('touchstart',e=>{if(S.alive&&!PAUSE.on&&!choiceOpen&&!joyOn&&e.target===renderer.domElement&&e.changedTouches[0]){joyStart(e.changedTouches[0]);e.preventDefault()}},{passive:false})
+addEventListener('touchmove',e=>{const t=Array.from(e.touches).find(t=>t.identifier===joyTouchId);if(joyOn&&t){joyMove(t);e.preventDefault()}},{passive:false})
+function joyRelease(e){if(joyOn&&!Array.from(e.touches).some(t=>t.identifier===joyTouchId))joyEnd()}
+addEventListener('touchend',joyRelease);addEventListener('touchcancel',joyRelease)
 function steer(){
  const kx=((keys['KeyD']||keys['ArrowRight'])?1:0)-((keys['KeyA']||keys['ArrowLeft'])?1:0)
  const kz=((keys['KeyS']||keys['ArrowDown'])?1:0)-((keys['KeyW']||keys['ArrowUp'])?1:0)
