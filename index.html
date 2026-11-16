@@ -210,7 +210,7 @@ html[lang=ko] #onb .ob-r i,html[lang=ko] #onb .ob-halo,html[lang=ko] #onb .ob-h,
 html,body{font-family:var(--sans);color:var(--paper)}
 button{font-family:inherit;touch-action:manipulation}
 button:focus-visible,[tabindex="0"]:focus-visible{outline:2px solid var(--ice);outline-offset:3px}
-:is(canvas,#choiceTitle,#overTitle):focus{outline:none}
+:is(canvas,#choiceTitle,#overTitle,#coreResultTitle):focus{outline:none}
 #hud,#massbar,#right,#apex,#banner,#codex,#surge{font-family:var(--sans)}
 #hud,#right{top:18px}
 #hud{left:var(--edge);line-height:1.18}
@@ -342,8 +342,21 @@ body.touch #chips button.stat{align-items:center}
 #chips .stat{margin:0}
 #chips .k,#chips .v{font-size:12px;text-transform:none;letter-spacing:0;color:var(--muted)}
 #chips .v{color:var(--paper)}
-#over,#pause{align-items:flex-start;text-align:left;padding:var(--edge);overflow-y:auto}
-#over .sheet,#pause .sheet{width:min(100%,570px);margin:auto;flex:none;padding:10px 0}
+#over,#pause,#coreResult{align-items:flex-start;text-align:left;padding:var(--edge);overflow-y:auto}
+#over .sheet,#pause .sheet,#coreResult .sheet{width:min(100%,570px);margin:auto;flex:none;padding:10px 0}
+#coreResult{background:rgba(15,13,19,.91);overscroll-behavior:contain}
+#coreResult .sheet{width:min(100%,630px)}
+#coreResultTitle{font-size:clamp(30px,5.6vw,62px);color:var(--copper);text-wrap:balance}
+#coreResultStat{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 16px;margin-top:20px;padding:12px 0;border-block:1px solid #55434a}
+#coreResultStat dt,#coreResult h3{font:700 12px var(--sans);color:var(--muted)}
+#coreResultStat dd{margin:4px 0 0;color:var(--paper);font:650 clamp(13px,2.3vw,23px)/1.15 var(--number);overflow-wrap:anywhere}
+#coreResult h3{margin:14px 0 6px}
+#coreResultBoons{display:flex;flex-wrap:wrap;gap:4px 0;margin:0;padding:0;list-style:none;color:var(--paper);font:600 13px/1.35 var(--sans)}
+#coreResultBoons li+li{margin-left:9px;padding-left:9px;border-left:1px solid #55434a}
+#coreResult .result-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+#coreResult .btn{margin:0;min-width:46px}
+#coreRestart{background:none;border:1px solid #77646c;color:var(--paper)}
+#coreRestart:hover{background:var(--panel);color:var(--paper)}
 #over .msg,#pause .msg{font-size:clamp(13px,1.6vw,17px);margin-top:12px}
 #over .result-note{display:block;margin-top:5px;color:var(--muted);font-size:13px}
 #overStat{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px 19px;margin-top:18px;padding:12px 0;border-block:1px solid #45404a}
@@ -493,6 +506,17 @@ body.touch #choice .ck{display:none}
  <button class="btn" id="retryBtn">Play again</button>
  <button class="linkbtn" id="overBoard">🏆 LEADERBOARD</button>
  <button class="linkbtn" id="overCodex">Codex</button>
+</div></section>
+
+<section class="center off" id="coreResult" role="dialog" aria-modal="true" aria-labelledby="coreResultTitle"><div class="sheet">
+ <h2 class="big" id="coreResultTitle" tabindex="-1">Galactic core consumed</h2>
+ <dl class="stat" id="coreResultStat"></dl>
+ <h3>Evolutions chosen</h3>
+ <ul id="coreResultBoons"></ul>
+ <div class="result-actions">
+  <button type="button" class="btn" id="coreContinue">Continue growing</button>
+  <button type="button" class="btn" id="coreRestart">Start a new run</button>
+ </div>
 </div></section>
 
 <section class="center off" id="pause" role="dialog" aria-modal="true" aria-labelledby="pauseTitle"><div class="sheet">
@@ -863,7 +887,7 @@ function openChoice(tierName){
 }
 function takeBoon(b){
  if(!choiceOpen||!b)return
- S.boons.push(b);closeChoice();focusFlight()
+ S.boons.push(b);closeChoice();if(!PAUSE.on&&!coreFinishing())focusFlight()
  banner('◆ '+trk(b.n),T(b.sum),3);if(AU.tierUp)AU.tierUp()
 }
 function closeChoice(){
@@ -1043,11 +1067,13 @@ const galCore=new THREE.Group()
 }
 galCore.visible=false;scene.add(galCore)
 let coreEaten=false
+let coreFinishTime=0,coreFinishDelay=0
+function coreFinishing(){return coreFinishTime!==0}
 function placeCore(){ // 플레이어에서 충분히 떨어진 고정 좌표 — 성장해야 닿는다
  galCore.position.set(0,0,-rad(CORE_MASS)*9)
- galCore.visible=true;coreEaten=false}
+ galCore.visible=true;coreEaten=false;resetCoreResult()}
 function updateCore(dt){
- if(!galCore.visible||coreEaten)return
+ if(!S.alive||!galCore.visible||coreEaten)return
  galCore.userData.disk.material.uniforms.uT.value+=dt*0.35
  galCore.userData.photon.quaternion.copy(cam.quaternion)
  const dx=galCore.position.x-hole.position.x,dz=galCore.position.z-hole.position.z
@@ -1063,6 +1089,9 @@ function updateCore(dt){
    S.mass+=CORE_MASS*0.45;S.score+=Math.round(CORE_MASS*0.5)
    supernova();banner('★ GALACTIC CORE','you swallowed the heart of a galaxy');AU.tierUp()
    eatBurst(hole.position.x,hole.position.z,0xffd9a0,40);codexToast('supermassive')
+   S.peak=Math.max(S.peak,S.mass);hole.scale.setScalar(rad(S.mass))
+   coreFinishTime=performance.now();coreFinishDelay=0.85
+   clearSteering()
   } else if(S.invT<=0){ codexToast('devoured');gameOver('eaten',CORE_MASS) }
  }
 }
@@ -1725,7 +1754,7 @@ const keys={}
 let pendingPullShift=null
 // e.code = 물리 키(레이아웃·IME 무관) — 한글 입력기에서도 WASD 작동(e.key면 ㅈㅁㄴㅇ로 들어와 실패)
 const typing=e=>/^(INPUT|TEXTAREA|SELECT)$/.test(e.target&&e.target.tagName)
-addEventListener('keydown',e=>{if(typing(e)||PAUSE.on||choiceOpen||(e.code==='Space'&&e.target instanceof HTMLButtonElement))return;keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
+addEventListener('keydown',e=>{if(typing(e)||PAUSE.on||choiceOpen||coreFinishing()||(e.code==='Space'&&e.target instanceof HTMLButtonElement))return;keys[e.code]=1;if(e.code.indexOf('Arrow')===0||e.code==='Space')e.preventDefault()})
 addEventListener('keyup',e=>{keys[e.code]=0})
 function setMouse(cx,cy){ndc.x=(cx/innerWidth)*2-1;ndc.y=-(cy/innerHeight)*2+1;ray.setFromCamera(ndc,cam);const hit=new THREE.Vector3();if(ray.ray.intersectPlane(plane,hit)){target.copy(hit);mouseActive=true}}
 // 마우스 조종은 제거했다(2026-07-28) — 시작 즉시 커서 위치로 끌려가 의도치 않게 움직였다.
@@ -1738,7 +1767,7 @@ function joyMove(t){if(!joyOn)return;const ox=t.clientX-joyOx,oy=t.clientY-joyOy
  joyX=ox/len;joyZ=oy/len;joyMag=Math.min(len/JOYR,1)}
 function joyEnd(){joyTouchId=null;joyOn=false;joyMag=0;joyEl.classList.add('off')}
 // 조이스틱은 플레이 중 캔버스 터치에서만 — UI(버튼/오버레이) 탭은 통과시켜 모바일 클릭 보존
-addEventListener('touchstart',e=>{if(S.alive&&!PAUSE.on&&!choiceOpen&&!joyOn&&e.target===renderer.domElement&&e.changedTouches[0]){joyStart(e.changedTouches[0]);e.preventDefault()}},{passive:false})
+addEventListener('touchstart',e=>{if(S.alive&&!PAUSE.on&&!choiceOpen&&!coreFinishing()&&!joyOn&&e.target===renderer.domElement&&e.changedTouches[0]){joyStart(e.changedTouches[0]);e.preventDefault()}},{passive:false})
 addEventListener('touchmove',e=>{const t=Array.from(e.touches).find(t=>t.identifier===joyTouchId);if(joyOn&&t){joyMove(t);e.preventDefault()}},{passive:false})
 function joyRelease(e){if(joyOn&&!Array.from(e.touches).some(t=>t.identifier===joyTouchId))joyEnd()}
 addEventListener('touchend',joyRelease);addEventListener('touchcancel',joyRelease)
@@ -2093,7 +2122,8 @@ const KO3={
  // 결과
  'EVAPORATED':'증발','You radiated away faster than you could feed.':'먹는 속도보다 빨리 복사로 사라졌다.',
  'Hawking radiation: smaller black holes evaporate faster — a real prediction.':'호킹 복사 — 작은 블랙홀일수록 빨리 증발한다. 실제 이론의 예측이다.',
- 'PEAK MASS':'최고 질량',
+ 'PEAK MASS':'최고 질량','Evolutions chosen':'선택한 진화','None':'없음',
+ 'Continue growing':'계속 성장하기','Start a new run':'새 판 시작',
  // 코덱스·업적 화면
  'CO':'코','DEX':'덱스','A':'업','WARDS':'적',' DISCOVERED':' 발견',' EARNED':' 달성','??? · LOCKED':'??? · 미발견','☆ LOCKED':'☆ 잠김',
  'Discover it in play.':'플레이하며 발견하세요.',
@@ -2469,15 +2499,7 @@ function update(dt){
  }
  updateFeed(dt)
  topUp();updateFeats(dt)
- // 티어업
- const ti=tierOf(S.mass)
- if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,TIERS[ti].d||'');AU.tierUp();S.shake=Math.min(S.shake+0.6,1.1);S.score+=Math.round(S.mass*0.6);$('zone').style.boxShadow=ZONES[zoneIdx()].fx
-  codexToast(ti===1?'intermediate':(ti===2?'supermassive':(ti===3?'quasar':'ultramassive')))
-  if(ti>=3)applyJets()
-  repaintDisk(ti)               // 승격은 세상뿐 아니라 '나'도 바꿔야 한다 — 원반이 한 단계 식는다
-                                // (S.tierIdx는 이 블록 뒤에 갱신되므로 새 티어를 직접 넘긴다)
-  openChoice(TIERS[ti].n)}   // 티어를 올릴 때마다 3택 1 — 매 런 다른 조합이 '다시 하는 이유'가 된다
- S.tierIdx=ti;applyJets()
+ updateTier()
  applyZone(dt) // 존 팔레트(안개·조명·렌징) 부드럽게 목표로 lerp
  // 네메시스 생애: INTERMEDIATE+면 항상 하나. 처치 후엔 잠깐 뒤 더 큰 게 등장.
  if(nemPending&&S.t>nemPending)nemPending=0
@@ -2492,6 +2514,17 @@ function update(dt){
  $('vig').style.boxShadow='inset 0 0 200px 40px rgba(255,60,80,'+(danger?(0.18+Math.sin(S.t*10)*0.12):0)+')'
  if(S.mass>S.peak)S.peak=S.mass
  onboardTick();checkAch()
+}
+
+function updateTier(){
+ const ti=tierOf(S.mass)
+ if(ti!==S.tierIdx&&ti>S.tierIdx&&S.tierIdx>=0){banner('▲ '+TIERS[ti].n,TIERS[ti].d||'');AU.tierUp();S.shake=Math.min(S.shake+0.6,1.1);S.score+=Math.round(S.mass*0.6);$('zone').style.boxShadow=ZONES[zoneIdx()].fx
+  codexToast(ti===1?'intermediate':(ti===2?'supermassive':(ti===3?'quasar':'ultramassive')))
+  if(ti>=3)applyJets()
+  repaintDisk(ti)               // 승격은 세상뿐 아니라 '나'도 바꿔야 한다 — 원반이 한 단계 식는다
+                                // (S.tierIdx는 이 블록 뒤에 갱신되므로 새 티어를 직접 넘긴다)
+  openChoice(TIERS[ti].n)}   // 티어를 올릴 때마다 3택 1 — 매 런 다른 조합이 '다시 하는 이유'가 된다
+ S.tierIdx=ti;applyJets()
 }
 
 /* ===== camera + render ===== */
@@ -2657,7 +2690,7 @@ function updateFX(dt){fxT+=dt;fxN++
 const partCap=()=>fxLow?45:140
 /* ===== 일시정지 — 탭 숨김 · 세로 회전 차단 · 광고. 한 곳에서 판정하고 포털 이벤트를 짝 맞춰 보낸다 =====
  * Poki/CG: 중단마다 gameplayStop, 복귀 때 gameplayStart. 같은 이벤트를 연달아 보내지 않는다. */
-const PAUSE={hidden:false,orient:false,manual:false,get on(){return this.hidden||this.orient||this.manual}}
+const PAUSE={hidden:false,orient:false,manual:false,result:false,get on(){return this.hidden||this.orient||this.manual||this.result}}
 let gpActive=false
 function syncGameplay(){const want=S.alive&&!PAUSE.on
  if(want&&!gpActive){gpActive=true;PORTAL.gameplayStart()}
@@ -2672,10 +2705,10 @@ function syncPause(){if(PAUSE.on)clearSteering();audioHold(PAUSE.on);syncGamepla
 function focusFlight(){renderer.domElement.tabIndex=-1;renderer.domElement.focus({preventScroll:true})}
 function returnPointerFocus(e){
  // 키보드·보조기기의 활성화(detail 0)는 버튼에 초점을 남긴다.
- if(e.detail>0&&S.alive&&!PAUSE.on&&!choiceOpen)focusFlight()
+ if(e.detail>0&&S.alive&&!PAUSE.on&&!choiceOpen&&!coreFinishing())focusFlight()
 }
 function showPause(on){
- if(on&&(!S.alive||PAUSE.on||onbT||choiceOpen))return
+ if(on&&(!S.alive||PAUSE.on||onbT||choiceOpen||coreFinishing()))return
  PAUSE.manual=on
  document.body.classList.toggle('modal-paused',on)
  $('pause').classList.toggle('off',!on)
@@ -2688,8 +2721,10 @@ addEventListener('touchend',()=>{if(!PAUSE.on)audioHold(false)}) // iOS: 전화�
 function frame(now){requestAnimationFrame(frame)
  let dt=(now-last)/1000;last=now;dt=clamp(dt,0.001,0.05)
  if(!S.alive){const u=dt*0.62;hole.userData.disk.material.uniforms.uT.value+=u;hole.userData.diskArc.material.uniforms.uT.value+=u;hole.scale.setScalar(2.3)} // 메뉴: 원반 회전 + 히어로 크기(update가 안 도는 상태라 직접 지정)
- updateFX(dt);const hold=onbT||choiceOpen||(S.alive&&PAUSE.on)
- if(!hold)update(dt);if(!hold)updateCore(dt);updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt);hud();render()
+ updateFX(dt);const hold=onbT||choiceOpen||(S.alive&&PAUSE.on)||coreFinishing()
+ if(!hold){update(dt);updateCore(dt)}
+ if(!coreFinishing()||!PAUSE.on){updateParticles(dt);updateShock(dt);updateEvShock(dt);updateCamera(dt)}
+ updateCoreCompletion(dt);hud();render()
  if(!PORTAL.loadingDone)PORTAL.loadingStop()} // 첫 렌더 후 한 번만. 늦게 도착한 SDK에는 init에서 전달한다.
 requestAnimationFrame(frame)
 
@@ -2713,7 +2748,7 @@ const COARSE=matchMedia('(pointer:coarse)').matches||('ontouchstart' in window)
 if(COARSE)document.body.classList.add('touch') // 터치 기기 = 엄지 탭 영역 확보(미디어 쿼리는 에뮬레이션에서 안 잡혀 JS 판정으로)
 // 서지 = 중력 슬링샷 대시(에너지 만충 시 발동, 먹어서 충전). 사냥·회피 양용.
 function doSurge(){
- if(choiceOpen||PAUSE.on)return                                  // 진화 선택 중 발동 금지
+ if(choiceOpen||PAUSE.on||coreFinishing())return                                  // 진화 선택 중 발동 금지
  if(!S.alive||S.surgeT>0||S.energy<1)return
  S.energy=0;S.surgeT=0.9;S.surgeCount=(S.surgeCount||0)+1;learnVerb('dash')
  const st=steer();let dx=st.x,dz=st.z
@@ -2724,7 +2759,7 @@ function doSurge(){
 }
 
 function doFlare(){
- if(choiceOpen||PAUSE.on)return                                  // 진화 선택 중 발동 금지 // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
+ if(choiceOpen||PAUSE.on||coreFinishing())return                                  // 진화 선택 중 발동 금지 // 네 번째 능력 — 제트 탈출(퀘이사 티어 전용). 오너 의도: '위기 탈출용'.
  // 물리: 제트는 자전축 '양쪽으로' 대칭으로 뿜는다(쌍극) → 축 양쪽을 한 번에 쓸어낸다.
  // 가스와 별은 상대론적 플라스마에 찢겨 날아가지만, 다른 블랙홀은 제트로 어쩔 수 없다(사건지평선)
  // → 그쪽은 원반 가스만 날려 강착을 끊는다(AGN 피드백).
@@ -2779,7 +2814,7 @@ function doFlare(){
  if(!S.flareSeen){S.flareSeen=true;codexToast('quasar')}
 }
 function doWave(){
- if(choiceOpen||PAUSE.on)return                                  // 진화 선택 중 발동 금지 // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
+ if(choiceOpen||PAUSE.on||coreFinishing())return                                  // 진화 선택 중 발동 금지 // 세 번째 능력 — 중력파. 실제로 병합은 시공간 파동으로 막대한 에너지를 방출하고,
  // 그 파동은 주변 물질의 궤도를 흐트러뜨린다. 위협을 밀어내고 라이벌의 강착을 끊는 용도.
  if(!S.alive||S.surgeT>0||S.energy<1)return
  S.energy=0;S.waveCount=(S.waveCount||0)+1;learnVerb('wave');S.invT=Math.max(S.invT,0.5)
@@ -2800,7 +2835,7 @@ function doWave(){
  banner('◎ GRAVITATIONAL WAVE','spacetime rings — orbits scatter');codexToast('gwave')
 }
 function doPulse(){
- if(choiceOpen||PAUSE.on)return                                  // 진화 선택 중 발동 금지 // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
+ if(choiceOpen||PAUSE.on||coreFinishing())return                                  // 진화 선택 중 발동 금지 // 두 번째 능력 — 대시(사냥)와 다른 선택지: 수확·탈출
  // 흡수 중이라면 흐름도 함께 당긴다 — 프레임 드래깅은 원반 안쪽 물질을 실제로 끌어당긴다.
  // 흡수를 '보는 것'에서 '개입하는 것'으로 바꾸는 장치(오너: 후반이 무료하다).
  if(!S.alive||S.surgeT>0||S.energy<1)return
@@ -3231,6 +3266,48 @@ function showOnboard(){const el=$('onb')
  el.classList.add('on');document.body.classList.add('intro');onbT=performance.now()+9000}
 function hideOnboard(){if(onbT){$('onb').classList.remove('on');document.body.classList.remove('intro');onbT=0}}
 addEventListener('keydown',()=>hideOnboard());addEventListener('touchstart',()=>hideOnboard())
+// 진화 선택 뒤에 흡수 보상으로 새 티어가 열리면 그 선택도 결과보다 앞선다.
+function updateCoreCompletion(dt){
+ if(!coreFinishing()||PAUSE.on)return
+ coreFinishDelay-=dt
+ if(coreFinishDelay>0||choiceOpen)return
+ checkMassMarks()
+ updateTier()
+ if(choiceOpen)return
+ if(S.daily&&S.score>=100)AWARDS.unlock('daily')
+ checkAch()
+ if(S.score>STATS.best)STATS.best=S.score
+ refreshStrip()
+ $('coreResultStat').innerHTML=[
+  ['Time',S.t.toFixed(1)+(LANG==='ko'?'초':'s')],['Peak mass',fmtBig(S.peak)+' M☉'],['Score',S.score.toLocaleString(LANG)]
+ ].map(([label,value])=>'<div><dt>'+L(label)+'</dt><dd>'+value+'</dd></div>').join('')
+ $('coreResultBoons').replaceChildren(...(S.boons.length?S.boons.map(b=>L(b.n)):[L('None')]).map(name=>{
+  const li=document.createElement('li');li.textContent=name;return li
+ }))
+ PAUSE.result=true
+ document.body.classList.add('modal-paused')
+ $('coreResult').classList.remove('off');$('coreResult').scrollTop=0
+ syncPause()
+ $('coreResultTitle').focus({preventScroll:true})
+}
+function resetCoreResult(){
+ coreFinishTime=0;coreFinishDelay=0
+ if(!PAUSE.result)return
+ PAUSE.result=false
+ $('coreResult').classList.add('off');document.body.classList.remove('modal-paused')
+}
+function continueAfterCore(){
+ if(!PAUSE.result)return
+ const held=performance.now()-coreFinishTime
+ // 콤보와 스침 연쇄는 실시간 타이머라 흡수 연출과 결과 화면의 대기 시간을 빼준다.
+ if(S.comboAt)S.comboAt+=held
+ if(S.grazeAt)S.grazeAt+=held
+ resetCoreResult()
+ syncPause()
+ if(!PAUSE.on)focusFlight()
+}
+$('coreContinue').onclick=continueAfterCore
+$('coreRestart').onclick=()=>{if(PAUSE.result)begin()}
 function begin(){AU.unlock();PAUSE.manual=false;$('pause').classList.add('off');document.body.classList.remove('modal-paused');clearSteering()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
@@ -3255,7 +3332,7 @@ function begin(){AU.unlock();PAUSE.manual=false;$('pause').classList.add('off');
  topUp();AU.startAmbient();syncGameplay() // 포털 gameplayStart — 중복 없이(이미 진행 중이면 보내지 않는다)
  document.body.classList.add('playing') // HUD 노출(메뉴에선 숨김)
  $('start').classList.add('off');$('over').classList.add('off');$('board').classList.add('off');$('codexScreen').classList.add('off');showOnboard()}
-function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;showPause(false);hideOnboard();closeChoice();pendingBlast=null;blastWarning.visible=false;AU.stopAmbient();syncGameplay()
+function gameOver(cause,byMass){if(!S.alive)return;S.alive=false;resetCoreResult();showPause(false);hideOnboard();closeChoice();pendingBlast=null;blastWarning.visible=false;AU.stopAmbient();syncGameplay()
  MSGQ.length=0;msgUntil=0;msgPri=0;hideMsgs() // 런이 끝났다 — 남은 배너·코덱스가 결과 패널과 겹친다(실측: 마일스톤이 EVAPORATED 제목 위로)
  document.body.classList.remove('playing') // HUD 숨김
  if(S.daily&&S.score>=100)AWARDS.unlock('daily');checkAch()
@@ -3299,12 +3376,12 @@ refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오�
 const CHARGE_CONTROLS=['actDash','actPulse','actWave','actFlare'].map($)
 ;[doSurge,doPulse,doWave,doFlare].forEach((fire,i)=>{CHARGE_CONTROLS[i].onclick=e=>{fire();returnPointerFocus(e)}})
 {const hb=$('actHold')   // 누르는 동안만 포획. 화면 밖에서 손을 떼도 상태를 해제한다.
- const dn=e=>{if(!S.alive||PAUSE.on||choiceOpen)return;e.preventDefault()
+ const dn=e=>{if(!S.alive||PAUSE.on||choiceOpen||coreFinishing())return;e.preventDefault()
   focusFlight();hb.setPointerCapture(e.pointerId);holdCap=true} // blur에서 이전 붙잡기가 해제된 다음 새 입력을 시작한다.
  const up=()=>{holdCap=false}
  hb.addEventListener('pointerdown',dn);hb.addEventListener('pointerup',up)
  hb.addEventListener('lostpointercapture',up);hb.addEventListener('pointercancel',up)
- hb.addEventListener('keydown',e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();if(S.alive&&!PAUSE.on&&!choiceOpen)holdCap=true}})
+ hb.addEventListener('keydown',e=>{if(e.code==='Enter'||e.code==='Space'){e.preventDefault();if(S.alive&&!PAUSE.on&&!choiceOpen&&!coreFinishing())holdCap=true}})
  hb.addEventListener('keyup',e=>{if(e.code==='Enter'||e.code==='Space')up()})
  hb.addEventListener('blur',up)}
 $('pauseBtn').onclick=()=>showPause(true)
@@ -3321,15 +3398,16 @@ const isShift=code=>code==='ShiftLeft'||code==='ShiftRight'
 addEventListener('keydown',e=>{
  if(e.code==='Tab')pendingPullShift=null
  if(typing(e))return
- if(e.code==='Escape'&&!e.repeat){showPause(!PAUSE.manual);return}
- if(e.code==='Tab'&&(PAUSE.manual||choiceOpen)){
-  const items=PAUSE.manual?[$('resumeBtn')]:[...$('choiceWrap').children]
+ if(e.code==='Escape'&&!e.repeat){if(!coreFinishing())showPause(!PAUSE.manual);return}
+ if(e.code==='Tab'&&(PAUSE.manual||PAUSE.result||choiceOpen)){
+  const items=PAUSE.result?[$('coreContinue'),$('coreRestart')]:PAUSE.manual?[$('resumeBtn')]:[...$('choiceWrap').children]
   const edge=e.shiftKey?items[0]:items[items.length-1]
   if(document.activeElement===edge||(e.shiftKey&&!items.includes(document.activeElement))){e.preventDefault();(e.shiftKey?items[items.length-1]:items[0]).focus()}
   return
  }
  if(PAUSE.on)return
  if(choiceOpen){if(/^Digit[123]$/.test(e.code)&&window.__choicePick)takeBoon(window.__choicePick[+e.code.slice(5)-1]);return}
+ if(coreFinishing())return
  if(e.code==='KeyC'&&S.alive)holdCap=true
  if(e.code==='KeyM'&&!e.repeat)toggleSound()
  if(e.code==='Space'&&!(e.target instanceof HTMLButtonElement))doSurge()
