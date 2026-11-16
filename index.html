@@ -957,7 +957,7 @@ function openChoice(tierName){
   '<span class="cwhy">'+T(b.w)+'</span></button>').join('')
  ;[...$('choiceWrap').children].forEach(el=>el.onclick=e=>{e.stopPropagation();takeBoon(pick[+el.dataset.i])})
  window.__choicePick=pick
- $('choice').classList.add('on');choiceOpen=true
+ $('choice').classList.add('on');choiceOpen=true;chargeTouches.clear()
  document.body.classList.add('intro')            // 뒤 UI를 비운다(인트로 카드와 같은 규칙)
  $('choiceTitle').focus({preventScroll:true})
 }
@@ -1837,14 +1837,15 @@ function setMouse(cx,cy){ndc.x=((cx-view.x)/view.w)*2-1;ndc.y=-((cy-view.y)/view
 // 조작은 키보드(WASD·방향키)와 모바일 조이스틱뿐. setMouse는 DEV/자동화용으로만 남는다.
 const joyEl=$('joy'),joyThumb=$('joyThumb'),JOYR=52
 let joyTouchId=null,joyOn=false,joyOx=0,joyOy=0,joyX=0,joyZ=0,joyMag=0
+const chargeTouches=new Map()
 function joyStart(t){joyTouchId=t.identifier;joyMag=0;joyOx=t.clientX;joyOy=t.clientY;joyEl.style.left=(t.clientX-view.x)+'px';joyEl.style.top=(t.clientY-view.y)+'px';joyEl.classList.remove('off');joyThumb.style.transform='translate(-50%,-50%)';joyOn=true}
 function joyMove(t){if(!joyOn)return;const ox=t.clientX-joyOx,oy=t.clientY-joyOy,len=Math.hypot(ox,oy)||1,cl=Math.min(len,JOYR)
  joyThumb.style.transform='translate(calc(-50% + '+(ox/len*cl)+'px),calc(-50% + '+(oy/len*cl)+'px))'
  joyX=ox/len;joyZ=oy/len;joyMag=Math.min(len/JOYR,1)}
 function joyEnd(){joyTouchId=null;joyOn=false;joyMag=0;joyEl.classList.add('off')}
-// 조이스틱은 플레이 중 캔버스 터치에서만 — UI(버튼/오버레이) 탭은 통과시켜 모바일 클릭 보존
+// 캔버스에서 시작한 조이스틱 손가락의 움직임만 처리한다.
 addEventListener('touchstart',e=>{if(S.alive&&!PAUSE.on&&!choiceOpen&&!coreFinishing()&&!joyOn&&e.target===renderer.domElement&&e.changedTouches[0]){joyStart(e.changedTouches[0]);e.preventDefault()}},{passive:false})
-addEventListener('touchmove',e=>{const t=Array.from(e.touches).find(t=>t.identifier===joyTouchId);if(joyOn&&t){joyMove(t);e.preventDefault()}},{passive:false})
+addEventListener('touchmove',e=>{const t=Array.from(e.changedTouches).find(t=>t.identifier===joyTouchId);if(joyOn&&t){joyMove(t);e.preventDefault()}},{passive:false})
 function joyRelease(e){if(joyOn&&!Array.from(e.touches).some(t=>t.identifier===joyTouchId))joyEnd()}
 addEventListener('touchend',joyRelease);addEventListener('touchcancel',joyRelease)
 function steer(){
@@ -2778,7 +2779,7 @@ function audioHold(on){const ac=AU.ac;if(!ac)return;try{if(on){if(ac.state==='ru
 function clearSteering(){
  pendingPullShift=null
  for(const k of Object.keys(keys))keys[k]=0
- holdCap=false;joyEnd()
+ holdCap=false;joyEnd();chargeTouches.clear()
 }
 function syncPause(){if(PAUSE.on)clearSteering();audioHold(PAUSE.on);syncGameplay();syncCoreResultFocus()}
 function focusFlight(){renderer.domElement.tabIndex=-1;renderer.domElement.focus({preventScroll:true})}
@@ -3470,7 +3471,30 @@ refreshDailyBtn()
 refreshCodexBtn() // 시작화면 코덱스 진행도 표시
 refreshStrip()    // 하단 성과 스트립(코덱스·최고점·랭크·오늘)
 const CHARGE_CONTROLS=['actDash','actPulse','actWave','actFlare'].map($)
-;[doSurge,doPulse,doWave,doFlare].forEach((fire,i)=>{CHARGE_CONTROLS[i].onclick=e=>{fire();returnPointerFocus(e)}})
+;[doSurge,doPulse,doWave,doFlare].forEach((fire,i)=>{
+ const button=CHARGE_CONTROLS[i]
+ button.onclick=e=>{fire();returnPointerFocus(e)} // 마우스·키보드·보조기기 활성화
+ button.addEventListener('touchstart',e=>{
+  // 동시 터치에서는 호환 click이 생기지 않을 수 있다. 터치는 별도로 소유하고 후속 click을 막는다.
+  e.preventDefault()
+  for(const touch of e.changedTouches){
+   if(button.contains(touch.target))chargeTouches.set(touch.identifier,button)
+  }
+ },{passive:false})
+ button.addEventListener('touchend',e=>{
+  e.preventDefault()
+  for(const touch of e.changedTouches){
+   if(chargeTouches.get(touch.identifier)!==button)continue
+   chargeTouches.delete(touch.identifier)
+   if(button.contains(document.elementFromPoint(touch.clientX,touch.clientY)))fire()
+  }
+ },{passive:false})
+ button.addEventListener('touchcancel',e=>{
+  for(const touch of e.changedTouches){
+   if(chargeTouches.get(touch.identifier)===button)chargeTouches.delete(touch.identifier)
+  }
+ })
+})
 {const hb=$('actHold')   // 누르는 동안만 포획. 화면 밖에서 손을 떼도 상태를 해제한다.
  const dn=e=>{if(!S.alive||PAUSE.on||choiceOpen||coreFinishing())return;e.preventDefault()
   focusFlight();hb.setPointerCapture(e.pointerId);holdCap=true} // blur에서 이전 붙잡기가 해제된 다음 새 입력을 시작한다.
