@@ -3373,7 +3373,7 @@ let coreResultFocus=null
 function syncCoreResultFocus(){
  if(!PAUSE.result)return
  const result=$('coreResult'),blocked=PAUSE.interrupted
- if(result.inert===blocked)return
+ if(Boolean(result.inert)===blocked)return // inert가 없는 브라우저도 처음에는 차단되지 않은 상태다.
  if(blocked){
   const active=document.activeElement
   coreResultFocus=result.contains(active)?active:$('coreResultTitle')
