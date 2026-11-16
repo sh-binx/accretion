@@ -2690,7 +2690,9 @@ function updateFX(dt){fxT+=dt;fxN++
 const partCap=()=>fxLow?45:140
 /* ===== 일시정지 — 탭 숨김 · 세로 회전 차단 · 광고. 한 곳에서 판정하고 포털 이벤트를 짝 맞춰 보낸다 =====
  * Poki/CG: 중단마다 gameplayStop, 복귀 때 gameplayStart. 같은 이벤트를 연달아 보내지 않는다. */
-const PAUSE={hidden:false,orient:false,manual:false,result:false,get on(){return this.hidden||this.orient||this.manual||this.result}}
+const PAUSE={hidden:document.hidden,orient:false,manual:false,result:false,
+ get interrupted(){return this.hidden||this.orient},
+ get on(){return this.interrupted||this.manual||this.result}}
 let gpActive=false
 function syncGameplay(){const want=S.alive&&!PAUSE.on
  if(want&&!gpActive){gpActive=true;PORTAL.gameplayStart()}
@@ -2701,7 +2703,7 @@ function clearSteering(){
  for(const k of Object.keys(keys))keys[k]=0
  holdCap=false;joyEnd()
 }
-function syncPause(){if(PAUSE.on)clearSteering();audioHold(PAUSE.on);syncGameplay()}
+function syncPause(){if(PAUSE.on)clearSteering();audioHold(PAUSE.on);syncGameplay();syncCoreResultFocus()}
 function focusFlight(){renderer.domElement.tabIndex=-1;renderer.domElement.focus({preventScroll:true})}
 function returnPointerFocus(e){
  // 키보드·보조기기의 활성화(detail 0)는 버튼에 초점을 남긴다.
@@ -3290,14 +3292,31 @@ function updateCoreCompletion(dt){
  syncPause()
  $('coreResultTitle').focus({preventScroll:true})
 }
+let coreResultFocus=null
+function syncCoreResultFocus(){
+ if(!PAUSE.result)return
+ const result=$('coreResult'),blocked=PAUSE.interrupted
+ if(result.inert===blocked)return
+ if(blocked){
+  const active=document.activeElement
+  coreResultFocus=result.contains(active)?active:$('coreResultTitle')
+  result.inert=true
+  if(result.contains(document.activeElement))active.blur()
+ }else{
+  result.inert=false
+  coreResultFocus.focus({preventScroll:true})
+  coreResultFocus=null
+ }
+}
 function resetCoreResult(){
  coreFinishTime=0;coreFinishDelay=0
  if(!PAUSE.result)return
- PAUSE.result=false
- $('coreResult').classList.add('off');document.body.classList.remove('modal-paused')
+ PAUSE.result=false;coreResultFocus=null
+ $('coreResult').classList.add('off');$('coreResult').inert=false
+ document.body.classList.remove('modal-paused')
 }
 function continueAfterCore(){
- if(!PAUSE.result)return
+ if(!PAUSE.result||PAUSE.interrupted)return
  const held=performance.now()-coreFinishTime
  // 콤보와 스침 연쇄는 실시간 타이머라 흡수 연출과 결과 화면의 대기 시간을 빼준다.
  if(S.comboAt)S.comboAt+=held
@@ -3307,7 +3326,7 @@ function continueAfterCore(){
  if(!PAUSE.on)focusFlight()
 }
 $('coreContinue').onclick=continueAfterCore
-$('coreRestart').onclick=()=>{if(PAUSE.result)begin()}
+$('coreRestart').onclick=()=>{if(PAUSE.result&&!PAUSE.interrupted)begin()}
 function begin(){AU.unlock();PAUSE.manual=false;$('pause').classList.add('off');document.body.classList.remove('modal-paused');clearSteering()
  for(const o of objects.slice())releaseObj(o);clearParticles();clearFeats()
  choiceSkip=false
@@ -3397,7 +3416,7 @@ addEventListener('blur',clearSteering)
 const isShift=code=>code==='ShiftLeft'||code==='ShiftRight'
 addEventListener('keydown',e=>{
  if(e.code==='Tab')pendingPullShift=null
- if(typing(e))return
+ if(typing(e)||(PAUSE.result&&PAUSE.interrupted))return
  if(e.code==='Escape'&&!e.repeat){if(!coreFinishing())showPause(!PAUSE.manual);return}
  if(e.code==='Tab'&&(PAUSE.manual||PAUSE.result||choiceOpen)){
   const items=PAUSE.result?[$('coreContinue'),$('coreRestart')]:PAUSE.manual?[$('resumeBtn')]:[...$('choiceWrap').children]

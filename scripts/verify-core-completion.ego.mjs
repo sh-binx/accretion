@@ -1,15 +1,20 @@
-// 개발 준비 시험. 실행 시 현재 Ego 공간 번호와 절대 증거 폴더를 먼저 선언한다.
+// 개발 준비 시험. 실행 시 현재 Ego 공간 번호와 절대 증거 폴더를 먼저 선언한다. 로컬 포트 기본값은 3040이다.
 // { printf 'const spaceId = 1234, output = "/absolute/artifacts";\n'; cat scripts/verify-core-completion.ego.mjs; } | ego-browser nodejs
 const {strict: assert} = await import('node:assert');
 const {mkdir} = await import('node:fs/promises');
 const task = await taskSpace(spaceId);
 const page = task.page('p1');
+const port = typeof testPort === 'number' ? testPort : 3040;
 await mkdir(output, {recursive: true});
 
+async function resize(width, height, mobile) {
+  await page.cdp('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile});
+}
+
 async function prepare({lang, width, height, touch, mass = 40000}) {
-  await page.cdp('Emulation.setDeviceMetricsOverride', {width, height, deviceScaleFactor: 1, mobile: touch});
+  await resize(width, height, touch);
   await page.cdp('Emulation.setTouchEmulationEnabled', {enabled: touch, maxTouchPoints: touch ? 2 : 1});
-  await page.goto('http://127.0.0.1:3040/?dev=1&lang=' + lang + '&qa=' + Date.now());
+  await page.goto('http://127.0.0.1:' + port + '/?dev=1&lang=' + lang + '&qa=' + Date.now());
   await page.waitForFunction(() => !!window.__acc);
   await page.cdp('Runtime.enable');
   await page.click('#startBtn', {label: '시험 런 시작'});
@@ -92,6 +97,46 @@ const pluck = s => {
   const {t, mass, score, peak, energy, combo, x, z, alive, tier, boons} = s;
   return {t, mass, score, peak, energy, combo, x, z, alive, tier, boons};
 };
+// Ego는 다른 탭을 활성화해도 검사 탭을 visible로 유지한다. 문서의 visibilitychange 경로를 모의한다.
+async function visibility(hidden) {
+  await page.evaluate(value => {
+    if (value) Object.defineProperty(document, 'hidden', {value: true, configurable: true});
+    else delete document.hidden;
+    document.dispatchEvent(new Event('visibilitychange'));
+  }, hidden);
+}
+async function verifyCoveredResult(expected, description) {
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Shift+Tab');
+  await page.keyboard.press('Space');
+  assert(await page.evaluate(() => PAUSE.result && !gpActive),
+    description + ' 뒤에서 실제 키 입력으로 결과를 닫거나 새 판을 시작할 수 없다');
+  assert(!await page.evaluate(() => $('coreResult').contains(document.activeElement)),
+    description + ' 뒤의 결과에 포커스가 남지 않는다');
+  assert.deepEqual(await gameplayState(), pluck(expected));
+}
+
+const koreanViewport = {lang: 'ko', width: 667, height: 375, touch: true};
+const rotated = await resultRun(koreanViewport);
+await page.keyboard.press('Tab');
+await focusIs('coreContinue');
+await resize(375, 667, true);
+await page.waitForFunction(() => PAUSE.orient && $('rotate').classList.contains('on'));
+await page.screenshot({path: output + '/ko-portrait.png'});
+await verifyCoveredResult(rotated, '세로 회전 안내');
+
+// 회전을 끝내도 숨김 정지가 남아 있는 동안은 결과를 조작할 수 없다.
+await visibility(true);
+await resize(667, 375, true);
+await page.waitForFunction(() => !PAUSE.orient && PAUSE.hidden);
+await verifyCoveredResult(rotated, '탭 숨김');
+await visibility(false);
+await focusIs('coreContinue');
+await page.keyboard.press('Enter');
+await page.waitForFunction(t => S.t > t && !PAUSE.result && gpActive, rotated.t);
+console.log('세로 회전 안내와 탭 숨김 중 Tab·Enter·Space 차단, 가로·표시 복귀 후 초점과 Enter 계속 동작 통과');
+
 const english = await resultRun({lang: 'en', width: 960, height: 600, touch: false});
 
 // 키를 누르고 애니메이션보다 오래 기다려도 물리·위협·타이머·보상이 멈춘다.
@@ -108,18 +153,13 @@ const repeat = await page.evaluate(() => {
 assert.deepEqual(repeat, {coreEaten: true, manual: false, steering: 0, result: true});
 assert.deepEqual(await gameplayState(), pluck(english));
 
-// Ego는 다른 탭을 활성화해도 검사 탭을 visible로 유지한다. 문서의 visibilitychange 경로를 모의한다.
-async function visibility(hidden) {
-  await page.evaluate(value => {
-    if (value) Object.defineProperty(document, 'hidden', {value: true, configurable: true});
-    else delete document.hidden;
-    document.dispatchEvent(new Event('visibilitychange'));
-  }, hidden);
-}
+await page.keyboard.press('Shift+Tab');
+await focusIs('coreRestart');
 await visibility(true);
-assert(await page.evaluate(() => PAUSE.hidden && PAUSE.result && !gpActive));
-assert.deepEqual(await gameplayState(), pluck(english));
+assert(await page.evaluate(() => PAUSE.hidden && !PAUSE.orient));
+await verifyCoveredResult(english, '회전 없이 탭 숨김');
 await visibility(false);
+await focusIs('coreRestart');
 assert(await page.evaluate(() => !PAUSE.hidden && PAUSE.result && !gpActive));
 
 await page.keyboard.press('Tab');
@@ -156,7 +196,7 @@ await page.waitForFunction(() => S.alive && !coreEaten && galCore.visible && !PA
 assert.deepEqual(await page.evaluate(() => [S.mass, S.peak, S.score, S.boons.length, PAUSE.manual]), [1.2, 1.2, 0, 0, false]);
 console.log('EN 960×600 · 결과 정지·탭 정지·초점 순환·계속 상태·실패 재시작 통과');
 
-const korean = await resultRun({lang: 'ko', width: 667, height: 375, touch: true});
+const korean = await resultRun(koreanViewport);
 const hit = await page.evaluate(() => {
   const r = $('coreRestart').getBoundingClientRect();
   return {x: r.x + r.width / 2, y: r.y + r.height / 2};
