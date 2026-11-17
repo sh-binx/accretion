@@ -17,3 +17,5 @@
 2026-11-17 10:54 KST 기존 PR #1을 병합했다. 운영 커밋은 `5818ec9b47effe2b54dcf6448822ca5e322a9b47`, GitHub Pages build 상태는 `built`다. 10:57 KST 공개 index.html·manifest·manifest에 명시된 아이콘 두 개 모두 HTTP 200, MIME 정상, 검수본과 바이트가 일치했다. index SHA-256은 `c58eea1dbbd668e892d20254593f2e3be71626a3f6704414d1637d3081958853`. 증거는 `artifacts/release-integration/production-http.json`. 공개 주소는 https://sh-binx.github.io/accretion/ 이다.
 
 이전 운영 기준 `3d639e5132265a81b10b7f0eb96145595af3847c`를 보존한다. 회귀 발생 시 병합 커밋의 첫 부모 기준 revert를 별도 브랜치/PR로 검증해 복구한다. 공개 브라우저 실플레이 확인은 별도 후속이며 HTTP 성공만으로 이를 대신하지 않는다.
+
+공개 브라우저 확인도 완료했다. ego #10034에서 실제 Begin run 클릭→W/D 입력→Escape 정지→Resume run→자연 증발 실패→Play again→정지 대화상자를 확인했다. `public-play.png`, `public-pause.png`, `public-mobile-restart.png`가 증거다. 844×390은 CDP 화면 크기 모사이며 실물 iPhone 검증이 아니다. 이 짧은 배포 스모크로 전체 완주·콘솔 전수 검사를 주장하지 않는다. 정상 전편은 앞선 동일 바이트 고정본 영상이 근거다. 공간은 정상 종료 후 새 목록 소멸 확인했다.
