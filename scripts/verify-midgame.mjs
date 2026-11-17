@@ -1,7 +1,7 @@
 // Mid/late-game pressure tuning (owner: "거대 블랙홀이 되면 적이 너무 많고 다음 단계로 가기 어렵다")
 // Checks: smooth threat ramp (no cliff at tier borders), capped late threat, graze charges surge.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

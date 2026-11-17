@@ -1,5 +1,5 @@
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 let pass=0,fail=0
 const chk=(n,c,i)=>{if(c){pass++;console.log('  ✓',n)}else{fail++;console.log('  ✗ FAIL:',n,i!==undefined?JSON.stringify(i):'')}}

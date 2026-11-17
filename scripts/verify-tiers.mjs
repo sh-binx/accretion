@@ -1,7 +1,7 @@
 // 오너: "블랙홀에서 사이즈만 커지고 정체한다 — 더 여러 단계로 진화 못하나"
 // 5단계 티어(항성질량→중간→초대질량→퀘이사→울트라매시브)와 단계별 실제 변화 검증
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results=[]; const ok=(n,c,x='')=>{results.push([c,n,x]);console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`)}
 const b = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage']})

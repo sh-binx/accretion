@@ -1,7 +1,7 @@
 // Spawn-distribution verification — planets must appear AND be edible (owner:
 // "small meteors get eaten but planets don't"). Non-rivals should be food.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

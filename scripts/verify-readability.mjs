@@ -2,7 +2,7 @@
 // (1) rival threat must be color-coded (size alone can't tell — radius is mass^(1/3))
 // (2) growth must keep going at high mass, while still staying sub-exponential
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

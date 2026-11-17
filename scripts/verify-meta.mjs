@@ -1,6 +1,6 @@
 // STEP 3 — achievements (second collection axis). 주간 리더보드는 출시 빌드에서 OFF — 꺼져 있음을 단언한다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

@@ -1,6 +1,6 @@
 // Main menu (cinematic hero) verification — HUD gating, hero layout, stat strip.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

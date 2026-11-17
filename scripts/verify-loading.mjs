@@ -1,7 +1,7 @@
 // The first rendered frame reports readiness once, including when the SDK arrives late.
 import { createRequire } from 'node:module'
 import assert from 'node:assert/strict'
-const { chromium } = createRequire(new URL('../../keep-watching/package.json', import.meta.url))('playwright')
+const { chromium } = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')('playwright')
 const browser = await chromium.launch({ args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist'] })
 try {
  for (const delay of [0, 1500]) {

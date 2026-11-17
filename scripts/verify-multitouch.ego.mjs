@@ -14,6 +14,10 @@ const results=await p.evaluate(()=>{
  send('touchstart',[left],[left]);left=touch(1,150);send('touchmove',[left],[left]);
  send('touchstart',[left,right],[right],button);
  check('능력 접촉 중 이동 유지',joyOn&&joyMag>.8);
+ const beforeCancel=[S.energy,S.surgeCount];
+ send('touchcancel',[left],[right],button);
+ check('스킬 손가락만 취소하면 이동 유지·미발동',joyOn&&joyMag>.8&&!chargeTouches.has(2)&&S.energy===beforeCancel[0]&&S.surgeCount===beforeCancel[1]);
+ send('touchstart',[left,right],[right],button);
  send('touchend',[right],[left]);check('이동 손가락만 해제해도 정지',!joyOn&&joyMag===0);
  send('touchend',[],[right],button);
  send('touchstart',[right],[right],button);left=touch(3,100);send('touchstart',[right,left],[left]);left=touch(3,150);send('touchmove',[right,left],[left]);

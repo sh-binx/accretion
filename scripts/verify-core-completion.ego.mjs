@@ -16,6 +16,7 @@ async function prepare({lang, width, height, touch, mass = 40000}) {
   await page.cdp('Emulation.setTouchEmulationEnabled', {enabled: touch, maxTouchPoints: touch ? 2 : 1});
   await page.goto('http://127.0.0.1:' + port + '/?dev=1&lang=' + lang + '&qa=' + Date.now());
   await page.waitForFunction(() => !!window.__acc);
+  await page.evaluate(()=>{localStorage.removeItem('acc_up')});
   await page.cdp('Runtime.enable');
   await page.click('#startBtn', {label: '시험 런 시작'});
   return page.evaluate(m => {
@@ -122,9 +123,10 @@ const rotated = await resultRun(koreanViewport);
 await page.keyboard.press('Tab');
 await focusIs('coreContinue');
 await resize(375, 667, true);
-await page.waitForFunction(() => PAUSE.orient && $('rotate').classList.contains('on'));
+await page.waitForFunction(() => !PAUSE.orient && !$('rotate').classList.contains('on') && cam.aspect < 1);
 await page.screenshot({path: output + '/ko-portrait.png'});
-await verifyCoveredResult(rotated, '세로 회전 안내');
+assert(await page.evaluate(() => PAUSE.result && !PAUSE.interrupted && document.activeElement.id === 'coreContinue'));
+assert.deepEqual(await gameplayState(), pluck(rotated));
 
 // 회전을 끝내도 숨김 정지가 남아 있는 동안은 결과를 조작할 수 없다.
 await visibility(true);
@@ -135,9 +137,11 @@ await visibility(false);
 await focusIs('coreContinue');
 await page.keyboard.press('Enter');
 await page.waitForFunction(t => S.t > t && !PAUSE.result && gpActive, rotated.t);
-console.log('세로 회전 안내와 탭 숨김 중 Tab·Enter·Space 차단, 가로·표시 복귀 후 초점과 Enter 계속 동작 통과');
+console.log('세로 결과 유지 및 탭 숨김 중 Tab·Enter·Space 차단, 가로·표시 복귀 후 초점과 Enter 계속 동작 통과');
 
 const english = await resultRun({lang: 'en', width: 960, height: 600, touch: false});
+const settledEnglish=await page.evaluate(()=>[dustBal(),readRecord('acc_runs')]);
+assert(await page.evaluate(()=>S.dustSettlement.total>0&&$('coreDust').textContent.includes('STARDUST')));
 
 // 키를 누르고 애니메이션보다 오래 기다려도 물리·위협·타이머·보상이 멈춘다.
 await page.keyboard.down('KeyW');
@@ -191,12 +195,14 @@ await page.waitForFunction(t => S.t > t && gpActive, hiddenRun.t);
 await page.evaluate(() => __acc.setMass(.01));
 await page.waitForSelector('#over:not(.off)', {state: 'visible'});
 assert.equal(await page.evaluate(() => $('overTitle').textContent), 'EVAPORATED');
+assert.deepEqual(await page.evaluate(()=>[dustBal(),readRecord('acc_runs')]),settledEnglish,'실제 핵 성공→계속→실패 중복 정산 없음');
 await page.click('#retryBtn', {label: '실패 뒤 다시 시작'});
 await page.waitForFunction(() => S.alive && !coreEaten && galCore.visible && !PAUSE.result && S.t === 0);
 assert.deepEqual(await page.evaluate(() => [S.mass, S.peak, S.score, S.boons.length, PAUSE.manual]), [1.2, 1.2, 0, 0, false]);
 console.log('EN 960×600 · 결과 정지·탭 정지·초점 순환·계속 상태·실패 재시작 통과');
 
 const korean = await resultRun(koreanViewport);
+const settledKorean=await page.evaluate(()=>[dustBal(),readRecord('acc_runs')]);
 const hit = await page.evaluate(() => {
   const r = $('coreRestart').getBoundingClientRect();
   return {x: r.x + r.width / 2, y: r.y + r.height / 2};
@@ -206,6 +212,7 @@ await page.cdp('Input.dispatchTouchEvent', {type: 'touchEnd', touchPoints: []});
 await page.waitForFunction(() => S.alive && !coreEaten && galCore.visible && !PAUSE.result && S.t === 0);
 assert.deepEqual(await page.evaluate(() => [S.mass, S.peak, S.score, S.boons.length, PAUSE.manual]), [1.2, 1.2, 0, 0, false]);
 assert.equal(await page.evaluate(() => STATS.best), Math.max(korean.previousBest, korean.score));
+assert.deepEqual(await page.evaluate(()=>[dustBal(),readRecord('acc_runs')]),settledKorean,'핵 성공→새 판 정산 보존');
 console.log('KO 667×375 · 결과 접근·46px 터치·새 판 초기화·최고점 보존 통과');
 
 await prepare({lang: 'en', width: 960, height: 600, touch: false, mass: 3000});

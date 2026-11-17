@@ -126,7 +126,7 @@ try{
  await click('resumeBtn')
  await page.waitForFunction(()=>!__acc.pauseState().manual)
  await updateVisual(375,560)
- await page.waitForFunction(()=>__acc.pauseState().orient)
+ await page.waitForFunction(()=>!__acc.pauseState().orient&&cam.aspect<1)
  await updateVisual(667,375)
  await page.waitForFunction(()=>!__acc.pauseState().orient)
  await snapshot([0,0,667,375],playIds,insets)

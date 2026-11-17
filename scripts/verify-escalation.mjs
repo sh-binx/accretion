@@ -5,7 +5,7 @@
 //   ② 시간이 흘러도 어려워지지 않았다 — S.t가 난이도 파라미터에 한 번도 쓰이지 않았다.
 // 이 스위트는 그 둘이 다시 평평해지면 즉시 잡는다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

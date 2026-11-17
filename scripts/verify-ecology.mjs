@@ -1,6 +1,6 @@
 // Owner: (1) 후반 성장이 너무 힘들다 (2) 적들끼리도 상호작용해야 (3) 블랙홀 아닐 땐 더 큰 천체에 부딪히면 부서져야
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

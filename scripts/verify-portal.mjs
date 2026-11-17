@@ -1,6 +1,6 @@
 // 포털 어댑터 — CrazyGames / Poki / 로컬. 계약: 어떤 실패에도 게임을 막지 않고 콜백은 반드시 불린다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results=[]
 const ok=(n,c,x='')=>{results.push([c,n,x]);console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`)}

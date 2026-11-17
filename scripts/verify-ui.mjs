@@ -2,7 +2,7 @@
 // 텍스트만 보던 옛 감사가 서지 바·음소거 버튼을 놓쳐 실기에서 겹침이 발견된 뒤 이 기준으로 바꿨다.
 // 원래 주석: — '그려지는 모든 것' 기준. 메시지 채널이 동시에 몇 개까지 뜨는지도 센다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const b = await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']})
 const VPS=[[1440,810,false],[1280,720,false],[852,393,true],[740,360,true],[393,852,true],[1024,1366,true]]

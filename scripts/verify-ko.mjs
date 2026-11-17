@@ -9,7 +9,7 @@ const BASE = 'http://localhost:3040/?dev=1&lang=ko'
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
 const sleep = ms => new Promise(r=>setTimeout(r,ms))
-const ALLOW = /ACCRETION|TON\s?618|M87\*?|R136a1|LIGO|S2\b|WASD|\bv\d+\.\d+\.\d+|M☉|[0-9.,]+[KMB]\b|×\d+|\ba\s*=\s*M\b|\bA\*|\bE\b|\bC\b|\bF\b|\bW\b|\bA\b|\bS\b|\bD\b|X-1|\([A-Za-z -]+\)/g
+const ALLOW = /ACCRETION|Accretion|Safari|TON\s?618|M87\*?|R136a1|LIGO|S2\b|WASD|\bv\d+\.\d+\.\d+|M☉|[0-9.,]+[KMB]\b|×\d+|\ba\s*=\s*M\b|\bA\*|\bE\b|\bC\b|\bF\b|\bW\b|\bA\b|\bS\b|\bD\b|X-1|\([A-Za-z -]+\)/g
 const leftovers = s => (s.replace(ALLOW,' ').match(/[A-Za-z]{2,}(?:[ '’-][A-Za-z]{2,})*/g) || [])
 
 // 페이지 안: 보이는 잎 텍스트 + 이후 나타나는 모든 메시지 채널 텍스트를 수집한다

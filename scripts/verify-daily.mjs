@@ -1,6 +1,6 @@
 // Daily challenge verification (P#3) — modifiers. 출시 빌드는 리더보드 OFF라 데일리는 오프라인 모드로만 검증한다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []

@@ -3,7 +3,7 @@
 //  FRAME DRAG   : 회전하는 블랙홀이 시공간을 끌어 주변 물질을 강제로 공전시킨다(Lense-Thirring)
 //  GRAV. WAVE   : 병합은 시공간 파동으로 에너지를 방출하고 주변 궤도를 흐트러뜨린다
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const results=[]
 const ok=(n,c,x='')=>{results.push([c,n,x]);console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`)}

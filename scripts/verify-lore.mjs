@@ -2,7 +2,7 @@
 // 별은 암석을 모아 태어나지 않고(원시별=붕괴하는 가스 구름 핵),
 // 약 20 태양질량 이상인 별만 붕괴해 블랙홀이 된다.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/package.json')
+const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
 const { chromium } = require('playwright')
 const URL='http://localhost:3040/?dev=1'
 const results=[]
@@ -24,7 +24,7 @@ try{
     return {f:A.form(),v:A.formVis(),drain:document.querySelector('#massbar .t')?.textContent||''}})
   ok('시작 형태가 PROTOSTAR', s0.f.name==='PROTOSTAR'&&s0.f.idx===0, s0.f.name)
   ok('원시별 메시가 표시되고 항성·블랙홀 파츠는 숨김', s0.v.rock===true&&s0.v.star===false&&s0.v.bh===false, JSON.stringify(s0.v))
-  ok('드레인 문구가 OUTFLOWS(쌍극류) — 침식이 아니다', /OUTFLOW/.test(s0.drain), s0.drain.trim())
+  ok('드레인 문구가 OUTFLOWS(쌍극류) — 침식이 아니다', /\boutflows?\b/i.test(s0.drain), s0.drain.trim())
 
   // ── 20 M☉ 미만은 블랙홀이 되지 않는다 ──
   const under=await page.evaluate(()=>{const A=window.__acc;A.begin();A.setMass(A.bhMass()*0.97);A.step(0.05);A.step(0.05)

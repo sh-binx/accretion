@@ -1,3 +1,7 @@
+## 2026-11-17 — 운영 v1.1 보존 통합(미배포)
+
+- [비행 HUD 정지 규칙](design/flight-ui-20261115.md)을 운영판의 세로 허용에 맞춰 정정했다. 별먼지·업그레이드·연속·생존 기회는 운영 규칙을 유지하며 핵 성공은 런당 한 번 정산하고 계속 후 사망에서 중복 지급하지 않는다. 정본: `docs/superpowers/specs/2026-11-16-completion-design.md`.
+
 ## 2026-11-17 — Safari 홈 화면 실행(미배포)
 
 - [Safari 홈 화면 실행](design/safari-home-screen-20261117.md): 독립 배포용 매니페스트와 아이콘, 전체 화면 미지원 시 안내, 포털 ZIP 제외.
@@ -21,6 +25,30 @@
 ## 2026-11-15 — 고도화 첫 구현(미배포)
 
 - 흡수 기하 재사용·충격파 예고·네메시스 공급 중단 및 재등장 간격을 작업 브랜치에 구현. [현재 범위와 미완료 관문](design/commercial-polish-20261115.md).
+## 2026-10-11 — v1.1.1 한글 글꼴 Pretendard(오너 선택)
+
+- 오너: 업그레이드 화면 한글이 낡아 보인다 → 후보 5종 보드(Pretendard·IBM Plex Sans KR·Orbit·Black Han Sans+Pretendard·Do Hyeon+Gothic A1)에서 **Pretendard** 선택.
+- 원인: 게임 글꼴(Martian Mono·Anton)에 한글이 없어 기기 기본 글꼴(맥 애플 고딕·윈도 굴림체)로 대체.
+- 적용: 한글 789자 서브셋(가변 139KB + 제목 Black 54KB)을 unicode-range 한글로 한정해 모든 font 스택 앞에 끼움 — 영문은 그대로. OFL 1.1 고지. 「UP그레이드」 번역 누락 수리, 한국어 어절 줄바꿈.
+- 검증: 35 스위트 통과 · zip 11/11(486KB). CrazyGames 업로드는 재심사 결과 뒤(심사 중 빌드 교체 영향 미확인) — 메일 감시 후속에 포함.
+
+## 2026-10-09 — v1.1 CrazyGames 재제출(AWAITING REVIEW)
+
+- 반려 게임엔 새 빌드 업로드가 없고 같은 이름은 「already in use」 → 오너 승인으로 기존 반려 기록(65da597c) 삭제 후 같은 이름으로 새 제출.
+- 새 게임 37e127ed-6da3-4db1-b069-a598332b1e3e · build 629d74cb-f571-4aa5-9db2-e61049024821 · main e6cecd7(v1.1.0). 모바일 방향 BOTH.
+- QA: Loading Stop · Gameplay Start/Stop · Get/Set Item 점등 · 로드 0.3MB · 로드 시간 0.9초(메뉴에 오래 머물면 100초로 찍힌다 — Relaunch 후 바로 시작해 재측정). 브라우저·실기기 점검은 No(실측 범위대로).
+- 소개문에 v1.1 문단(별먼지 업그레이드·연속 보너스·생존 기회·세로 지원) 추가, 커버 3종·영상 2종 기존 에셋.
+- 폴더 업로드 함정: webkitdirectory 입력이 자동화 파일 선택을 안 받아, 같은 두 파일을 DataTransfer 로 입력에 넣었다(`portal/` 경로 유지).
+
+## 2026-10-09 — CrazyGames 반려 대응 v1.1(재미·잔존 패스)
+
+- 반려(성과 미달) 지표: 평균 4m43s · 전환 55.5%(모바일 40.5%) · D1 2.32% · crash 3.21%. 결정·근거·결과는 [decisions/2026-10-09-v1.1-fun-retention.md](decisions/2026-10-09-v1.1-fun-retention.md).
+- 실측 원인: 초보 중앙 11초 사망 · 세로 화면 정지 · GPU 지오메트리 누수(4분 1,215개) · 판 사이에 남는 게 수집뿐.
+- 수정: 생존 기회(부분 조석 파괴/병합 반동) · 초반·변신 유예 · 세로 플레이 · 별먼지 업그레이드 4종 · 데일리 연속 · KO 진화 배너 누락.
+- 검증: 신규 verify-fun11 19/19 · 기존 34 스위트 전부 통과(즉사 3건은 생존 기회 소진 조건으로 갱신) · 제출 zip 11/11 · 3기기 소크 에러 0.
+- 하네스: 스크립트의 playwright 경로(nova-surge/package.json)가 사라져 전 스위트가 import 에서 죽던 것을 nova-surge/toss 로 복구.
+
+
 
 ## 2026-10-05 — 반복 로딩 신호 수정 · CrazyGames 라이브
 
