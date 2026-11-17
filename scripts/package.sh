@@ -11,9 +11,10 @@ import sys,re
 src=open(sys.argv[1],encoding='utf-8').read()
 out=re.sub(r'^<link rel="canonical"[^\n]*\n','',src,flags=re.M)
 out=re.sub(r'^<meta (property="og:[^"]*"|name="twitter:[^"]*")[^\n]*\n','',out,flags=re.M)
+out=re.sub(r'^<(?:link|meta) data-web-app [^\n]*\n','',out,flags=re.M)
 assert 'sh-binx.github.io' not in out.split('<script')[0], 'head still references github.io'
 open(sys.argv[2],'w',encoding='utf-8').write(out)
-print(f'  index.html  {len(src.encode())} → {len(out.encode())} bytes (Pages 메타 제거)')
+print(f'  index.html  {len(src.encode())} → {len(out.encode())} bytes (Pages·홈 화면 설치용 메타 제거)')
 PY
 cp "$ROOT/three.min.js" "$STAGE/three.min.js"
 ( cd "$STAGE" && zip -q -X "$ZIP" index.html three.min.js )

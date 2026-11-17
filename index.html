@@ -1,5 +1,10 @@
 <!doctype html><html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link data-web-app rel="manifest" href="./manifest.webmanifest">
+<link data-web-app rel="apple-touch-icon" sizes="180x180" href="./icons/accretion-180.png">
+<meta data-web-app name="apple-mobile-web-app-capable" content="yes">
+<meta data-web-app name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta data-web-app name="theme-color" content="#03040a">
 <title>ACCRETION — become the black hole</title>
 <meta name="description" content="A playable 3D black hole arcade where real astrophysics is the rule set. Grow from a protostar to a quasar — Eddington limit, tidal disruption, and gravitational lensing, in one self-contained Three.js file.">
 <link rel="canonical" href="https://sh-binx.github.io/accretion/">
@@ -2067,7 +2072,7 @@ const KO={
  '✦ SHOCK BREAKOUT':'✦ 충격파 돌파','a neighbour went supernova — the blast is passing':'이웃 별이 터졌다 — 폭풍이 지나간다',
  '☠ APEX PREDATOR':'☠ 최상위 포식자','a greater black hole hunts you — outgrow it, then consume it':'더 큰 블랙홀이 당신을 쫓는다 — 넘어선 뒤 삼켜라',
  '★ APEX CONSUMED':'★ 포식자 포식',
- '◆ MOVE':'◆ 이동','WASD · arrows · or drag':'WASD · 방향키 · 드래그','drag anywhere to steer':'화면 아무 곳이나 드래그해 조종',
+ '◆ MOVE':'◆ 이동','WASD · arrow keys':'WASD · 방향키','drag anywhere to steer':'화면 아무 곳이나 드래그해 조종',
  '◆ EAT THE GREEN':'◆ 초록을 먹어라','a green halo means you can swallow it':'초록 링은 삼킬 수 있다는 뜻이다',
  '◆ AVOID RED & AMBER':'◆ 빨강·주황을 피하라','red kills you · amber shatters you':'빨강은 죽인다 · 주황은 부순다',
  '◆ GROW TO EVOLVE':'◆ 자라서 진화하라','feed enough and you ignite into a star':'충분히 먹으면 항성으로 점화한다'}
@@ -3314,7 +3319,7 @@ let onboarded=(()=>{try{return localStorage.getItem('acc_onboard')==='1'}catch(e
 // 힌트는 시계가 아니라 '그 링이 실제로 화면에 있을 때' 떠야 한다.
 // 3.2초에 초록 링이 없으면 가르침이 허공에 뜬다 — 오너가 링 색 뜻을 모른 이유이기도 하다
 // (생애 첫 판에만 떴고, 그마저 타이밍이 안 맞았다). 조건이 있으면 그 조건을 기다린다.
-const HINTS=[{t:0.6,m:'◆ MOVE',s:COARSE?'drag anywhere to steer':'WASD · arrows · or drag'},
+const HINTS=[{t:0.6,m:'◆ MOVE',s:COARSE?'drag anywhere to steer':'WASD · arrow keys'},
  {t:2.0,need:'edible',m:'◆ EAT THE GREEN',s:'a green halo means you can swallow it'},
  {t:4.0,need:'threat',m:'◆ AVOID RED & AMBER',s:'red kills you · amber shatters you'},
  {t:9.6,m:'◆ GROW TO EVOLVE',s:'feed enough and you ignite into a star'}]
@@ -3517,6 +3522,13 @@ const screenModes=[$('startFullscreen'),$('pauseFullscreen')]
 const screenStatus=[$('startFullscreenStatus'),$('pauseFullscreenStatus')]
 const fullscreenAPI=()=>FULLSCREEN.find(([enabled,,enter,exit])=>
  document[enabled]===true&&typeof screenRoot[enter]==='function'&&typeof document[exit]==='function')
+const standaloneMode=matchMedia('(display-mode: standalone)')
+const homeScreenSupported=window.top===window&&!!document.querySelector('link[rel="manifest"]')&&
+ (typeof navigator.standalone==='boolean'||/iPhone|iPad|iPod/.test(navigator.userAgent))
+const homeScreenHint=()=>T({
+ en:'Hide the address bar: in Safari, tap Share, choose Add to Home Screen, then open Accretion from your Home Screen.',
+ ko:'주소창 없이 플레이하려면 Safari에서 공유 → 홈 화면에 추가를 누른 뒤 홈 화면의 Accretion을 여세요.'
+})
 let screenError=null,screenAttempt=null
 function renderFullscreen(){
  const api=fullscreenAPI(),active=api&&document[api[1]]===screenRoot
@@ -3524,8 +3536,10 @@ function renderFullscreen(){
   b.hidden=!api
   b.textContent=active?T({en:'Exit fullscreen',ko:'전체 화면 종료'}):T({en:'Fullscreen',ko:'전체 화면'})
  }
+ const showHomeScreen=homeScreenSupported&&!standaloneMode.matches&&navigator.standalone!==true
  for(const node of screenStatus)node.textContent=node===screenError
-  ?T({en:'Fullscreen is unavailable right now.',ko:'지금은 전체 화면으로 전환할 수 없습니다.'}):''
+  ?T({en:'Fullscreen is unavailable right now.',ko:'지금은 전체 화면으로 전환할 수 없습니다.'})+(showHomeScreen?' '+homeScreenHint():'')
+  :!api&&showHomeScreen?homeScreenHint():''
 }
 function fullscreenFailed(status){
  screenAttempt=null;screenError=status;renderFullscreen()
@@ -3543,6 +3557,8 @@ for(const [,,,,change,error] of FULLSCREEN){
  document.addEventListener(change,()=>{screenAttempt=null;screenError=null;renderFullscreen();queueView()})
  document.addEventListener(error,()=>{if(screenAttempt)fullscreenFailed(screenAttempt)})
 }
+standaloneMode.addEventListener?.('change',renderFullscreen)
+addEventListener('pageshow',renderFullscreen)
 setLang(LANG)   // 토글 라벨을 현재 언어로 맞춘다
 $('startLang').onclick=e=>{e.stopPropagation();setLang(LANG==='ko'?'en':'ko',true)}
 function renderSound(){ $('mute').setAttribute('aria-pressed',String(AU.muted)) }

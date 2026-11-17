@@ -21,6 +21,7 @@ try {
   execFileSync('unzip', ['-q', ZIP, '-d', dir])
   const html = fs.readFileSync(path.join(dir,'index.html'),'utf8')
   ok('portal build has no GitHub Pages meta (canonical/og/twitter)', !/rel="canonical"|property="og:|name="twitter:/.test(html))
+  ok('portal build has no home-screen assets or install metadata', !/data-web-app|rel="manifest"|apple-touch-icon|apple-mobile-web-app/.test(html.split("</head>")[0]))
   ok('only relative asset paths', /<script src="three\.min\.js">/.test(html) && !/src="\/|src="https?:\/\/[^"]*three/.test(html))
   let port = 0; for (let p=3040;p<=3044;p++) if (await free(p)) { port=p; break }   // 점유된 포트는 건드리지 않는다
   ok('found a free port in 3040–3044', port>0, String(port))

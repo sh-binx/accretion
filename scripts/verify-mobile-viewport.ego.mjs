@@ -148,6 +148,51 @@ try{
  await click('codexClose')
  assert.equal(await page.evaluate(()=>document.getElementById('codexScreen').classList.contains('off')),true)
  errors.push(...await page.evaluate(()=>window.__viewportErrors))
+ const ios=await inject(`
+ Object.defineProperty(navigator,'standalone',{get:()=>new URLSearchParams(location.search).get('home')==='legacy'})
+ const nativeMatch=window.matchMedia.bind(window)
+ window.matchMedia=query=>{
+  if(query==='(display-mode: standalone)'&&new URLSearchParams(location.search).get('home')==='media'){
+   return Object.assign(new EventTarget(),{matches:true,media:query})
+  }
+  return nativeMatch(query)
+ }
+ `)
+ await page.goto(base+'?dev=1&lang=ko')
+ await page.waitForFunction(()=>!!window.__acc)
+ await updateVisual(667,274)
+ await page.evaluate(insets=>['top','right','bottom','left'].forEach((side,i)=>
+  document.body.style.setProperty('--safe-'+side,insets[i]+'px')),insets)
+ await snapshot([0,0,667,274],['canvas','ribbon','startBtn','startCodex','startAwards','startLang','startFullscreenStatus'],insets)
+ const hintInBounds=await page.evaluate(()=>{
+  const r=$('startFullscreenStatus').getBoundingClientRect()
+  return ['ribbon','startBtn','startCodex','startAwards','startLang'].every(id=>{
+   const b=$(id).getBoundingClientRect()
+   return r.right<=b.left||r.left>=b.right||r.bottom<=b.top||r.top>=b.bottom
+  })
+ })
+ assert(hintInBounds,'짧은 가로 화면의 설치 안내가 메뉴 조작을 가리지 않음')
+ assert.match(await page.evaluate(()=>$('startFullscreenStatus').textContent),/홈 화면에 추가/)
+ await shot('safari-tab-ko')
+ await click('startLang')
+ assert.match(await page.evaluate(()=>$('startFullscreenStatus').textContent),/Add to Home Screen/)
+ await click('startBtn')
+ await page.waitForFunction(()=>document.body.classList.contains('playing'))
+ await page.evaluate(()=>hideOnboard())
+ await click('pauseBtn')
+ await page.waitForFunction(()=>__acc.pauseState().manual)
+ assert.match(await page.evaluate(()=>$('pauseFullscreenStatus').textContent),/Add to Home Screen/)
+ await snapshot([0,0,667,274],['canvas','resumeBtn','pauseFullscreenStatus'],insets)
+ await shot('safari-pause-en')
+ errors.push(...await page.evaluate(()=>window.__viewportErrors))
+ for(const mode of ['legacy','media']){
+  await page.goto(base+'?dev=1&lang=ko&home='+mode)
+  await page.waitForFunction(()=>!!window.__acc)
+  await updateVisual(667,375)
+  assert.deepEqual(await page.evaluate(()=>[$('startFullscreenStatus').textContent,$('pauseFullscreenStatus').textContent]),['',''],mode+' standalone 안내 숨김')
+  errors.push(...await page.evaluate(()=>window.__viewportErrors))
+ }
+ await remove(ios)
  await remove(unavailable)
  await remove(visual)
  await metrics(960,600,false)

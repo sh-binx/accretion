@@ -5,6 +5,7 @@
 교육형 3D 블랙홀 아케이드. 코드명 **ACCRETION**(변경 가능). Three.js r128, nova-surge slice 파이프라인 재활용, 포트 3040–3044.
 
 ## Design
+- [design/safari-home-screen-20261117.md](design/safari-home-screen-20261117.md) — iPhone Safari 홈 화면 실행과 포털 패키지 분리
 - [design/flight-ui-20261115.md](design/flight-ui-20261115.md) — 비행 HUD의 정보 위계, 에너지 조작대, 진화 비교, 수동·자동 정지 공유
 - [design/commercial-polish-20261115.md](design/commercial-polish-20261115.md) — 고도화 작업 브랜치·추격전 리듬·배포 전 남은 검증
 - [design/portal-loading.md](design/portal-loading.md) — 로딩 준비와 SDK 전달 분리 · 프레임별 중복 신호 회귀 · 실제 포털 확인 범위
