@@ -1,12 +1,12 @@
 // Stellar evolution arc verification — planetesimal → star → SUPERNOVA → black hole.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
 
-const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
+const browser = await webkit.launch()
 const page = await browser.newPage()
 const errors = []
 page.on('pageerror', e => errors.push('PAGEERR: '+e.message))

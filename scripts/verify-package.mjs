@@ -3,8 +3,8 @@
 import { createRequire } from 'module'
 import { execFileSync, spawn } from 'child_process'
 import fs from 'fs'; import os from 'os'; import path from 'path'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const ZIP = process.argv[2] || path.resolve(path.dirname(new URL(import.meta.url).pathname), '../dist/accretion-submission.zip')
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
@@ -21,13 +21,14 @@ try {
   execFileSync('unzip', ['-q', ZIP, '-d', dir])
   const html = fs.readFileSync(path.join(dir,'index.html'),'utf8')
   ok('portal build has no GitHub Pages meta (canonical/og/twitter)', !/rel="canonical"|property="og:|name="twitter:/.test(html))
+  ok('portal build has no home-screen assets or install metadata', !/data-web-app|rel="manifest"|apple-touch-icon|apple-mobile-web-app/.test(html.split("</head>")[0]))
   ok('only relative asset paths', /<script src="three\.min\.js">/.test(html) && !/src="\/|src="https?:\/\/[^"]*three/.test(html))
   let port = 0; for (let p=3040;p<=3044;p++) if (await free(p)) { port=p; break }   // 점유된 포트는 건드리지 않는다
   ok('found a free port in 3040–3044', port>0, String(port))
   srv = spawn('python3', ['-m','http.server',String(port),'--bind','127.0.0.1','--directory',dir], { stdio:'ignore' })
   for (let i=0;i<40 && await free(port);i++) await sleep(100)
 
-  browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
+  browser = await webkit.launch()
   const page = await browser.newPage({ viewport:{ width:1280, height:720 } })
   const errors=[], bad=[], ext=[]
   page.on('pageerror', e => errors.push('PAGEERR: '+e.message))

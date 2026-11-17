@@ -1,12 +1,12 @@
 // v1.1 재미·잔존 패스 검증(2026-10-09) — 생존 기회 · 초반 유예 · 별먼지/업그레이드/연속 · 세로 플레이 · GPU 누수.
 // 배경: CrazyGames Basic Launch 반려(D1 2.3% · 전환 55% · 모바일 40% · 평균 4분 43초 · gameplay crash 3.2%).
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1'
 const results = []
 const ok = (n, c, x = '') => { results.push([c, n, x]); console.log(`${c ? '✓' : '✗'} ${n}${x ? '  ' + x : ''}`) }
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-dev-shm-usage'] })
+const browser = await webkit.launch()
 const errors = []
 try {
   const page = await browser.newPage()

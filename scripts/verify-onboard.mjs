@@ -1,12 +1,12 @@
 // 출시 정리(2026-09-26) — 시작 카드 단순화 · 동사 이름 통일(PULL) · 동사는 풀릴 때 가르친다 · 후반 중앙 정리.
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
-const { chromium } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit } = require('playwright')
 const URL = 'http://localhost:3040/?dev=1&lang=en'
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
 const sleep = ms => new Promise(r=>setTimeout(r,ms))
-const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
+const browser = await webkit.launch()
 const page = await browser.newPage({ viewport:{ width:1280, height:720 } })
 const errors = []
 page.on('pageerror', e => errors.push('PAGEERR: '+e.message))
@@ -21,11 +21,11 @@ try {
   const card = await page.evaluate(() => ({ rows: document.querySelectorAll('#onb .ob-r').length, txt: document.getElementById('onb').innerText.replace(/\s+/g,' ') }))
   ok('start card: exactly two control rows (steer · dash)', card.rows===2, card.txt)
   ok('start card: no advanced verbs (pull/wave/hold)', !/SHIFT|PULL|WAVE|HOLD|FRAME|ORBIT|\bE\b|\bC\b/.test(card.txt), card.txt)
-  ok('start card: halo legend kept in one row', /EDIBLE.*EATS YOU.*SHATTERS YOU/.test(card.txt))
+  ok('start card: halo legend kept in one row', /edible.*eats you.*shatters you/i.test(card.txt))
   await page.keyboard.press('KeyD'); await sleep(150)
 
   // ── 동사 이름 통일: SHIFT = PULL (버튼 · 배너) ──
-  ok('ability button reads PULL', await page.evaluate(() => document.getElementById('actPulse').textContent.trim())==='◉ PULL')
+  ok('ability button reads PULL', await page.evaluate(() => document.querySelector('#actPulse span').textContent.trim())==='Pull')
   const pullBanner = await page.evaluate(() => { const A=window.__acc; A.setEnergy(1); A.doPulse(); return A.msgList().map(m=>m.main).join('|') })
   ok('PULL fires a banner with the same name', /◉ PULL/.test(pullBanner), pullBanner)
   ok('no stray SPIN / COLLAPSE PULSE naming in the page source', await page.evaluate(() => !/◉ SPIN|COLLAPSE PULSE|frame drag<\/i>/.test(document.documentElement.innerHTML)))

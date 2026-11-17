@@ -3,13 +3,13 @@
 //       진화 선택 카드 · 결과 화면(증발·포식) · 코덱스(39 전부 발견) · 업적 · 데일리.
 // 허용: 고유명사·기호(ACCRETION 워드마크, TON 618, M87*, R136a1, LIGO, WASD 키캡, 단위 M☉·K·M·B, 버전).
 import { createRequire } from 'module'
-const require = createRequire('/Users/chodaehee/dev/nova-surge/toss/package.json')
-const { chromium, devices } = require('playwright')
+const require = createRequire(import.meta.url)
+const { webkit, devices } = require('playwright')
 const BASE = 'http://localhost:3040/?dev=1&lang=ko'
 const results = []
 const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} ${n}${x?'  '+x:''}`) }
 const sleep = ms => new Promise(r=>setTimeout(r,ms))
-const ALLOW = /ACCRETION|TON\s?618|M87\*?|R136a1|LIGO|S2\b|WASD|\bv\d+\.\d+\.\d+|M☉|[0-9.,]+[KMB]\b|×\d+|\ba\s*=\s*M\b|\bA\*|\bE\b|\bC\b|\bF\b|\bW\b|\bA\b|\bS\b|\bD\b|X-1|\([A-Za-z -]+\)/g
+const ALLOW = /ACCRETION|Accretion|Safari|TON\s?618|M87\*?|R136a1|LIGO|S2\b|WASD|\bv\d+\.\d+\.\d+|M☉|[0-9.,]+[KMB]\b|×\d+|\ba\s*=\s*M\b|\bA\*|\bE\b|\bC\b|\bF\b|\bW\b|\bA\b|\bS\b|\bD\b|X-1|\([A-Za-z -]+\)/g
 const leftovers = s => (s.replace(ALLOW,' ').match(/[A-Za-z]{2,}(?:[ '’-][A-Za-z]{2,})*/g) || [])
 
 // 페이지 안: 보이는 잎 텍스트 + 이후 나타나는 모든 메시지 채널 텍스트를 수집한다
@@ -33,7 +33,7 @@ const VISIBLE = () => {   // 텍스트 노드 단위 — 자식이 섞인 버튼
   return out
 }
 
-const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
+const browser = await webkit.launch()
 const errors = []
 const bad = {}
 const note = (where, arr) => { for (const t of arr) { const l=leftovers(t); if (l.length) (bad[where] ||= new Set()).add(t.slice(0,90)+'  ⟶ '+l.join(',')) } }
@@ -49,6 +49,8 @@ try {
   note('menu', await page.evaluate(VISIBLE))
   await page.click('#startBtn'); await sleep(500)
   note('start card', await page.evaluate(VISIBLE))
+  const moveKeys=await page.evaluate(()=>[...document.querySelectorAll('#obMoveK b')].map(e=>e.textContent).join(''))
+  ok('Korean start card keeps WASD as physical key names', moveKeys==='WASD',moveKeys)
   await page.keyboard.press('KeyD'); await sleep(300)
   // 한 판을 티어별로 밀며 이벤트·배너·팝업을 최대한 발생시킨다
   await page.evaluate(async () => {

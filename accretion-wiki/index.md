@@ -5,10 +5,14 @@
 교육형 3D 블랙홀 아케이드. 코드명 **ACCRETION**(변경 가능). Three.js r128, nova-surge slice 파이프라인 재활용, 포트 3040–3044.
 
 ## Design
+- [design/safari-home-screen-20261117.md](design/safari-home-screen-20261117.md) — iPhone Safari 홈 화면 실행과 포털 패키지 분리
+- [design/flight-ui-20261115.md](design/flight-ui-20261115.md) — 비행 HUD의 정보 위계, 에너지 조작대, 진화 비교, 수동·자동 정지 공유
+- [design/commercial-polish-20261115.md](design/commercial-polish-20261115.md) — 고도화 작업 브랜치·추격전 리듬·배포 전 남은 검증
 - [design/portal-loading.md](design/portal-loading.md) — 로딩 준비와 SDK 전달 분리 · 프레임별 중복 신호 회귀 · 실제 포털 확인 범위
 - [design/concept.md](design/concept.md) — **핵심 기획**: 코어 루프(움직이며 먹고 성장) + 실제 물리를 규칙으로(호킹 복사 축소타이머·질량 위계·조석 파괴·중력 렌징) + 3D 차별점 + 프로토 스코프
 
 ## Decisions
+- [[decisions/2026-09-26-release-build]] — 출시 빌드 v1.0.0 — 리더보드 OFF·포털 요건·동사 이름 통일 (09-26)
 - [decisions/2026-10-09-v1.1-fun-retention.md](decisions/2026-10-09-v1.1-fun-retention.md) — v1.1: 초보 10초 사망·세로 차단·GPU 누수 실측 → 생존 기회·유예·세로·별먼지 업그레이드·데일리 연속
 - [decisions/2026-09-26-release-build.md](decisions/2026-09-26-release-build.md) — 출시 빌드 v1.0.0: 글로벌 리더보드 OFF(부활 조건) · 포털 요건(일시정지·광고 뮤트·locale·사이트락·DEV 게이트) · SHIFT 동사 = PULL
 

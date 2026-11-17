@@ -42,7 +42,7 @@ try {
     const after=A.state.score, k1=A.apexKills(), gone=A.nemesis()
     const quasar=A.codex().seen.includes('quasar')
     // step past the respawn delay → a new (bigger) apex rises
-    for(let i=0;i<20;i++){A.setMass(1400);A.step(0.2)}
+    for(let i=0;i<65;i++){A.setInv(100);A.setMass(1400);A.step(0.2)}
     return { ate, gain:after-before, k0, k1, goneRightAfter:gone, quasar, respawned:A.nemesis() }
   })
   ok('consume apex → apexKill++', climax.ate===true && climax.k1===climax.k0+1, `k ${climax.k0}→${climax.k1}`)

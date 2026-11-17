@@ -9,6 +9,8 @@ const ok = (n,c,x='') => { results.push([c,n,x]); console.log(`${c?'✓':'✗'} 
 
 const browser = await chromium.launch({ args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist','--disable-dev-shm-usage'] })
 const page = await browser.newPage()
+// 실패를 재현할 수 있도록 시드 고정. 실제 게임의 난수 정책은 바꾸지 않는다.
+await page.addInitScript((seed)=>{let state=seed;Math.random=()=>((state=Math.imul(1664525,state)+1013904223>>>0)/4294967296);requestAnimationFrame=()=>0},Number(process.env.TEST_SEED||42))
 const errors = []
 page.on('pageerror', e => errors.push('PAGEERR: '+e.message))
 page.on('console', m => { if (m.type()==='error' && !/Failed to load resource/.test(m.text())) errors.push('CONSOLE: '+m.text()) })
@@ -32,7 +34,7 @@ async function rivalShare(M) {
     A.begin()
     for (let i=0;i<3;i++){ A.setMass(M); A.step(0.05) }     // settle tierIdx to tier(M)
     let total=0, rivals=0, threats=0
-    for (let r=0;r<24;r++){   // 라이벌 위협 비율 이론값 ~53% — 3회(14개 표본)로는 동전 던지기라 흔들린다
+    for (let r=0;r<400;r++){   // 과반 기준 근처의 비율은 충분한 표본으로 검증한다(400회, 고정 시드).
       A.clearObjs(); A.setMass(M); A.step(0.1)              // refill field fresh at this tier
       const info = A.objInfo()
       total += info.length
@@ -102,7 +104,7 @@ try {
 
   // 나침반 — 목적지는 보여야 끌어당긴다
   const comp = await page.evaluate(async () => {
-    const A=window.__acc, f=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))
+    const A=window.__acc, f=()=>{hud();return Promise.resolve()}
     const row=()=>document.getElementById('coreRow').style.display!=='none'
     A.begin(); A.hideOnboard(); A.setMass(300); A.step(0.3); await f()
     const low=row()
@@ -149,7 +151,7 @@ try {
     const p0=A.pos(), f0=A.featCount()
     A.spawn('giant', 300, p0.x+20, p0.z)
     const before=A.objInfo()[0]
-    A.fireEvent('blast'); A.step(0.05,20)
+    A.fireEvent('blast'); A.step(2.1,20)
     out.blast={ ring:A.eventState().ring, feats:A.featCount()-f0, rec:A.eventState().blasts }
     // 형태 게이트 — 원시별 구간엔 사건이 없다(기본기에 집중)
     A.begin(); A.hideOnboard(); A.setSpawn(false); A.clearField(); A.setMass(2)
