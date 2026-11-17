@@ -11,3 +11,9 @@
 - ego9939·자체서버PID47689 종료 및 소멸 확인. `.codex/` 미추적 보존.
 
 최신 실물 iPhone Safari 주소창/홈화면·장시간 성능, 실계정 클라우드 저장, 인간 초심자 재미/유지율은 미검증이다. 준비시험과 실제입력 자동파일럿의 근거를 실물 검증으로 확대하지 않는다. root의 집중 독립검토 후 배포판정을 받는다.
+
+## 운영 배포 확인
+
+2026-11-17 10:54 KST 기존 PR #1을 병합했다. 운영 커밋은 `5818ec9b47effe2b54dcf6448822ca5e322a9b47`, GitHub Pages build 상태는 `built`다. 10:57 KST 공개 index.html·manifest·manifest에 명시된 아이콘 두 개 모두 HTTP 200, MIME 정상, 검수본과 바이트가 일치했다. index SHA-256은 `c58eea1dbbd668e892d20254593f2e3be71626a3f6704414d1637d3081958853`. 증거는 `artifacts/release-integration/production-http.json`. 공개 주소는 https://sh-binx.github.io/accretion/ 이다.
+
+이전 운영 기준 `3d639e5132265a81b10b7f0eb96145595af3847c`를 보존한다. 회귀 발생 시 병합 커밋의 첫 부모 기준 revert를 별도 브랜치/PR로 검증해 복구한다. 공개 브라우저 실플레이 확인은 별도 후속이며 HTTP 성공만으로 이를 대신하지 않는다.
